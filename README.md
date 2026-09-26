@@ -130,6 +130,7 @@ src/renderer/   로컬 화면
 src/mcp/        같은 핵심 기능에 연결하는 stdio MCP
 tests/         저장 및 MCP 통합 검사
 outputs/       기획·UX 문서와 시작 안내
+outputs/archive/  더 이상 기준이 아닌 이전 기획·조사 자료
 ```
 
 렌더러의 Node 직접 접근을 끄고, context isolation과 sandbox를 사용하며, IPC 송신 화면을 검증합니다. 외부 페이지로 이동하거나 새 창을 열지 않습니다. [Electron IPC](https://www.electronjs.org/docs/latest/tutorial/ipc), [Electron Security](https://www.electronjs.org/docs/latest/tutorial/security)
