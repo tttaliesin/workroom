@@ -15,6 +15,13 @@ import {
 } from './setup-views.js';
 import { data, hasTaskPane, portfolioArea, product, requestDraft, ui } from './state.js';
 import { linkPage, operations, taskNav, taskPane } from './work-views.js';
+const shellClass = () =>
+  [
+    'shell',
+    hasTaskPane() ? 'with-taskpane' : 'overview-shell',
+    ui.listOpen ? 'show-list' : '',
+    data.products.length ? '' : 'no-products',
+  ].join(' ');
 function workspaceNavigation() {
   if (['account', 'connection', 'new-product'].includes(ui.view))
     return html`<span class="view-label">
@@ -118,7 +125,7 @@ export function shellHTML() {
         ${button('새로고침', 'refresh', `class="plain" ${ui.busy ? 'disabled' : ''}`)}
       </div>
     </header>
-    <div class="shell ${hasTaskPane() ? 'with-taskpane' : 'overview-shell'} ${ui.listOpen ? 'show-list' : ''} ${data.products.length ? '' : 'no-products'}">
+    <div class="${shellClass()}">
       <aside class="sidebar">
         <div class="nav-label">내 제품</div>
         <nav class="products" aria-label="등록한 제품">${data.products.map(taskNav).join('')}</nav>

@@ -489,7 +489,12 @@ export function connectedOutcome(task, data) {
       <h2>이 결과가 이어진 곳</h2>
       <div>
         ${button(`작업 결과 · ${c.records.length}개 기록 연결`, `task:${task.resultTaskId}`, 'class="plain"')}
-        ${c.portfolios.map((p) => button(e(p.target) + ' 초안', `target:${p.id}`, 'class="plain"')).join('') || button('포트폴리오에 활용', `task-portfolio:${task.resultTaskId}`, 'class="plain"')}
+        ${
+          c.portfolios
+            .map((p) => button(e(p.target) + ' 초안', `target:${p.id}`, 'class="plain"'))
+            .join('') ||
+          button('포트폴리오에 활용', `task-portfolio:${task.resultTaskId}`, 'class="plain"')
+        }
       </div>
       <p class="small muted">기록 제공과 초안 반영은 실제 활용 효과·웹 공개와 구분합니다.</p>
     </section>`;

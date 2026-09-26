@@ -1,6 +1,15 @@
 import { automationOrigin } from './operations-ui.js';
 import { taskJourney, connectedOutcome } from './product-overview.js';
 import { html, e } from './html.js';
+const acceptUnconfirmed = html`<label class="check-option">
+  <input type="checkbox" name="acceptUnconfirmed" required>미확인 검사 범위를 읽었으며
+  이 수정본을 적용합니다.</label>`;
+const runStates = {
+  completed: '결과 저장',
+  running: '진행 중',
+  failed: '미완료',
+  interrupted: '중단됨',
+};
 const button = (label, action, extra = '') =>
   `<button type="button" data-action="${action}" ${extra}>${label}</button>`;
 const header = (title, subtitle) =>
@@ -114,6 +123,9 @@ export function changeDetail(task, data) {
     'check_failed',
     'changes_requested',
   ].includes(task.status);
+  const resumeLabel = ['check_failed', 'changes_requested', 'needs_review'].includes(task.status)
+    ? '수정안 보완하기'
+    : '이 단계부터 재개';
   return (
     header(
       task.title,
@@ -135,7 +147,7 @@ export function changeDetail(task, data) {
       </section>
     <div class="actions">
         ${['queued', 'running', 'waiting_auth'].includes(task.status) ? button('이 작업 중지', `agent-stop:${task.id}`) : ''}
-        ${canResume ? button(['check_failed', 'changes_requested', 'needs_review'].includes(task.status) ? '수정안 보완하기' : '이 단계부터 재개', `agent-resume:${task.id}`) : ''}
+        ${canResume ? button(resumeLabel, `agent-resume:${task.id}`) : ''}
         ${['waiting_auth', 'waiting_quota'].includes(task.status) ? button('계정 연결 보기', 'nav:account') : ''}
         ${task.status === 'apply_conflict' ? button('최신 원본으로 새 수정안', `agent-replan:${task.id}`) : ''}
         ${task.resultTaskId ? button('반영 결과와 기록', `task:${task.resultTaskId}`) : ''}
@@ -200,7 +212,7 @@ export function changeDetail(task, data) {
         <p class="gap">${change.changes.length}개 파일의 위 변경을 반영합니다. 원본의 다른 변경을 발견하면 멈춥니다. 반영 전후 내용과 검사 기록은 작업에
         남습니다.</p>
         <form data-form="change-apply" data-id="${task.id}" class="form gap">
-          ${checks?.status !== 'passed' ? '<label class="check-option"><input type="checkbox" name="acceptUnconfirmed" required>미확인 검사 범위를 읽었으며 이 수정본을 적용합니다.</label>' : ''}
+          ${checks?.status !== 'passed' ? acceptUnconfirmed : ''}
           <div>
             <button type="submit" class="primary">
               ${task.status === 'apply_partial' ? '현재 파일 확인 후 나머지 반영' : '검토한 수정본 반영'}
@@ -224,7 +236,7 @@ export function changeDetail(task, data) {
         ${runs
           .map(
             (r) => html`<article class="record">
-        <h3>${e(roles[r.role])} · ${e({ completed: '결과 저장', running: '진행 중', failed: '미완료', interrupted: '중단됨' }[r.status] || r.status)}
+        <h3>${e(roles[r.role])} · ${e(runStates[r.status] || r.status)}
         </h3>
         <p class="small muted gap">
           ${r.role === 'check' ? '앱의 고정 검사' : e(r.modelId)} · ${r.turns || 0} 모델 턴</p>

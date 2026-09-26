@@ -2,6 +2,8 @@ import { html, button, date, e, empty, field, header } from './html.js';
 import { operationSettings } from './operations-ui.js';
 import { data, product, ui } from './state.js';
 import { observation } from './work-views.js';
+const unconfirmedCapture = html`<p class="small muted gap">설정 저장만으로 실행이 확인된 것은 아닙니다.
+  Codex에서 이 프로젝트를 다시 열고 /hooks에서 작업실 훅을 검토·신뢰하면 다음 작업부터 수집합니다.</p>`;
 export function accountReturnNotice() {
   const pending = ui.accountReturn && data.products.find((p) => p.id === ui.accountReturn),
     draft = pending && ui.requests[pending.id];
@@ -74,10 +76,18 @@ function captureSetup(p) {
       <p class="small muted gap">이 제품에서 파일 변경·검사 명령이 있었던 응답을 기록합니다. 일반 대화, 사용자 프롬프트와 전체 대화 로그는 수집하지 않습니다.</p>
       <div class="actions">
         ${button('연결 설정 확인', `codex-prepare:${p.id}`)}
-        ${typeof p.codexCaptureEnabled === 'boolean' ? button(p.codexCaptureEnabled ? '수집 끄기' : '수집 다시 켜기', `codex-toggle:${p.id}`, 'class="plain"') : ''}
+        ${
+          typeof p.codexCaptureEnabled === 'boolean'
+            ? button(
+                p.codexCaptureEnabled ? '수집 끄기' : '수집 다시 켜기',
+                `codex-toggle:${p.id}`,
+                'class="plain"',
+              )
+            : ''
+        }
         ${connection?.lastTaskId ? button('최근 수집 작업', `task:${connection.lastTaskId}`, 'class="link"') : ''}
       </div>
-      ${p.codexCaptureEnabled && !connection ? '<p class="small muted gap">설정 저장만으로 실행이 확인된 것은 아닙니다. Codex에서 이 프로젝트를 다시 열고 /hooks에서 작업실 훅을 검토·신뢰하면 다음 작업부터 수집합니다.</p>' : ''}
+      ${p.codexCaptureEnabled && !connection ? unconfirmedCapture : ''}
       ${
         plan
           ? html`<div class="hook-plan note">

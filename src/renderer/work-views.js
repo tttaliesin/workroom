@@ -514,6 +514,14 @@ function workDetail(t) {
     }`
   );
 }
+// What correcting this link does to a portfolio case built from the affected reports.
+function impactNote(source, isMovedReport) {
+  if (!source?.automatic || source.editedFields.length)
+    return '직접 쓴 문장 보존 · 근거 재확인 표시';
+  if (isMovedReport && ui.linkParent)
+    return '자동 생성한 별도 사례 제외 · 원문은 연결한 작업에서 보존';
+  return '자동 생성한 문장을 현재 연결로 갱신';
+}
 export function linkPage() {
   const report = data.tasks.find((t) => t.id === ui.linkTaskId);
   if (!report) return empty('보고를 찾을 수 없습니다.', '목록에서 다시 선택하세요.');
@@ -549,9 +557,9 @@ export function linkPage() {
                       .filter((x) => affected.has(x.taskId))
                       .map((x) => {
                         const source = p.entrySources?.[x.taskId];
-                        return html`<p class="small muted
-                        gap">${e(x.title)} · ${!source?.automatic || source.editedFields.length ? '직접 쓴 문장 보존 · 근거 재확인 표시' : x.taskId === report.id && ui.linkParent ? '자동 생성한 별도 사례 제외 · 원문은 연결한 작업에서 보존' : '자동 생성한 문장을 현재 연결로 갱신'}
-                      </p>`;
+                        return html`<p class="small muted gap">
+                          ${e(x.title)} · ${impactNote(source, x.taskId === report.id)}
+                        </p>`;
                       })
                       .join('')}
                   </div>`,

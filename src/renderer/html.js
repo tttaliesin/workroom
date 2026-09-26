@@ -40,7 +40,11 @@ export const header = (title, subtitle, action = '') =>
 export const field = (id, label, value = '', type = 'input', extra = '') =>
   html`<div>
       <label for="${id}">${label}</label>
-      ${type === 'textarea' ? `<textarea id="${id}" name="${id}" ${extra}>${e(value)}</textarea>` : `<input id="${id}" name="${id}" value="${e(value)}" ${extra}>`}
+      ${
+        type === 'textarea'
+          ? `<textarea id="${id}" name="${id}" ${extra}>${e(value)}</textarea>`
+          : `<input id="${id}" name="${id}" value="${e(value)}" ${extra}>`
+      }
     </div>`;
 export const empty = (heading, content) =>
   html`<div class="empty">
@@ -59,4 +63,6 @@ const icons = {
   list: '<path d="M8 6h13M8 12h13M8 18h13M3 6h1M3 12h1M3 18h1"/>',
 };
 export const icon = (name) =>
-  `<svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name] || icons.pending}</svg>`;
+  html`<svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+    stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true">${icons[name] || icons.pending}</svg>`;

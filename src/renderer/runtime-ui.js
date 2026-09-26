@@ -2,6 +2,14 @@ import { managedDetail, automationOrigin } from './operations-ui.js';
 import { changeDetail } from './change-ui.js';
 import { taskJourney, connectedOutcome } from './product-overview.js';
 import { html, e } from './html.js';
+const runStates = {
+  completed: '결과 저장',
+  running: '진행 중',
+  failed: '미완료',
+  stopping: '종료 확인 중',
+  interrupted: '중단됨',
+  discarded: '현재 결과에 미반영',
+};
 const button = (label, action, extra = '') =>
   `<button type="button" data-action="${action}" ${extra}>${label}</button>`;
 const heading = (title, subtitle) =>
@@ -237,7 +245,7 @@ export function agentDetail(task, data) {
         ${runs
           .map(
             (r) => html`<article class="record">
-        <h3>${e(stageLabels[r.role])} · ${e({ completed: '결과 저장', running: '진행 중', failed: '미완료', stopping: '종료 확인 중', interrupted: '중단됨', discarded: '현재 결과에 미반영' }[r.status] || r.status)}
+        <h3>${e(stageLabels[r.role])} · ${e(runStates[r.status] || r.status)}
         </h3>
         <p class="small muted gap">${e(r.modelId)} · ${r.turns || 0}턴 ·
         관측 ${Number(r.tokens || 0).toLocaleString()} 토큰 · 파일 도구 ${r.toolCalls || 0}회</p>

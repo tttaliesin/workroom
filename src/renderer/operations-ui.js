@@ -1,4 +1,12 @@
 import { html, e } from './html.js';
+const startedToday = (p, data) =>
+  data.tasks.filter(
+    (t) => t.productId === p.id && t.automation?.day === new Date().toLocaleDateString('sv-SE'),
+  ).length;
+function runLine(r) {
+  const usage = `${r.turns || 0}턴 · ${Number(r.tokens || 0).toLocaleString()} 토큰`;
+  return `<p class="small gap">${e(r.role)} · ${e(r.status)} · ${usage}</p>`;
+}
 const b = (label, action, extra = '') =>
   `<button type="button" data-action="${action}" ${extra}>${label}</button>`;
 const date = (x) =>
@@ -42,7 +50,7 @@ export function operationOverview(p, data) {
         <h2>지속 운영</h2>${b('설정', 'nav:scope', 'class="link"')}</div>
       <p class="small muted">${e(operationStatus(p, data))}</p>
       <p class="small muted">최근 확인 ${date(s.lastAt)}
-        ${s.enabled ? ` · 오늘 ${data.tasks.filter((t) => t.productId === p.id && t.automation?.day === new Date().toLocaleDateString('sv-SE')).length}/${s.maxDailyStarts}개 시작` : ''}
+        ${s.enabled ? ` · 오늘 ${startedToday(p, data)}/${s.maxDailyStarts}개 시작` : ''}
       </p>
       ${s.lastReason ? `<p class="small muted">${e(s.lastReason)}</p>` : ''}
       <div class="actions">
@@ -75,7 +83,11 @@ export function operationIssues(p, data) {
             <p class="small muted gap">${e(i.reason)}</p>
             <div class="actions">
               ${b('발견 근거', `task:${i.operationTaskId}`, 'class="link"')}
-              ${i.changeTaskId || i.investigationId ? b('연결된 작업', `task:${i.changeTaskId || i.investigationId}`, 'class="link"') : b('조사 시작', `issue-start:${i.id}`, 'class="plain"')}
+              ${
+                i.changeTaskId || i.investigationId
+                  ? b('연결된 작업', `task:${i.changeTaskId || i.investigationId}`, 'class="link"')
+                  : b('조사 시작', `issue-start:${i.id}`, 'class="plain"')
+              }
               ${b('보류', `issue-defer:${i.id}`, 'class="link"')}
             </div>
           </article>`,
@@ -191,7 +203,7 @@ export function managedDetail(task, data) {
     }
     ${edit ? portfolioEditResult(edit) : ''}<details class="section">
       <summary>실행과 근거 · ${runs.length}회</summary>
-      ${runs.map((r) => `<p class="small gap">${e(r.role)} · ${e(r.status)} · ${r.turns || 0}턴 · ${Number(r.tokens || 0).toLocaleString()} 토큰</p>`).join('')}
+      ${runs.map(runLine).join('')}
       ${evidence
         .map(
           (f) => html`<details class="record">
