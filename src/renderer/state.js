@@ -38,8 +38,10 @@ Object.assign(ui, {
 });
 export let data = { products: [], tasks: [], records: [], portfolios: [], audit: [] };
 try {
+  // Reopening always starts on the last product's overview (PRODUCT.md §4); only the selections
+  // that each area resumes from are restored, never the last screen itself.
   const saved = JSON.parse(localStorage.getItem('workroom-navigation') || 'null');
-  if (saved && ['home', 'ops', 'portfolio', 'scope', 'product', 'records'].includes(saved.view)) {
+  if (saved && typeof saved === 'object') {
     for (const key of ['productId', 'taskId', 'portfolioId', 'taskQuery'])
       if (typeof saved[key] === 'string') ui[key] = saved[key];
     for (const key of ['lastTasks', 'lastQueries'])

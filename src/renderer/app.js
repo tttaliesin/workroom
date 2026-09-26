@@ -366,7 +366,6 @@ function render() {
       localStorage.setItem(
         'workroom-navigation',
         JSON.stringify({
-          view: ui.view,
           productId: ui.productId,
           taskId: ui.taskId,
           portfolioId: ui.portfolioId,

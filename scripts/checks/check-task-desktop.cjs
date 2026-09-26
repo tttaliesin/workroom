@@ -77,7 +77,10 @@ const launch = () => electron.launch({ executablePath: require('electron'), args
   assert.match(await page.locator('.checks').innerText(),/통과 보고/);assert.match(await page.locator('.checks').innerText(),/미확인/);
   await page.screenshot({path:path.join(workDir,'task-desktop-test.png')});
   await app.close();app=await launch();page=await app.firstWindow();setup();
-  await page.getByRole('navigation',{name:'제품 화면'}).getByRole('button',{name:'작업',exact:true}).click();await task('검색 누락 수정');await click('포트폴리오 초안 보기');assert.match(await page.locator('.paper').innerText(),/개발 도구를 만드는/);
+  // Reopening starts on the product overview and the task area resumes the last task read (PRODUCT.md §4).
+  await page.getByRole('heading',{name:'검증 제품',exact:true,level:1}).waitFor();
+  await page.getByRole('navigation',{name:'제품 화면'}).getByRole('button',{name:'작업',exact:true}).click();
+  await page.getByRole('heading',{name:'구조화된 근거 확인',exact:true,level:1}).waitFor();await task('검색 누락 수정');await click('포트폴리오 초안 보기');assert.match(await page.locator('.paper').innerText(),/개발 도구를 만드는/);
   await click('MCP 연결');await click('연결 설정 보기');await page.getByRole('heading',{name:'stdio 연결 설정'}).waitFor();
   await click('+ 제품 등록');await app.evaluate(({dialog},folder)=>{dialog.showOpenDialog=async()=>({canceled:false,filePaths:[folder]});},repo);
   await page.getByLabel('제품 이름',{exact:true}).fill('추가 제품');await click('폴더 선택');await page.getByLabel('지금 이 제품에서 이루고 싶은 것').fill('다른 목표');await click('제품 등록');
