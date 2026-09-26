@@ -19,7 +19,7 @@ const {pathToFileURL}=require('node:url');const root=path.resolve(__dirname,'../
    return {result:{verdict:'supported',assessment:'합계 함수가 덧셈을 사용하며, 같은 테스트가 수정 전 실패·수정 후 통과한 기록을 확인했습니다.',evidenceIds:[file.evidenceId],limitations:'예제 모델 응답입니다. Node 검사는 실제로 실행했습니다.'}};
  }};
  engine=new AgentEngine(room,broker,{agentDirectory:path.join(directory,'pi'),nodeExecutable:process.execPath});engine.configure({modelId:'fixture-model'});
- const task=engine.start({productId:product.id,goal:'합계 계산 수정',mode:'change',testFiles:['sum.test.mjs']});
+ const task=engine.start({productId:product.id,goal:'합계 계산 수정',mode:'change',testFiles:['sum.test.mjs'],allowTests:true});
  for(let i=0;i<400 && (room.store.get('task',task.id).status!=='awaiting_apply' || engine.active.size);i++)await new Promise(r=>setTimeout(r,20));
  assert.equal(room.store.get('task',task.id).status,'awaiting_apply');engine.closed=true;room.close();
  const env={...process.env,WORKROOM_DATA_DIR:directory,WORKROOM_HEADLESS:'1',WORKROOM_NODE:process.execPath};delete env.ELECTRON_RUN_AS_NODE;

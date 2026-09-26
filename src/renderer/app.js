@@ -589,6 +589,8 @@ app.addEventListener('click', async (event) => {
         goal: previous.goal,
         mode: 'change',
         testFiles: previous.testFiles,
+        // The replaced task was only started with the user's consent for these tests.
+        allowTests: previous.testFiles.length > 0,
       });
       await refresh();
       ui.taskId = task.id;
@@ -908,6 +910,7 @@ app.addEventListener('submit', (event) => {
           goal: draft.goal,
           mode: draft.mode,
           testFiles,
+          allowTests: !!draft.allowTests,
           ...(draft.sourceTaskId ? { sourceTaskId: draft.sourceTaskId } : {}),
         });
         delete ui.requests[ui.productId];
@@ -934,6 +937,7 @@ app.addEventListener('submit', (event) => {
           goal: values.goal,
           mode: 'change',
           testFiles,
+          allowTests: !!values.allowTests,
         });
         await refresh();
         ui.taskId = task.id;

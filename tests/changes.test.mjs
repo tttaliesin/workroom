@@ -145,6 +145,7 @@ async function fixture(
     goal: 'repair add',
     mode: 'change',
     testFiles,
+    allowTests: true,
   });
   t.after(async () => {
     engine.closed = true;
@@ -300,6 +301,7 @@ test('same-product changes serialize and different test scopes are not silently 
     goal: 'repair add',
     mode: 'change',
     testFiles: ['math.test.mjs'],
+    allowTests: true,
   });
   assert.equal(same.id, f.task.id);
   const different = f.engine.start({
@@ -313,6 +315,23 @@ test('same-product changes serialize and different test scopes are not silently 
   assert.equal(f.room.store.get('task', different.id).status, 'queued');
   assert.deepEqual(f.calls, ['develop']);
   await f.engine.stop({ id: different.id });
+  f.broker.release();
+  await ready(f);
+});
+test('selected tests are refused without explicit consent to run product code', async (t) => {
+  const f = await fixture(t, { hold: true });
+  await until(() => !!f.broker.release);
+  assert.throws(
+    () =>
+      f.engine.start({
+        productId: f.product.id,
+        goal: 'run the product tests',
+        mode: 'change',
+        testFiles: ['math.test.mjs'],
+      }),
+    /지정한 테스트의 실행을 허용/,
+  );
+  assert.equal(f.room.store.list('task').filter((x) => x.kind === 'agent').length, 1);
   f.broker.release();
   await ready(f);
 });

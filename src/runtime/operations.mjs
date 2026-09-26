@@ -374,6 +374,8 @@ export class Operations {
               mode: 'change',
               sourceTaskId: t.id,
               testFiles: p.testFiles,
+              // configure() refuses a change policy with tests unless allowTests was given.
+              allowTests: true,
             },
             {
               title: issue.title,

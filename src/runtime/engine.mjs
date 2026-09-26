@@ -134,6 +134,7 @@ export class AgentEngine {
       goal,
       mode = 'investigation',
       testFiles = [],
+      allowTests = false,
       sourceTaskId,
     } = z
       .object({
@@ -141,10 +142,14 @@ export class AgentEngine {
         goal: z.string().trim().min(1).max(2000),
         mode: z.enum(['investigation', 'change']).optional(),
         testFiles: z.array(z.string().max(1024)).max(8).optional(),
+        allowTests: z.boolean().optional(),
         sourceTaskId: z.string().uuid().optional(),
       })
       .strict()
       .parse(input);
+    // Selected tests run product code, so every caller must pass the user's explicit consent.
+    if (testFiles.length && !allowTests)
+      throw new Error('지정한 테스트의 실행을 허용하거나 테스트 경로를 비워주세요.');
     for (const file of testFiles) {
       relativeFile(file);
       if (/[*?\[\]{}]/.test(file) || !/\.(?:test|spec)\.(?:mjs|cjs|js)$/.test(file))
