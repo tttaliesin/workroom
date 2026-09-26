@@ -112,6 +112,8 @@ pnpm test
 
 Electron 화면은 별도로 Playwright의 Electron API로 등록 → 점검 → 판단 → 결과 기록 → 포트폴리오 → HTML 저장 → 재시작 복원을 확인했습니다. OS의 파일 선택 창만 검사 경로로 대체하고, 실제 IPC·서비스·SQLite·내보내기를 사용했습니다. 테스트 데이터는 `work/` 아래에 격리됩니다.
 
+`pnpm check:app`은 예제 데이터로 실제 Electron 앱을 띄우는 화면 흐름 검사 11개를 실행합니다(약 1분). 화면을 바꾸면 함께 실행하세요. [검사 스크립트 안내](scripts/checks/README.md)
+
 `scripts/checks/check-live-report.cjs`는 별도 MCP 프로세스에서 보고를 전송해 실제 Electron의 자동 갱신·편집 병합·충돌 비교·제외 보존·구독 중단·내보내기 검토 보호를 검사합니다. 상세 계약은 [작업 보고 연결](outputs/report-flow.md)에 있습니다.
 
 `scripts/checks/check-codex-setup.cjs`는 격리된 제품에서 설정 저장 → 생성된 훅 프로세스 → 앱 표시 → 초안 반영 → 수집 중단을 검사합니다. 실제 Codex의 이벤트 발생은 대체했으며 신뢰 설정을 우회하지 않았습니다. [Codex 자동 수집 안내](outputs/codex-capture.md).
