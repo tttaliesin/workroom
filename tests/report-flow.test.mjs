@@ -1,15 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdirSync, mkdtempSync } from 'node:fs';
+import { rm } from 'node:fs/promises';
 import path from 'node:path';
 import { Workroom } from '../src/core/service.mjs';
 import { projectRoot } from '../src/core/paths.mjs';
 import { mergeDraft } from '../src/renderer/merge-draft.js';
 
-async function fixture() {
+async function fixture(t) {
   const parent = path.join(projectRoot, 'work/tests');
   mkdirSync(parent, { recursive: true });
   const dir = mkdtempSync(path.join(parent, 'report-flow-'));
+  t.after(() => rm(dir, { recursive: true, force: true }));
   const a = new Workroom(path.join(dir, 'workroom.sqlite'));
   const p = await a.createProduct({ name: 'A', folder: dir });
   const otherFolder = path.join(dir, 'other');
@@ -38,8 +40,8 @@ const save = (a, p, change = {}) =>
   });
 const get = (a, p) => a.snapshot().portfolios.find((x) => x.id === p.id);
 
-test('report identity is durable, product-scoped, versioned, and preserves excluded knowledge', async () => {
-  const { a, p, q, db } = await fixture();
+test('report identity is durable, product-scoped, versioned, and preserves excluded knowledge', async (t) => {
+  const { a, p, q, db } = await fixture(t);
   const b = new Workroom(db);
   try {
     const input = report(p.id);
@@ -81,8 +83,8 @@ test('report identity is durable, product-scoped, versioned, and preserves exclu
   }
 });
 
-test('subscribed drafts receive reports while manual text, exclusions, other targets, and exports remain intact', async () => {
-  const { a, p, q } = await fixture();
+test('subscribed drafts receive reports while manual text, exclusions, other targets, and exports remain intact', async (t) => {
+  const { a, p, q } = await fixture(t);
   try {
     let folio = a.createPortfolio({ target: '자동 대상', autoProductIds: [p.id] });
     const manual = a.createPortfolio({ target: '수동 대상' });
@@ -131,8 +133,8 @@ test('subscribed drafts receive reports while manual text, exclusions, other tar
   }
 });
 
-test('draft capacity queues new work, removing a case fills a slot, and stopping clears only pending inclusion', async () => {
-  const { a, p } = await fixture();
+test('draft capacity queues new work, removing a case fills a slot, and stopping clears only pending inclusion', async (t) => {
+  const { a, p } = await fixture(t);
   try {
     let f = a.createPortfolio({ target: '한도 검사', autoProductIds: [p.id] });
     for (let i = 0; i < 22; i++) a.reportWork(report(p.id, `task-${i}`), 'mcp');
@@ -154,8 +156,8 @@ test('draft capacity queues new work, removing a case fills a slot, and stopping
   }
 });
 
-test('report, knowledge, and derived drafts roll back together on a write failure', async () => {
-  const { a, p } = await fixture();
+test('report, knowledge, and derived drafts roll back together on a write failure', async (t) => {
+  const { a, p } = await fixture(t);
   try {
     const f = a.createPortfolio({ target: '원자성', autoProductIds: [p.id] });
     const before = a.snapshot();
@@ -174,8 +176,8 @@ test('report, knowledge, and derived drafts roll back together on a write failur
   }
 });
 
-test('in-progress edits merge incoming reports but concurrent manual conflicts require an explicit choice', async () => {
-  const { a, p } = await fixture();
+test('in-progress edits merge incoming reports but concurrent manual conflicts require an explicit choice', async (t) => {
+  const { a, p } = await fixture(t);
   try {
     const f = a.createPortfolio({ target: '병합', autoProductIds: [p.id] });
     const input = report(p.id);

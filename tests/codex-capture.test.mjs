@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { rm } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { Workroom } from '../src/core/service.mjs';
@@ -8,8 +9,9 @@ import { projectRoot } from '../src/core/paths.mjs';
 import { captureCodexEvent } from '../src/integrations/codex-capture.mjs';
 import { prepareCodexSetup, installCodexSetup } from '../src/integrations/codex-setup.mjs';
 
-async function fixture() {
+async function fixture(t) {
   const dir = mkdtempSync(path.join(projectRoot, 'work/capture-'));
+  t.after(() => rm(dir, { recursive: true, force: true }));
   const folder = path.join(dir, '한글 프로젝트');
   mkdirSync(folder);
   const database = path.join(dir, 'workroom.sqlite');
@@ -39,8 +41,8 @@ const stopEvent = (base) => ({
   last_assistant_message: '입력 보존을 구현했습니다.\n이것은 수집기 검증용 응답입니다.',
 });
 
-test('capture requires opt-in and scoped activity; chat, outside cwd, and interrupted turns do not become work', async () => {
-  const { room, product, base, dir } = await fixture();
+test('capture requires opt-in and scoped activity; chat, outside cwd, and interrupted turns do not become work', async (t) => {
+  const { room, product, base, dir } = await fixture(t);
   try {
     assert.equal(captureCodexEvent(room, product.id, patchEvent(base)).status, 'disabled');
     room.setCodexCapture({ productId: product.id, enabled: true });
@@ -66,8 +68,8 @@ test('capture requires opt-in and scoped activity; chat, outside cwd, and interr
   }
 });
 
-test('collected turns retain evidence, deduplicate replay, update versions, and reach subscribed drafts', async () => {
-  const { room, product, base } = await fixture();
+test('collected turns retain evidence, deduplicate replay, update versions, and reach subscribed drafts', async (t) => {
+  const { room, product, base } = await fixture(t);
   try {
     room.setCodexCapture({ productId: product.id, enabled: true });
     room.createPortfolio({ target: '초안', autoProductIds: [product.id] });
@@ -123,8 +125,8 @@ test('collected turns retain evidence, deduplicate replay, update versions, and 
   }
 });
 
-test('setup preserves unrelated hooks, backs up the original, detects changes, and never edits global config', async () => {
-  const { room, product, folder, runtime } = await fixture();
+test('setup preserves unrelated hooks, backs up the original, detects changes, and never edits global config', async (t) => {
+  const { room, product, folder, runtime } = await fixture(t);
   try {
     const codex = path.join(folder, '.codex');
     mkdirSync(codex);
@@ -163,8 +165,8 @@ test('setup preserves unrelated hooks, backs up the original, detects changes, a
 test(
   'generated Windows command accepts UTF-8 hook JSON through stdin and works without the desktop app',
   { skip: process.platform !== 'win32' },
-  async () => {
-    const { room, product, runtime, base } = await fixture();
+  async (t) => {
+    const { room, product, runtime, base } = await fixture(t);
     try {
       const plan = await prepareCodexSetup(room, product.id, runtime);
       await installCodexSetup(room, product.id, plan.revision, runtime);

@@ -1,15 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdirSync, mkdtempSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
+import { rm } from 'node:fs/promises';
 import path from 'node:path';
 import { Workroom } from '../src/core/service.mjs';
 import { portfolioHTML } from '../src/core/export.mjs';
 import { projectRoot } from '../src/core/paths.mjs';
 
-function fixture() {
+function fixture(t) {
   const parent = path.join(projectRoot, 'work/tests');
   mkdirSync(parent, { recursive: true });
   const dir = mkdtempSync(path.join(parent, 'core-'));
+  t.after(() => rm(dir, { recursive: true, force: true }));
   const repo = path.join(dir, 'repo');
   mkdirSync(repo);
   return { dir, repo, db: path.join(dir, 'workroom.sqlite') };
@@ -22,8 +24,8 @@ const report = (productId) => ({
   limitations: '운영 환경과 실제 사용자 데이터 미검증',
   contribution: '사용자: 요구사항 결정, 에이전트: 코드 작성',
 });
-test('product registration persists, rejects duplicate roots, and protects stale edits across connections', async () => {
-  const f = fixture();
+test('product registration persists, rejects duplicate roots, and protects stale edits across connections', async (t) => {
+  const f = fixture(t);
   const a = new Workroom(f.db);
   const b = new Workroom(f.db);
   try {
@@ -44,8 +46,8 @@ test('product registration persists, rejects duplicate roots, and protects stale
   assert.equal(reopened.snapshot().products[0].goal, '새 목표');
   reopened.close();
 });
-test('inspection observes files without executing scripts; repeated inspection updates one record and preserves exclusion', async () => {
-  const f = fixture(),
+test('inspection observes files without executing scripts; repeated inspection updates one record and preserves exclusion', async (t) => {
+  const f = fixture(t),
     a = new Workroom(f.db);
   writeFileSync(
     path.join(f.repo, 'package.json'),
@@ -72,8 +74,8 @@ test('inspection observes files without executing scripts; repeated inspection u
     a.close();
   }
 });
-test('decision and knowledge are atomic, one-time, and scoped to the selected product', async () => {
-  const f = fixture(),
+test('decision and knowledge are atomic, one-time, and scoped to the selected product', async (t) => {
+  const f = fixture(t),
     a = new Workroom(f.db);
   const repo2 = path.join(f.dir, 'repo2');
   mkdirSync(repo2);
@@ -103,8 +105,8 @@ test('decision and knowledge are atomic, one-time, and scoped to the selected pr
     a.close();
   }
 });
-test('work reports retain provenance; portfolio snapshots exclude internal metadata and escape HTML', async () => {
-  const f = fixture(),
+test('work reports retain provenance; portfolio snapshots exclude internal metadata and escape HTML', async (t) => {
+  const f = fixture(t),
     a = new Workroom(f.db);
   try {
     const p = await a.createProduct({ name: '제품', folder: f.repo });
@@ -156,8 +158,8 @@ test('work reports retain provenance; portfolio snapshots exclude internal metad
     a.close();
   }
 });
-test('invalid references and revisions cannot leave partial data', async () => {
-  const f = fixture(),
+test('invalid references and revisions cannot leave partial data', async (t) => {
+  const f = fixture(t),
     a = new Workroom(f.db);
   try {
     const p = await a.createProduct({ name: '제품', folder: f.repo });
@@ -194,8 +196,8 @@ test('invalid references and revisions cannot leave partial data', async () => {
   }
 });
 
-test('structured evidence remains reported, validates check outcomes, and preserves legacy reports', async () => {
-  const f = fixture(),
+test('structured evidence remains reported, validates check outcomes, and preserves legacy reports', async (t) => {
+  const f = fixture(t),
     a = new Workroom(f.db);
   try {
     const p = await a.createProduct({ name: '제품', folder: f.repo });

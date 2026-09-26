@@ -1,16 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdirSync, mkdtempSync } from 'node:fs';
+import { rm } from 'node:fs/promises';
 import path from 'node:path';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { Workroom } from '../src/core/service.mjs';
 import { projectRoot } from '../src/core/paths.mjs';
 
-test('real MCP stdio handshake and tool calls share the app database without exposing authority changes', async () => {
+test('real MCP stdio handshake and tool calls share the app database without exposing authority changes', async (t) => {
   const parent = path.join(projectRoot, 'work/tests');
   mkdirSync(parent, { recursive: true });
   const dir = mkdtempSync(path.join(parent, 'mcp-'));
+  t.after(() => rm(dir, { recursive: true, force: true }));
   const repo = path.join(dir, 'repo');
   mkdirSync(repo);
   const room = new Workroom(path.join(dir, 'workroom.sqlite'));
