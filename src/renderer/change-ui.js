@@ -1,10 +1,6 @@
 import { automationOrigin } from './operations-ui.js';
 import { taskJourney, connectedOutcome } from './product-overview.js';
-const e = (x) =>
-  String(x ?? '').replace(
-    /[&<>"']/g,
-    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
-  );
+import { e } from './html.js';
 const button = (label, action, extra = '') =>
   `<button type="button" data-action="${action}" ${extra}>${label}</button>`;
 const header = (title, subtitle) =>

@@ -1,18 +1,7 @@
 import { operationOverview, operationIssues } from './operations-ui.js';
-const e = (x) =>
-  String(x ?? '').replace(
-    /[&<>"']/g,
-    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
-  );
+import { date, e } from './html.js';
 const button = (label, action, extra = '') =>
   `<button type="button" data-action="${action}" ${extra}>${label}</button>`;
-const date = (value) =>
-  new Date(value).toLocaleString('ko-KR', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
 const progressStates = ['running', 'queued', 'stopping', 'applying'];
 const attentionStates = [
   'needs_decision',
