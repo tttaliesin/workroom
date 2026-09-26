@@ -46,6 +46,8 @@ const launch = () => electron.launch({ executablePath: require('electron'), args
   await click('결과와 근거 저장');await summary('실행 근거');await page.getByText('변경 파일 목록이 첨부되지 않았습니다.').waitFor();
   // The report's reusable record can be excluded from later MCP lookups.
   await page.locator('.related-link').filter({hasText:'검색 누락 수정'}).click();await click('다음 조회부터 제외');await page.getByRole('button',{name:'조회에 다시 포함',exact:true}).waitFor();
+  // Evidence opened from a record returns to that record, and the back link says so.
+  await click('원본 경험 보기');await page.getByRole('heading',{name:'보고된 근거',exact:true}).waitFor();await click('← 기록으로 돌아가기');await page.getByRole('button',{name:'조회에 다시 포함',exact:true}).waitFor();
   await back();await click('포트폴리오 초안 보기');await click('첫 대상 추가');
   await page.getByLabel('기업 또는 대상 이름').fill('검증 기업');await page.getByLabel('이 대상에게 보여주고 싶은 경험').fill('비공개 내부 메모');await click('초안 만들기');
   await click('이 작업 추가');await page.getByLabel('페이지 첫 문장').fill('개발 도구를 만드는 개발자입니다.');await click('초안 저장');
@@ -58,7 +60,7 @@ const launch = () => electron.launch({ executablePath: require('electron'), args
   await target('다른 기업');assert.equal(await page.getByLabel('사례 설명').inputValue(),'첫 기업에만 적용할 설명');
   await product('검증 제품');assert.equal(await page.getByLabel('사례 설명').inputValue(),'첫 기업에만 적용할 설명');
   await click('초안 저장');await target('다른 기업');assert.ok(!(await page.locator('.paper').innerText()).includes('첫 기업에만'));
-  await target('검증 기업');await click('작업 근거 보기');await page.getByRole('heading',{name:'보고된 근거',exact:true}).waitFor();await page.locator('button[data-action="source-close"]').click();
+  await target('검증 기업');await click('작업 근거 보기');await page.getByRole('heading',{name:'보고된 근거',exact:true}).waitFor();await click('← 포트폴리오 초안');
   await page.getByRole('heading',{name:'포트폴리오 초안',exact:true}).waitFor();
   // An excluded case stays excluded when the portfolio is reopened from its task.
   await click('초안 편집');await click('제외');await click('초안 저장');

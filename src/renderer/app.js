@@ -1182,14 +1182,6 @@ app.addEventListener('change', (event) => {
     ui.productId = event.target.value;
     render();
   }
-  if (event.target.id === 'target-switch') {
-    if (canLeave()) {
-      loadDraft(event.target.value);
-      ui.review = false;
-      ui.message = '';
-    }
-    render();
-  }
   if (event.target.id === 'add-task' && event.target.value) {
     const t = data.tasks.find((t) => t.id === event.target.value);
     if (!t || ui.draft.entries.some((x) => x.taskId === t.id)) return;

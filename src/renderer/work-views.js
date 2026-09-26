@@ -133,7 +133,15 @@ function taskDetail(t) {
   if (ui.source) {
     t = projectWork(t, data.tasks);
     const file = ui.source === 'evidence' ? null : (t.changedFiles || [])[Number(ui.source)];
-    return `${button(ui.evidenceReturn === 'portfolio' ? '← 포트폴리오 초안' : '← 작업으로 돌아가기', 'source-close', 'class="link back"')}${header(file ? '변경 내용' : '실행 근거', t.title)}${file ? `<div class="note"><code>${e(file.path)}</code><p class="gap">${e(file.summary)}</p></div><p class="small muted gap">보고자가 제공한 변경 설명입니다. 원본 diff를 자동 수집한 결과는 아닙니다.</p>` : `<section class="section"><h2>보고된 근거</h2><p class="gap">${e(t.evidence)}</p></section><section class="section"><h2>확인하지 못한 범위</h2><p class="gap">${e(t.limitations)}</p></section><section class="section"><h2>기여 범위</h2><p class="gap">${e(t.contribution)}</p></section><p class="small muted gap">출처: ${actorLabel(t.actor)} · 앱의 독립 검증 없음</p><section class="section"><h2>연결된 실행</h2>${executionList(data.tasks.find((r) => r.id === t.id))}</section>`}`;
+    // 'route' returns to the location pushed before opening the evidence, so name that screen.
+    const origin = ui.evidenceReturn === 'route' ? ui.history.at(-1)?.view : 'ops';
+    const back =
+      {
+        ops: '← 작업으로 돌아가기',
+        portfolio: '← 포트폴리오 초안',
+        'record-detail': '← 기록으로 돌아가기',
+      }[origin] || '← 이전 화면으로 돌아가기';
+    return `${button(back, 'source-close', 'class="link back"')}${header(file ? '변경 내용' : '실행 근거', t.title)}${file ? `<div class="note"><code>${e(file.path)}</code><p class="gap">${e(file.summary)}</p></div><p class="small muted gap">보고자가 제공한 변경 설명입니다. 원본 diff를 자동 수집한 결과는 아닙니다.</p>` : `<section class="section"><h2>보고된 근거</h2><p class="gap">${e(t.evidence)}</p></section><section class="section"><h2>확인하지 못한 범위</h2><p class="gap">${e(t.limitations)}</p></section><section class="section"><h2>기여 범위</h2><p class="gap">${e(t.contribution)}</p></section><p class="small muted gap">출처: ${actorLabel(t.actor)} · 앱의 독립 검증 없음</p><section class="section"><h2>연결된 실행</h2>${executionList(data.tasks.find((r) => r.id === t.id))}</section>`}`;
   }
   return workDetail(t);
 }
