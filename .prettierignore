@@ -1,0 +1,6 @@
+node_modules/
+.workroom/
+work/
+outputs/
+pnpm-lock.yaml
+*.md
