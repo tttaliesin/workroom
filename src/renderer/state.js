@@ -1,4 +1,5 @@
 import { agentLabels } from './runtime-ui.js';
+export const app = document.getElementById('app');
 export const ui = {
   view: 'home',
   productId: null,

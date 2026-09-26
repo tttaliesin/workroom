@@ -1,5 +1,4 @@
 import {
-  app,
   call,
   canLeave,
   closeRequest,
@@ -16,7 +15,7 @@ import {
   saveDraft,
   startRequest,
 } from './controller.js';
-import { data, loadDraft, persistRequests, requestDraft, rootTasks, ui } from './state.js';
+import { app, data, loadDraft, persistRequests, requestDraft, rootTasks, ui } from './state.js';
 async function operationAction(id, action) {
   if (!canLeave()) return;
   let task;

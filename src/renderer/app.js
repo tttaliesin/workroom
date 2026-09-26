@@ -1,5 +1,5 @@
 import { handleClick } from './click-actions.js';
-import { app, refresh, render, syncExternal } from './controller.js';
+import { refresh, render, syncExternal } from './controller.js';
 import {
   handleBeforeUnload,
   handleCancel,
@@ -9,6 +9,7 @@ import {
 } from './field-events.js';
 import { handleSubmit } from './form-actions.js';
 import { e } from './html.js';
+import { app } from './state.js';
 app.addEventListener('click', handleClick);
 app.addEventListener('submit', handleSubmit);
 app.addEventListener('input', handleInput);
