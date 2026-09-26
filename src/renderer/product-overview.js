@@ -126,18 +126,42 @@ export function productHome(product, data, draft, otherDrafts = []) {
     runtime = data.runtime || {};
   const activeCount = p.progress.filter((t) => ['running', 'applying'].includes(t.status)).length;
   const connectionReady = runtime.modelId && ['connected', 'ready'].includes(runtime.state);
+  const progressState = (t) => {
+    if (t.status === 'queued')
+      return runtime.paused ? '새 실행이 일시 정지되어 있습니다.' : '실행 차례를 기다립니다.';
+    if (t.status === 'stopping') return '종료를 확인하고 있습니다.';
+    return '앱에 마지막 저장된 진행 상태입니다.';
+  };
+  const rowDetail = (t, type) => {
+    if (type === 'attention')
+      return t.message || t.reason || '다음 단계에 사용자 확인이 필요합니다.';
+    if (type === 'connection') return '계정 연결을 확인한 뒤 작업을 재개할 수 있습니다.';
+    if (type === 'progress') return `${stages[t.stage] || '실행'} · ${progressState(t)}`;
+    return resultLinks(t, data);
+  };
+  const rowEnd = (t, type) => {
+    if (type === 'attention') return actions[t.status];
+    if (type === 'connection') return '연결 대기';
+    if (type === 'progress')
+      return t.status === 'queued' ? '실행 대기' : stages[t.stage] || '실행 중';
+    return outcome(t);
+  };
+  const productCases = (f) =>
+    f.entries.filter((x) => data.tasks.some((t) => t.id === x.taskId && t.productId === product.id))
+      .length;
   const taskRow = (t, type) =>
-    html`<button type="button" class="overview-task ${type} ${t.status === 'queued' ? 'queued' : ''}" data-action="task:${t.id}">
+    html`<button type="button" class="overview-task ${type} ${t.status === 'queued' ? 'queued' : ''}"
+    data-action="task:${t.id}">
         <span class="task-state-dot" aria-hidden="true">
         </span>
         <span class="overview-task-copy">
           <strong>${e(t.title)}</strong>
           <small>
-            ${e(type === 'attention' ? t.message || t.reason || '다음 단계에 사용자 확인이 필요합니다.' : type === 'connection' ? '계정 연결을 확인한 뒤 작업을 재개할 수 있습니다.' : type === 'progress' ? `${stages[t.stage] || '실행'} · ${t.status === 'queued' ? (runtime.paused ? '새 실행이 일시 정지되어 있습니다.' : '실행 차례를 기다립니다.') : t.status === 'stopping' ? '종료를 확인하고 있습니다.' : '앱에 마지막 저장된 진행 상태입니다.'}` : resultLinks(t, data))}
+            ${e(rowDetail(t, type))}
           </small>
         </span>
         <span class="overview-task-end">
-          ${e(type === 'attention' ? actions[t.status] : type === 'connection' ? '연결 대기' : type === 'progress' ? (t.status === 'queued' ? '실행 대기' : stages[t.stage] || '실행 중') : outcome(t))}
+          ${e(rowEnd(t, type))}
           <small>${e(date(t.updated || t.created))}</small>
         </span>
         <span aria-hidden="true">›</span>
@@ -181,7 +205,8 @@ export function productHome(product, data, draft, otherDrafts = []) {
         ${button(runtime.failure ? '연결 확인' : '계정 연결', 'nav:account')}
       </section>`
         : p.connection.length
-          ? html`<p class="small muted gap">${p.connection.length}개 작업이 연결 상태 재확인을 기다립니다. ${button('계정 상태 확인', 'nav:account', 'class="link"')}
+          ? html`<p class="small muted gap">${p.connection.length}개 작업이 연결 상태 재확인을
+          기다립니다. ${button('계정 상태 확인', 'nav:account', 'class="link"')}
       </p>`
           : ''
     }
@@ -243,10 +268,14 @@ export function productHome(product, data, draft, otherDrafts = []) {
                     const provided = (data.agentContexts || []).filter((c) =>
                       c.context.records.some((x) => x.id === r.id),
                     ).length;
+                    let usage = '아직 내장 실행에 제공되지 않음';
+                    if (r.validity === 'needs_review') usage = '근거 재확인 필요';
+                    else if (!r.active) usage = '자동 참조에서 제외';
+                    else if (provided) usage = `${provided}회 실행에 제공 · 활용 여부는 별도`;
                     return html`<button class="output-item" data-action="record-detail:${r.id}">
                     <strong>${e(r.title)}</strong>
                     <small>
-                      ${r.validity === 'needs_review' ? '근거 재확인 필요' : !r.active ? '자동 참조에서 제외' : provided ? `${provided}회 실행에 제공 · 활용 여부는 별도` : '아직 내장 실행에 제공되지 않음'}
+                      ${usage}
                     </small>
                   </button>`;
                   })
@@ -265,7 +294,8 @@ export function productHome(product, data, draft, otherDrafts = []) {
                   .map(
                     (f) => html`<button class="output-item" data-action="target:${f.id}">
           <strong>${e(f.target)}</strong>
-          <small>이 제품 사례 ${f.entries.filter((x) => data.tasks.some((t) => t.id === x.taskId && t.productId === product.id)).length}개 · ${f.autoProductIds?.includes(product.id) ? '새 결과 자동 반영' : '직접 구성'}
+          <small>이 제품 사례 ${productCases(f)}개
+          · ${f.autoProductIds?.includes(product.id) ? '새 결과 자동 반영' : '직접 구성'}
           </small>
         </button>`,
                   )
@@ -307,6 +337,14 @@ export function delegationPage(product, runtime = {}, draft = {}) {
   if (!product) return productHome(null, {}, null);
   const change = draft.mode === 'change',
     ready = runtime.modelId && ['connected', 'ready'].includes(runtime.state);
+  const route = change
+    ? ['수정안 작성', '앱의 검사', '별도 검토', '내가 반영 결정']
+    : ['소스 조사', '별도 근거 확인', '기록 정리'];
+  let connectionNote = '연결 설정을 마친 뒤 이 요청으로 돌아옵니다. 초안은 보관됩니다.';
+  if (ready)
+    connectionNote = runtime.paused
+      ? '새 실행이 일시 정지되어 있어 대기열에 보관합니다.'
+      : '선택한 모델에 요청·관련 기록·읽은 소스가 전달됩니다.';
   return html`<header class="request-heading">
       <div>
         <h1 id="request-title">일 맡기기</h1>
@@ -320,7 +358,8 @@ export function delegationPage(product, runtime = {}, draft = {}) {
         </div>
         <div>
           <label for="request-goal">원하는 결과와 완료 기준</label>
-          <textarea id="request-goal" name="goal" required maxlength="2000" placeholder="예: 입력 중 다른 화면으로 이동해도 작성하던 내용이 유지되게 해줘.">${e(draft.goal || '')}</textarea>
+          <textarea id="request-goal" name="goal" required maxlength="2000" placeholder="예: 입력 중 다른 화면으로 이동해도
+          작성하던 내용이 유지되게 해줘.">${e(draft.goal || '')}</textarea>
           <details class="request-product-goal">
             <summary>제품 목표 참고</summary>
             <p class="small muted gap">
@@ -330,14 +369,16 @@ export function delegationPage(product, runtime = {}, draft = {}) {
         </div>
     ${
       draft.sourceTaskId
-        ? html`<div class="request-origin">이전 조사에서 제안한 내용을 가져왔습니다. 실행 전에 목표를 수정할 수 있습니다. ${button('조사 결과 보기', `task:${draft.sourceTaskId}`, 'class="link"')}
+        ? html`<div class="request-origin">이전 조사에서 제안한 내용을 가져왔습니다. 실행 전에 목표를 수정할 수
+        있습니다. ${button('조사 결과 보기', `task:${draft.sourceTaskId}`, 'class="link"')}
       </div>`
         : ''
     }
     <fieldset class="request-modes">
           <legend>작업 범위</legend>
           <label class="request-mode ${!change ? 'selected' : ''}">
-            <input id="request-investigation" type="radio" name="mode" value="investigation" ${!change ? 'checked' : ''}>
+            <input id="request-investigation" type="radio" name="mode"
+            value="investigation" ${!change ? 'checked' : ''}>
             <span>
               <strong>먼저 조사</strong>
               <small>소스를 읽고 문제와 다음 작업을 제안합니다.</small>
@@ -352,7 +393,9 @@ export function delegationPage(product, runtime = {}, draft = {}) {
           </label>
         </fieldset>
     <div class="request-route" aria-label="작업 진행 순서">
-          ${(change ? ['수정안 작성', '앱의 검사', '별도 검토', '내가 반영 결정'] : ['소스 조사', '별도 근거 확인', '기록 정리']).map((label, i) => `<span><b>${i + 1}</b>${label}</span>`).join('<i aria-hidden="true">→</i>')}
+          ${route
+            .map((label, i) => `<span><b>${i + 1}</b>${label}</span>`)
+            .join('<i aria-hidden="true">→</i>')}
         </div>
     ${
       change
@@ -361,10 +404,13 @@ export function delegationPage(product, runtime = {}, draft = {}) {
         </summary>
         <div class="gap">
           <label for="request-tests">제품 폴더 기준 Node 테스트 경로 · 한 줄에 하나</label>
-          <textarea id="request-tests" name="testFiles" maxlength="8192" placeholder="tests/input.test.mjs">${e(draft.testFiles || '')}</textarea>
+          <textarea id="request-tests" name="testFiles" maxlength="8192"
+          placeholder="tests/input.test.mjs">${e(draft.testFiles || '')}</textarea>
           <label class="check-option">
-            <input type="checkbox" name="allowTests" ${draft.allowTests ? 'checked' : ''}>지정한 테스트에서 제품 코드를 실행하도록 허용</label>
-          <p class="small muted">수정 전후에 같은 테스트를 실행하며 에이전트가 해당 테스트 파일을 바꾸지 못합니다. Node.js 24 이상이 필요하고 의존성은 설치하지 않습니다. 파일·프로세스를 제한하지만 완전한 OS·네트워크 격리는 아닙니다.</p>
+            <input type="checkbox" name="allowTests" ${draft.allowTests ? 'checked' : ''}>지정한 테스트에서 제품 코드를
+            실행하도록 허용</label>
+          <p class="small muted">수정 전후에 같은 테스트를 실행하며 에이전트가 해당 테스트 파일을 바꾸지 못합니다. Node.js 24 이상이 필요하고 의존성은 설치하지
+          않습니다. 파일·프로세스를 제한하지만 완전한 OS·네트워크 격리는 아닙니다.</p>
         </div>
       </details>
       <p class="small muted">테스트를 지정하지 않으면 JavaScript·JSON 구문 검사와 소스 검토를 진행하고, 기능 테스트는 미확인으로 남깁니다.</p>`
@@ -380,7 +426,7 @@ export function delegationPage(product, runtime = {}, draft = {}) {
               ${ready ? `실행 연결 준비됨 · ${e(runtime.modelId)}` : '계정과 모델 연결이 필요합니다.'}
             </strong>
             <p>
-              ${ready ? (runtime.paused ? '새 실행이 일시 정지되어 있어 대기열에 보관합니다.' : '선택한 모델에 요청·관련 기록·읽은 소스가 전달됩니다.') : '연결 설정을 마친 뒤 이 요청으로 돌아옵니다. 초안은 보관됩니다.'}
+              ${connectionNote}
             </p>
           </div>
           ${!ready ? button('연결 설정', 'nav:account') : ''}
@@ -390,7 +436,8 @@ export function delegationPage(product, runtime = {}, draft = {}) {
             ${draft.goal?.trim() ? '보관한 초안 · 이 기기에 자동 저장' : '입력한 내용은 이 기기에 자동 저장'}
           </span>
           ${button('닫기', 'request-close', 'class="plain"')}
-          <button type="submit" class="primary" ${!ready ? 'disabled aria-describedby="request-connection"' : ''}>일 맡기기</button>
+          <button type="submit"
+          class="primary" ${!ready ? 'disabled aria-describedby="request-connection"' : ''}>일 맡기기</button>
         </div>
       </div>
     </form>`;
@@ -428,7 +475,8 @@ export function taskJourney(task) {
                 task.status,
               ));
           return html`<li class="${done ? 'done' : current ? 'current' : ''}" ${current ? 'aria-current="step"' : ''}>
-          <span aria-hidden="true">${done ? '✓' : '•'}</span>${label}<span class="sr-only">${done ? '완료' : current ? '현재 단계' : '대기'}</span>
+          <span aria-hidden="true">${done ? '✓' : '•'}</span>${label}<span
+          class="sr-only">${done ? '완료' : current ? '현재 단계' : '대기'}</span>
         </li>`;
         })
         .join('')}

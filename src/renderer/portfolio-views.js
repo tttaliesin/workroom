@@ -46,7 +46,8 @@ function subscriptions(d) {
       ${data.products
         .map(
           (p) => html`<label class="check-option">
-          <input type="checkbox" data-subscription="${p.id}" ${(d.autoProductIds || []).includes(p.id) ? 'checked' : ''}>${e(p.name)}</label>`,
+          <input type="checkbox"
+          data-subscription="${p.id}" ${(d.autoProductIds || []).includes(p.id) ? 'checked' : ''}>${e(p.name)}</label>`,
         )
         .join('')}
       <p class="small muted">설정을 끄면 다음 반영부터 중단하며 기존 사례는 유지합니다. 변경 후 초안을 저장하세요.</p>
@@ -59,8 +60,10 @@ function conflictReview() {
         <h2>저장된 초안에 다른 변경이 있습니다</h2>
         <p class="small muted gap">작성 중인 입력은 아래 편집기에 남아 있습니다. 저장된 내용을 확인한 뒤, 충돌한 부분에 내 변경을 우선 적용할 수 있습니다.</p>
         <details>
-          <summary>저장된 초안과 설정 보기</summary>${preview(remote)}<p class="small muted gap">비공개 강조점: ${e(remote.requirements)}</p>
-          <p class="small muted gap">자동 반영: ${(remote.autoProductIds || []).map(productName).map(e).join(', ') || '꺼짐'}
+          <summary>저장된 초안과 설정 보기</summary>${preview(remote)}<p class="small muted gap">비공개
+          강조점: ${e(remote.requirements)}</p>
+          <p class="small muted gap">자동
+          반영: ${(remote.autoProductIds || []).map(productName).map(e).join(', ') || '꺼짐'}
           </p>
         </details>
         <div class="actions">
@@ -85,6 +88,9 @@ export function portfolioPage() {
   if (!ui.draft || !data.portfolios.some((p) => p.id === ui.portfolioId))
     loadDraft(data.portfolios.find((p) => p.id === ui.portfolioId)?.id || data.portfolios[0].id);
   const d = ui.draft;
+  const autoSummary = d.autoProductIds?.length
+    ? `${d.autoProductIds.map(productName).map(e).join(', ')}의 새 결과를 받습니다.`
+    : '새 결과 자동 반영이 꺼져 있습니다.';
   return (
     back +
     header('포트폴리오 초안', '대상별 저장 · 웹 배포 미연결') +
@@ -98,7 +104,7 @@ export function portfolioPage() {
           ${e(d.requirements || '이 대상에게 강조할 경험을 초안 편집에서 정할 수 있습니다.')}
           <br>
           <span class="small">
-            ${d.autoProductIds?.length ? `${d.autoProductIds.map(productName).map(e).join(', ')}의 새 결과를 받습니다.` : '새 결과 자동 반영이 꺼져 있습니다.'} · ${d.entries.length}개 사례 · HTML 저장 가능</span>
+            ${autoSummary} · ${d.entries.length}개 사례 · HTML 저장 가능</span>
         </div>`
           : ''
       }
@@ -200,7 +206,8 @@ function portfolioSourceNotices(d) {
       (x) =>
         html`<section class="conflict-review">
             <h2>${e(x.title)} · 연결 근거가 바뀌었습니다</h2>
-            <p class="small muted gap">직접 쓴 문장은 보존했습니다. 현재 근거를 확인한 뒤 유지하거나, 이 사례의 제목·설명·기여를 현재 보고로 다시 작성할 수 있습니다.</p>
+            <p class="small muted gap">직접 쓴 문장은 보존했습니다. 현재 근거를 확인한 뒤 유지하거나, 이 사례의 제목·설명·기여를 현재 보고로 다시 작성할 수
+            있습니다.</p>
             <div class="actions">
               ${button('현재 근거 보기', `portfolio-evidence:${x.taskId}`)}
               ${button('이 문장 유지 확인', `source-keep:${x.taskId}`)}
@@ -209,6 +216,12 @@ function portfolioSourceNotices(d) {
           </section>`,
     )
     .join('');
+}
+const taskProduct = (taskId) => data.tasks.find((t) => t.id === taskId)?.productId;
+function selectionReason(d, taskId) {
+  const source = d.entrySources?.[taskId];
+  if (source?.selectionReason) return source.selectionReason;
+  return source?.automatic ? '구독한 제품의 작업 보고에서 연결' : '사용자가 이 대상의 사례로 선택';
 }
 function entryEvidence(d) {
   return html`<details class="case-evidence">
@@ -220,7 +233,7 @@ function entryEvidence(d) {
           (x) => html`<div class="record">
           <h3>${e(x.title)}</h3>
           <p class="small muted gap">
-            ${e(d.entrySources?.[x.taskId]?.selectionReason || (d.entrySources?.[x.taskId]?.automatic ? '구독한 제품의 작업 보고에서 연결' : '사용자가 이 대상의 사례로 선택'))} · ${e(productName(data.tasks.find((t) => t.id === x.taskId)?.productId))}
+            ${e(selectionReason(d, x.taskId))} · ${e(productName(taskProduct(x.taskId)))}
           </p>
           ${button('원본 경험 보기', `portfolio-evidence:${x.taskId}`, 'class="plain"')}
         </div>`,

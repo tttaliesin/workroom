@@ -13,7 +13,8 @@ export function accountReturnNotice() {
       </strong>
       <p class="small muted gap">계정 연결과 모델 저장을 마치면 이 요청으로 돌아갑니다. 실행은 요청 화면에서 결정합니다.</p>
       <div class="setup-progress">
-        <span class="${data.runtime?.connected ? 'done' : ''}">${data.runtime?.connected ? '✓' : '1'} 계정 연결</span>
+        <span class="${data.runtime?.connected ? 'done' : ''}">${data.runtime?.connected ? '✓' : '1'} 계정
+        연결</span>
         <span class="${data.runtime?.modelId ? 'done' : ''}">${data.runtime?.modelId ? '✓' : '2'} 모델 저장</span>
       </div>
       ${button('요청으로 돌아가기', 'delegate-return', 'class="plain"')}
@@ -83,9 +84,11 @@ function captureSetup(p) {
           <h3>이 제품의 연결 설정</h3>
           <p class="small muted gap">설정 파일: ${e(plan.filename)}</p>
           <p class="small muted gap">
-            ${plan.existing ? '기존 훅을 유지하고 작업실 항목만 추가·갱신합니다. 원본을 백업합니다.' : '새 프로젝트 훅 파일을 만듭니다.'} 코드와 전역 설정은 변경하지 않습니다.</p>
+            ${plan.existing ? '기존 훅을 유지하고 작업실 항목만 추가·갱신합니다. 원본을 백업합니다.' : '새 프로젝트 훅 파일을 만듭니다.'} 코드와 전역 설정은
+            변경하지 않습니다.</p>
           <p class="small muted gap">실행: ${e(plan.node)}<br>${e(plan.script)}</p>
-          <p class="small muted gap">수집기는 로컬에만 저장하며 개발 작업을 차단하거나 에이전트에 추가 지시를 보내지 않습니다. 전체 완료 응답은 내부 근거에 보관합니다.</p>
+          <p class="small muted gap">수집기는 로컬에만 저장하며 개발 작업을 차단하거나 에이전트에 추가 지시를 보내지 않습니다. 전체 완료 응답은 내부 근거에
+          보관합니다.</p>
           <details>
             <summary>작성할 훅 JSON 보기</summary>
             <pre>${e(JSON.stringify(plan.config, null, 2))}</pre>

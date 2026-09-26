@@ -26,7 +26,9 @@ export function recordResults() {
                   <h2>${e(r.title)}</h2>
                   <span class="badge">${provenance[r.provenance]}</span>
                 </div>
-                <p class="gap record-excerpt">${e(r.content)}</p>${recordUseLine(r)}<p class="small muted gap">적용: ${e(r.scope)}<br>출처: ${e(r.source)}<br>마지막 변경: ${date(r.updated)} · ${r.validity === 'needs_review' ? '절차 재확인 중 · 조회 보류' : r.active ? '자동 참조 대상' : '자동 참조에서 제외'}
+                <p class="gap record-excerpt">${e(r.content)}</p>${recordUseLine(r)}<p class="small muted
+                gap">적용: ${e(r.scope)}<br>출처: ${e(r.source)}<br>마지막
+                변경: ${date(r.updated)} · ${r.validity === 'needs_review' ? '절차 재확인 중 · 조회 보류' : r.active ? '자동 참조 대상' : '자동 참조에서 제외'}
                 </p>
                 <div class="row gap">
                   ${button('조건·유효성 보기', `record-detail:${r.id}`, 'class="plain"')}
@@ -87,8 +89,10 @@ export function recordDetailPage() {
           <div>
             <label for="validity">현재 유효성</label>
             <select id="validity" name="validity">
-              <option value="valid" ${r.validity !== 'needs_review' ? 'selected' : ''}>조건을 확인함 · 조회에 제공 가능</option>
-              <option value="needs_review" ${r.validity === 'needs_review' ? 'selected' : ''}>절차 재확인 필요 · 조회 제공 보류</option>
+              <option value="valid" ${r.validity !== 'needs_review' ? 'selected' : ''}>조건을 확인함 · 조회에 제공
+              가능</option>
+              <option value="needs_review" ${r.validity === 'needs_review' ? 'selected' : ''}>절차 재확인 필요 · 조회
+              제공 보류</option>
             </select>
           </div>
           ${field('reason', '수정 또는 보류 이유', r.validityReason || '', 'textarea', 'required maxlength="1000"')}

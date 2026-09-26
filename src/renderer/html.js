@@ -1,10 +1,18 @@
-// Template tag for markup laid out over several source lines: it drops each line break and the
-// indentation after it, so the layout never adds whitespace to the rendered HTML. Interpolated
-// values are inserted untouched. Stripped strings are cached per call site.
-const stripped = new WeakMap();
+// Template tag for markup laid out over several source lines, with JSX-like whitespace: a line
+// break plus its indentation disappears next to a tag or an interpolation, and becomes one space
+// between words. Interpolated values are inserted untouched; joined strings are cached per call site.
+const joined = new WeakMap();
+const joinLines = (s) =>
+  s.replace(/\n */g, (brk, at) => {
+    const before = s[at - 1],
+      after = s[at + brk.length];
+    return before === undefined || after === undefined || before === '>' || after === '<'
+      ? ''
+      : ' ';
+  });
 export function html(strings, ...values) {
-  let parts = stripped.get(strings);
-  if (!parts) stripped.set(strings, (parts = strings.map((s) => s.replace(/\n */g, ''))));
+  let parts = joined.get(strings);
+  if (!parts) joined.set(strings, (parts = strings.map(joinLines)));
   let out = parts[0];
   for (let i = 0; i < values.length; i++) out += `${values[i]}${parts[i + 1]}`;
   return out;

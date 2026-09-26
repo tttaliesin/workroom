@@ -214,7 +214,8 @@ function taskDetail(t) {
             <h2>${e(t.options[t.selected].label)}</h2>
             <p>${e(t.options[t.selected].effect)}</p>
           </div>
-          <p class="muted small gap">결정이 기록되었습니다. 연결된 에이전트가 다음 조회에서 확인할 수 있습니다. 자동 실행 재개는 아직 연결되지 않았습니다.</p>${relatedRecords(t)}`
+          <p class="muted small gap">결정이 기록되었습니다. 연결된 에이전트가 다음 조회에서 확인할 수 있습니다. 자동 실행 재개는 아직 연결되지
+          않았습니다.</p>${relatedRecords(t)}`
             : html`<form data-form="decision" data-id="${t.id}">
             <fieldset>
               <legend>적용할 방침</legend>
@@ -387,7 +388,8 @@ function executionList(t) {
             <div class="row between">
               <div>
                 <h3>${e(r.title)}</h3>
-                <p class="small muted gap">${actorLabel(r.actor)} · 보고 v${r.sourceVersion || 1} · ${date(r.created)}</p>
+                <p class="small muted gap">${actorLabel(r.actor)} · 보고
+                v${r.sourceVersion || 1} · ${date(r.created)}</p>
               </div>
               ${button(r.parentTaskId ? '연결 바로잡기' : '다른 작업에 연결', `link-work:${r.id}`, 'class="plain"')}
             </div>
@@ -547,7 +549,8 @@ export function linkPage() {
                       .filter((x) => affected.has(x.taskId))
                       .map((x) => {
                         const source = p.entrySources?.[x.taskId];
-                        return html`<p class="small muted gap">${e(x.title)} · ${!source?.automatic || source.editedFields.length ? '직접 쓴 문장 보존 · 근거 재확인 표시' : x.taskId === report.id && ui.linkParent ? '자동 생성한 별도 사례 제외 · 원문은 연결한 작업에서 보존' : '자동 생성한 문장을 현재 연결로 갱신'}
+                        return html`<p class="small muted
+                        gap">${e(x.title)} · ${!source?.automatic || source.editedFields.length ? '직접 쓴 문장 보존 · 근거 재확인 표시' : x.taskId === report.id && ui.linkParent ? '자동 생성한 별도 사례 제외 · 원문은 연결한 작업에서 보존' : '자동 생성한 문장을 현재 연결로 갱신'}
                       </p>`;
                       })
                       .join('')}
@@ -559,7 +562,8 @@ export function linkPage() {
           <p class="small muted gap">내보낸 HTML과 기존 버전은 바뀌지 않습니다. 분리한 기록을 새 사례로 자동 추가하지 않습니다.</p>
         </section>
     <div class="actions">
-          <button type="submit" class="primary" ${hasChildren ? 'disabled' : ''}>연결 정정 저장</button>${button('취소', 'link-cancel')}</div>
+          <button type="submit" class="primary" ${hasChildren ? 'disabled' : ''}>연결 정정
+          저장</button>${button('취소', 'link-cancel')}</div>
       </form>`
   );
 }

@@ -88,7 +88,9 @@ export function operationSettings(p, data) {
   const s = policy(p, data);
   return html`<section class="section">
       <h2>지속 운영</h2>
-      <p class="small muted gap">앱 실행 중 정해진 간격으로 소스와 목표의 변화를 확인합니다. 변화가 없으면 모델을 호출하지 않습니다. 놓친 일정은 다음 실행에 한 번으로 합칩니다.</p>
+      <p class="small muted gap">앱 실행 중 정해진 간격으로 소스와 목표의 변화를 확인합니다. 변화가 없으면 모델을 호출하지 않습니다. 놓친 일정은 다음 실행에 한
+      번으로
+      합칩니다.</p>
       <form class="form gap" data-form="operation-policy" data-id="${p.id}" data-version="${s.version}">
         <label class="check-option">
           <input type="checkbox" name="enabled" ${s.enabled ? 'checked' : ''}>이 제품의 지속 운영 켜기</label>
@@ -111,22 +113,28 @@ export function operationSettings(p, data) {
           </div>
           <div>
             <label for="operation-limit">하루 새 작업 한도</label>
-            <input id="operation-limit" name="maxDailyStarts" type="number" min="1" max="12" value="${s.maxDailyStarts}" required>
+            <input id="operation-limit" name="maxDailyStarts" type="number" min="1" max="12"
+            value="${s.maxDailyStarts}" required>
           </div>
         </div>
         <p class="small muted">운영 판단·후속 조사·수정안이 각각 1개로 계산됩니다. 단계별 시간·턴 한도와 전체 2개 병렬 한도도 적용합니다.</p>
         <label class="check-option">
-          <input type="checkbox" name="allowChanges" ${s.allowChanges ? 'checked' : ''}>근거 검토를 마친 구체적인 문제는 수정안까지 자동으로 작성</label>
+          <input type="checkbox" name="allowChanges" ${s.allowChanges ? 'checked' : ''}>근거 검토를 마친 구체적인 문제는
+          수정안까지 자동으로 작성</label>
         <p class="small muted">원본 반영은 변경과 검사 결과를 보고 결정합니다.</p>
         <details ${s.testFiles.length ? 'open' : ''}>
           <summary>자동 수정안의 테스트와 보완</summary>
           <label for="operation-tests" class="gap">Node 테스트 경로 · 한 줄에 하나</label>
-          <textarea id="operation-tests" name="testFiles" placeholder="tests/input.test.mjs">${e(s.testFiles.join('\n'))}</textarea>
+          <textarea id="operation-tests" name="testFiles"
+          placeholder="tests/input.test.mjs">${e(s.testFiles.join('\n'))}</textarea>
           <label class="check-option">
-            <input type="checkbox" name="allowTests" ${s.allowChanges && s.testFiles.length ? 'checked' : ''}>지정 테스트에서 제품 코드를 실행하도록 허용</label>
+            <input type="checkbox"
+            name="allowTests" ${s.allowChanges && s.testFiles.length ? 'checked' : ''}>지정 테스트에서 제품 코드를 실행하도록
+            허용</label>
           <p class="small muted">별도 복사본에서 실행하며 테스트를 수정하지 않습니다. 완전한 OS·네트워크 격리는 아닙니다.</p>
           <label class="check-option">
-            <input type="checkbox" name="repairOnce" ${s.maxRepairs ? 'checked' : ''}>검사 실패·검토 보완은 같은 작업에서 최대 1회 다시 작성</label>
+            <input type="checkbox" name="repairOnce" ${s.maxRepairs ? 'checked' : ''}>검사 실패·검토 보완은 같은 작업에서 최대
+            1회 다시 작성</label>
         </details>
         <div class="actions">
           <button type="submit" class="primary">운영 범위 저장</button>
@@ -169,7 +177,8 @@ export function managedDetail(task, data) {
               (i) => html`<article class="record">
         <h3>${e(i.title)}</h3>
         <p class="gap">${e(i.reason)}</p>
-        <p class="small muted gap">${e(i.goal)}<br>근거: ${i.evidenceIds.map((id) => e(evidence.find((f) => f.id === id)?.path || id)).join(' · ')}
+        <p class="small muted
+        gap">${e(i.goal)}<br>근거: ${i.evidenceIds.map((id) => e(evidence.find((f) => f.id === id)?.path || id)).join(' · ')}
         </p>
       </article>`,
             )

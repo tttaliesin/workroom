@@ -111,7 +111,8 @@ function view() {
 export function shellHTML() {
   return html`<header class="appbar">
       <strong>
-        <img class="app-mark" src="../desktop/assets/workroom.svg" width="18" height="18" alt="" aria-hidden="true">작업실</strong>
+        <img class="app-mark" src="../desktop/assets/workroom.svg" width="18" height="18" alt=""
+        aria-hidden="true">작업실</strong>
       <div class="row">
         ${button(e(accountLabel(data.runtime)), 'nav:account', 'class="plain"')}
         ${button('새로고침', 'refresh', `class="plain" ${ui.busy ? 'disabled' : ''}`)}
@@ -129,7 +130,8 @@ export function shellHTML() {
           ${button(`${icon('connection')}<span>MCP 연결</span>`, 'nav:connection', ui.view === 'connection' ? 'aria-current="page"' : '')}
         </nav>
       </aside>
-      <div class="workspace">${workspaceToolbar()}<div class="workspace-body">${hasTaskPane() ? taskPane() : ''}
+      <div class="workspace">${workspaceToolbar()}<div
+      class="workspace-body">${hasTaskPane() ? taskPane() : ''}
         <main class="main ${ui.view === 'home' ? 'overview-main' : ui.view === 'delegate' ? 'request-main' : ''}">
             <div class="content ${ui.view === 'home' ? 'overview-content' : ''}">
               <div class="sync-notice small muted" role="status">

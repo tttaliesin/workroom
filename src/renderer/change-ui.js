@@ -197,7 +197,8 @@ export function changeDetail(task, data) {
       canApply && change
         ? html`<section class="section apply-review">
         <h2>이 수정본을 작업 폴더에 반영</h2>
-        <p class="gap">${change.changes.length}개 파일의 위 변경을 반영합니다. 원본의 다른 변경을 발견하면 멈춥니다. 반영 전후 내용과 검사 기록은 작업에 남습니다.</p>
+        <p class="gap">${change.changes.length}개 파일의 위 변경을 반영합니다. 원본의 다른 변경을 발견하면 멈춥니다. 반영 전후 내용과 검사 기록은 작업에
+        남습니다.</p>
         <form data-form="change-apply" data-id="${task.id}" class="form gap">
           ${checks?.status !== 'passed' ? '<label class="check-option"><input type="checkbox" name="acceptUnconfirmed" required>미확인 검사 범위를 읽었으며 이 수정본을 적용합니다.</label>' : ''}
           <div>

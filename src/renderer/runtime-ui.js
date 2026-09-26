@@ -52,6 +52,25 @@ const accountLabels = {
   error: '연결 확인 필요',
 };
 export const accountLabel = (runtime) => accountLabels[runtime?.state] || '계정 연결';
+function accountMessage(runtime) {
+  if (runtime.failure?.message) return runtime.failure.message;
+  if (runtime.state === 'ready') return `${runtime.verifiedModel}의 실제 모델 응답을 확인했습니다.`;
+  if (runtime.connected)
+    return '로그인을 저장했습니다. 모델 확인 또는 첫 조사 요청으로 실제 사용 가능 여부를 확인합니다.';
+  return 'ChatGPT 로그인은 시스템 브라우저에서 진행됩니다.';
+}
+function stageMessage(task) {
+  if (task.message) return task.message;
+  if (task.status === 'queued') return '차례가 되면 이 단계를 시작합니다.';
+  if (task.status === 'running') return '소스와 기록을 확인하고 있습니다.';
+  if (task.status === 'accepted') return '인용 파일의 버전을 확인하고 관련 기록에 연결했습니다.';
+  return task.reason;
+}
+function nextStage(task) {
+  if (task.stage === 'investigate') return '다음: 별도 세션에서 근거 확인';
+  if (task.stage === 'review') return '다음: 조건부 기록 정리';
+  return '개발 결과와 별개로 재사용 기록을 정리합니다.';
+}
 export function accountPage(runtime = {}) {
   const logging = runtime.state === 'logging_in',
     models = runtime.models || [];
@@ -61,7 +80,7 @@ export function accountPage(runtime = {}) {
     <section class="task-outcome">
         <h2>${e(accountLabel(runtime))}</h2>
         <p>
-          ${e(runtime.failure?.message || (runtime.state === 'ready' ? `${runtime.verifiedModel}의 실제 모델 응답을 확인했습니다.` : runtime.connected ? '로그인을 저장했습니다. 모델 확인 또는 첫 조사 요청으로 실제 사용 가능 여부를 확인합니다.' : 'ChatGPT 로그인은 시스템 브라우저에서 진행됩니다.'))}
+          ${e(accountMessage(runtime))}
         </p>
       </section>
     ${
@@ -84,7 +103,8 @@ export function accountPage(runtime = {}) {
             <summary>브라우저 완료 후 앱으로 돌아오지 않는 경우</summary>
             <form data-form="runtime-manual" class="form gap">
               <label for="oauth-code">완료된 브라우저의 주소 또는 코드</label>
-              <input id="oauth-code" name="value" type="password" autocomplete="off" maxlength="4096" required>
+              <input id="oauth-code" name="value" type="password" autocomplete="off" maxlength="4096"
+              required>
               <button type="submit">로그인 완료 연결</button>
             </form>
           </details>`
@@ -123,12 +143,16 @@ export function accountPage(runtime = {}) {
         <div class="actions">
           ${button(runtime.paused ? '대기 작업 계속 실행' : '새 실행 일시 정지', 'runtime-pause')}
         </div>
-        <p class="small muted gap">일시 정지는 다음 단계와 새 작업의 시작을 막습니다. 현재 실행은 작업 상세에서 중지할 수 있습니다. 앱을 종료하면 실행도 끝나며 다음 시작 때 중단된 작업으로 복원합니다.</p>
+        <p class="small muted gap">일시 정지는 다음 단계와 새 작업의 시작을 막습니다. 현재 실행은 작업 상세에서 중지할 수 있습니다. 앱을 종료하면 실행도 끝나며
+        다음
+        시작 때 중단된 작업으로 복원합니다.</p>
       </section>
     <details>
         <summary>연결과 자료 사용 범위</summary>
-        <p class="small muted gap">이 앱의 인증 정보는 운영체제 보호 저장소로 암호화해 보관합니다. 기존 Codex·Pi의 로그인을 가져오지 않습니다. 연결 해제는 이 앱에 저장한 정보만 제거합니다.</p>
-        <p class="small muted gap">맡긴 작업 목표, 관련 기록, 도구로 읽은 소스·문서 일부가 선택한 OpenAI 모델에 전달됩니다. 계정의 사용 한도를 모든 역할이 함께 사용합니다. 역할을 늘려도 한도가 늘지 않습니다.</p>
+        <p class="small muted gap">이 앱의 인증 정보는 운영체제 보호 저장소로 암호화해 보관합니다. 기존 Codex·Pi의 로그인을 가져오지 않습니다. 연결 해제는 이
+        앱에 저장한 정보만 제거합니다.</p>
+        <p class="small muted gap">맡긴 작업 목표, 관련 기록, 도구로 읽은 소스·문서 일부가 선택한 OpenAI 모델에 전달됩니다. 계정의 사용 한도를 모든 역할이
+        함께 사용합니다. 역할을 늘려도 한도가 늘지 않습니다.</p>
       </details>`
   );
 }
@@ -165,10 +189,10 @@ export function agentDetail(task, data) {
           ${task.status === 'accepted' ? '조사 결과를 저장했습니다' : e(stageLabels[task.stage])}
         </h2>
         <p>
-          ${e(task.message || (task.status === 'queued' ? '차례가 되면 이 단계를 시작합니다.' : task.status === 'running' ? '소스와 기록을 확인하고 있습니다.' : task.status === 'accepted' ? '인용 파일의 버전을 확인하고 관련 기록에 연결했습니다.' : task.reason))}
+          ${e(stageMessage(task))}
         </p>
         <p class="small muted gap">
-          ${task.stage === 'investigate' ? '다음: 별도 세션에서 근거 확인' : task.stage === 'review' ? '다음: 조건부 기록 정리' : '개발 결과와 별개로 재사용 기록을 정리합니다.'}
+          ${nextStage(task)}
         </p>
       </section>
     <div class="actions">
@@ -215,7 +239,8 @@ export function agentDetail(task, data) {
             (r) => html`<article class="record">
         <h3>${e(stageLabels[r.role])} · ${e({ completed: '결과 저장', running: '진행 중', failed: '미완료', stopping: '종료 확인 중', interrupted: '중단됨', discarded: '현재 결과에 미반영' }[r.status] || r.status)}
         </h3>
-        <p class="small muted gap">${e(r.modelId)} · ${r.turns || 0}턴 · 관측 ${Number(r.tokens || 0).toLocaleString()} 토큰 · 파일 도구 ${r.toolCalls || 0}회</p>
+        <p class="small muted gap">${e(r.modelId)} · ${r.turns || 0}턴 ·
+        관측 ${Number(r.tokens || 0).toLocaleString()} 토큰 · 파일 도구 ${r.toolCalls || 0}회</p>
         <p class="small muted gap">실행 ID ${e(r.id)}</p>
         ${r.failure ? `<p class="gap">${e(r.failure.message)}</p>` : ''}
       </article>`,
