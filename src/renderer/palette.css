@@ -1,0 +1,48 @@
+/*
+ * Clay accent: https://www.typeui.sh/design-skills/terracotta (#C56A3C).
+ * Unmodified Sand scale: https://github.com/radix-ui/colors (MIT; see assets/RADIX-COLORS-LICENSE.txt).
+ * Derived clay tones are Workroom's sRGB mixes, not official Radix colors.
+ * Mix amounts and adoption decisions: ../../outputs/terracotta-palette-research.md.
+ */
+:root {
+  --brand: #c56a3c;
+  --sand-1: light-dark(#fdfdfc, #111110);
+  --sand-2: light-dark(#f9f9f8, #191918);
+  --sand-3: light-dark(#f1f0ef, #222221);
+  --sand-4: light-dark(#e9e8e6, #2a2a28);
+  --sand-5: light-dark(#e2e1de, #31312e);
+  --sand-6: light-dark(#dad9d6, #3b3a37);
+  --sand-7: light-dark(#cfceca, #494844);
+  --sand-8: light-dark(#bcbbb5, #62605b);
+  --sand-9: light-dark(#8d8d86, #6f6d66);
+  --sand-10: light-dark(#82827c, #7c7b74);
+  --sand-11: light-dark(#63635e, #b5b3ad);
+  --sand-12: light-dark(#21201c, #eeeeec);
+
+  --text: var(--sand-12);
+  --muted: var(--sand-11);
+  --surface: light-dark(#fdfdfc, #191918);
+  --side: light-dark(#f1f0ef, #111110);
+  --list: var(--sand-2);
+  --field: light-dark(#ffffff, #222221);
+  --line: var(--sand-6);
+  --hover: var(--sand-3);
+  --current: var(--sand-4);
+  --current-hover: var(--sand-5);
+  --current-border: var(--sand-7);
+
+  --accent: light-dark(#995633, #d99f81);
+  --accent-line: var(--brand);
+  --soft: light-dark(#f8f0eb, #31241d);
+  --soft-hover: light-dark(#f5e8e1, #3b291f);
+  --soft-border: light-dark(#deab90, #79462c);
+  --primary: light-dark(#ae6038, #ce825b);
+  --on-primary: light-dark(#ffffff, #111110);
+  --primary-hover: light-dark(#a15a35, #d28d6a);
+  --primary-active: light-dark(#975533, #c56a3c);
+  --selection: light-dark(#f0dbd0, #4d3123);
+
+  --success: light-dark(#2f7256, #90c8ac);
+  --danger: light-dark(#b23448, #f4a0ad);
+  --danger-soft: light-dark(#fcebef, #3c242a);
+}
