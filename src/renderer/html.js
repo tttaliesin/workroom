@@ -1,3 +1,14 @@
+// Template tag for markup laid out over several source lines: it drops each line break and the
+// indentation after it, so the layout never adds whitespace to the rendered HTML. Interpolated
+// values are inserted untouched. Stripped strings are cached per call site.
+const stripped = new WeakMap();
+export function html(strings, ...values) {
+  let parts = stripped.get(strings);
+  if (!parts) stripped.set(strings, (parts = strings.map((s) => s.replace(/\n */g, ''))));
+  let out = parts[0];
+  for (let i = 0; i < values.length; i++) out += `${values[i]}${parts[i + 1]}`;
+  return out;
+}
 export const e = (x) =>
   String(x ?? '').replace(
     /[&<>"']/g,
@@ -13,11 +24,21 @@ export const date = (value) =>
 export const button = (label, action, options = '') =>
   `<button type="button" data-action="${action}" ${options}>${label}</button>`;
 export const header = (title, subtitle, action = '') =>
-  `<header class="heading row between"><div><h1>${e(title)}</h1><p>${e(subtitle)}</p></div>${action}</header>`;
+  html`<header class="heading row between">
+      <div>
+        <h1>${e(title)}</h1>
+        <p>${e(subtitle)}</p>
+      </div>${action}</header>`;
 export const field = (id, label, value = '', type = 'input', extra = '') =>
-  `<div><label for="${id}">${label}</label>${type === 'textarea' ? `<textarea id="${id}" name="${id}" ${extra}>${e(value)}</textarea>` : `<input id="${id}" name="${id}" value="${e(value)}" ${extra}>`}</div>`;
+  html`<div>
+      <label for="${id}">${label}</label>
+      ${type === 'textarea' ? `<textarea id="${id}" name="${id}" ${extra}>${e(value)}</textarea>` : `<input id="${id}" name="${id}" value="${e(value)}" ${extra}>`}
+    </div>`;
 export const empty = (heading, content) =>
-  `<div class="empty"><h2>${heading}</h2><p class="muted gap">${content}</p></div>`;
+  html`<div class="empty">
+      <h2>${heading}</h2>
+      <p class="muted gap">${content}</p>
+    </div>`;
 const icons = {
   product: '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M4 10h16M10 10v10"/>',
   file: '<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9zM14 3v6h6M8 14h8M8 17h5"/>',
