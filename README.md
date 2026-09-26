@@ -128,7 +128,7 @@ Electron 화면은 별도로 Playwright의 Electron API로 등록 → 점검 →
 src/core/       저장·검증·제품·작업·지식·포트폴리오
 src/desktop/    Electron 메인과 제한된 preload API
 src/runtime/    Pi·OAuth·실행 대기열·소스 복사·검사·버전별 반영
-src/renderer/   로컬 화면 · app.js 이벤트와 화면 전환, state.js 상태, *-views.js·*-ui.js 화면별 HTML, html.js 공통 조각
+src/renderer/   로컬 화면 · app.js 시작, controller.js 화면 전환·요청 흐름·API, click-actions.js·form-actions.js·field-events.js 이벤트 처리, state.js 상태, *-views.js·*-ui.js 화면별 HTML, html.js 공통 조각
 src/mcp/        같은 핵심 기능에 연결하는 stdio MCP
 tests/          저장 및 MCP 통합 검사
 scripts/checks/ 실제 Electron 화면 흐름·실제 계정 검사
