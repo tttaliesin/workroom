@@ -1,6 +1,6 @@
 const workDir=require('node:path').resolve(__dirname,'../../work');require('node:fs').mkdirSync(workDir,{recursive:true});
 // Visual review with isolated example data; never opens the user's desktop profile.
-const { _electron } = require('%USERPROFILE%/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const { _electron } = require('./lib/playwright.cjs');
 const fs = require('node:fs');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
@@ -19,7 +19,7 @@ async function main() {
   room.close();
   const env = { ...process.env, WORKROOM_DATA_DIR: directory, WORKROOM_HEADLESS: '1', WORKROOM_NODE: process.execPath };
   delete env.ELECTRON_RUN_AS_NODE;
-  const app = await _electron.launch({ executablePath: path.join(root, 'node_modules/electron/dist/electron.exe'), args: [root], env });
+  const app = await _electron.launch({ executablePath: require('electron'), args: [root], env });
   const errors = [], review = { directory, screenshots: [], colors: {}, errors };
   try {
     const page = await app.firstWindow();

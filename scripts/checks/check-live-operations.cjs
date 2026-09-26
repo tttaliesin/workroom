@@ -1,5 +1,5 @@
 const workDir=require('node:path').resolve(__dirname,'../../work');require('node:fs').mkdirSync(workDir,{recursive:true});
-const {_electron}=require('%USERPROFILE%/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const {_electron}=require('./lib/playwright.cjs');
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict'),{pathToFileURL}=require('node:url');
 const root=path.resolve(__dirname,'../..'),previous=JSON.parse(fs.readFileSync(path.join(workDir,'visible-runtime-session.json'),'utf8'));
 (async()=>{
@@ -10,7 +10,7 @@ const root=path.resolve(__dirname,'../..'),previous=JSON.parse(fs.readFileSync(p
  let portfolio=room.store.get('portfolio',manifest.portfolioId);
  if(!manifest.repairTarget){portfolio=room.createPortfolio({target:'개발 도구 팀 · 근거 편집 검증',requirements:portfolio.requirements,autoProductIds:[product.id]});manifest.previousPortfolioId=manifest.portfolioId;manifest.portfolioId=portfolio.id;manifest.repairTarget=true;fs.writeFileSync(path.join(workDir,'live-operations-session.json'),JSON.stringify(manifest,null,2));}room.close();
  const env={...process.env,WORKROOM_DATA_DIR:previous.dataDirectory,WORKROOM_NODE:process.execPath};delete env.WORKROOM_HEADLESS;delete env.ELECTRON_RUN_AS_NODE;
- const app=await _electron.launch({executablePath:path.join(root,'node_modules/electron/dist/electron.exe'),args:[root],env});let page,configured=false;
+ const app=await _electron.launch({executablePath:require('electron'),args:[root],env});let page,configured=false;
  try{
   page=await app.firstWindow();page.setDefaultTimeout(15000);const errors=[];page.on('pageerror',e=>errors.push(e.message));
   const call=async(method,args)=>{const r=await page.evaluate(async({method,args})=>window.workroom.runtime(method,args),{method,args});if(!r.ok)throw Error(r.error);return r.value;};

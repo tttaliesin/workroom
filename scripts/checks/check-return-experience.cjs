@@ -1,5 +1,5 @@
 const workDir=require('node:path').resolve(__dirname,'../../work');require('node:fs').mkdirSync(workDir,{recursive:true});
-const {_electron}=require('%USERPROFILE%/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const {_electron}=require('./lib/playwright.cjs');
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const {pathToFileURL}=require('node:url');
 const root=path.resolve(__dirname,'../..');
@@ -9,7 +9,7 @@ const root=path.resolve(__dirname,'../..');
  const room=new Workroom(path.join(dir,'workroom.sqlite'));
  const p=await room.createProduct({name:'작업실',folder:dir,goal:'입력과 저장 문제를 줄이고, 개발 경험을 다음 작업에 활용합니다.'});
  const env={...process.env,WORKROOM_DATA_DIR:dir,WORKROOM_HEADLESS:'1'};delete env.ELECTRON_RUN_AS_NODE;
- const app=await _electron.launch({executablePath:path.join(root,'node_modules/electron/dist/electron.exe'),args:[root],env});
+ const app=await _electron.launch({executablePath:require('electron'),args:[root],env});
  try {
   const page=await app.firstWindow(),errors=[];page.setDefaultTimeout(8000);page.on('pageerror',e=>errors.push(e.message));
   const click=async action=>page.locator(`[data-action="${action}"]`).first().evaluate(el=>el.click());

@@ -1,5 +1,5 @@
 const workDir=require('node:path').resolve(__dirname,'../../work');require('node:fs').mkdirSync(workDir,{recursive:true});
-const {_electron:electron}=require('%USERPROFILE%/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const {_electron:electron}=require('./lib/playwright.cjs');
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const {pathToFileURL}=require('node:url');
 const root=path.resolve(__dirname,'../..');
@@ -13,7 +13,7 @@ const root=path.resolve(__dirname,'../..');
  for(let i=0;i<30;i++) task=room.reportWork({productId:product.id,title:`${i+1}. 가져오기 후 검색 결과와 저장 상태가 서로 달라지는 문제 수정`,summary:'작업 목록, 상세 화면과 검사 상태가 긴 한국어에서도 읽히는지 확인하는 자료입니다.',evidence:'UI 검증용 자료',limitations:'실제 제품의 테스트 결과가 아닙니다.',contribution:'검증용 데이터',changedFiles:[{path:'src/features/importing/normalization/very-long-directory-name/한글이-포함된-긴-파일-이름.ts',summary:'저장 상태를 다시 읽어 검색 색인과 동기화합니다.'}],checks:[{name:'재시작 후 한글 검색 결과의 일관성',result:'failed',detail:'실패 이유가 여러 줄로 표시되어도 다른 검사 결과를 밀어내거나 잘리지 않아야 합니다. '.repeat(8)},{name:'운영 환경 확인',result:'unconfirmed',detail:'실행하지 않음'}]});
  room.close();
  const env={...process.env,WORKROOM_DATA_DIR:dir,WORKROOM_HEADLESS:'0'};delete env.ELECTRON_RUN_AS_NODE;
- const app=await electron.launch({executablePath:path.join(root,'node_modules/electron/dist/electron.exe'),args:[root],env});
+ const app=await electron.launch({executablePath:require('electron'),args:[root],env});
  const checks=[];
  try{
   const page=await app.firstWindow();const errors=[];page.on('pageerror',e=>errors.push(e.message));

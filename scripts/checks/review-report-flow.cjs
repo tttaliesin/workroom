@@ -1,5 +1,5 @@
 const workDir=require('node:path').resolve(__dirname,'../../work');require('node:fs').mkdirSync(workDir,{recursive:true});
-const { _electron: electron } = require('%USERPROFILE%/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const { _electron: electron } = require('./lib/playwright.cjs');
 const fs = require('node:fs'), path = require('node:path'), assert = require('node:assert/strict');
 const { pathToFileURL } = require('node:url'), { spawn } = require('node:child_process');
 const root = path.resolve(__dirname,'../..');
@@ -30,7 +30,7 @@ const root = path.resolve(__dirname,'../..');
   assert.ok(!result.isError, result.content[0].text);
   assert.equal(room.snapshot().portfolios[0].entries.length, 1);
  } finally { await client.close(); room.close(); }
- const exe = path.join(root, 'node_modules/electron/dist/electron.exe');
+ const exe = require('electron');
  const app = await electron.launch({ executablePath: exe, args: [root], env });
  try {
   const page = await app.firstWindow(); const errors = []; page.on('pageerror', error => errors.push(error.message));

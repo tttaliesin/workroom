@@ -24,6 +24,9 @@ importers:
       electron:
         specifier: 44.4.5
         version: 44.4.5
+      playwright-core:
+        specifier: 1.62.1
+        version: 1.62.1
       prettier:
         specifier: 3.9.9
         version: 3.9.9
@@ -837,6 +840,11 @@ packages:
   pkce-challenge@5.0.1:
     resolution: {integrity: sha512-wQ0b/W4Fr01qtpHlqSqspcj3EhBvimsdh0KlHhH8HRZnMsEa0ea2fTULOXOS9ccQr3om+GcGRk4e+isrZWV8qQ==}
     engines: {node: '>=16.20.0'}
+
+  playwright-core@1.62.1:
+    resolution: {integrity: sha512-wPYSwEBJY9GHraISXqyqtx0na0LpO3XEX7jNDhntbex7tzUS7kLnZsOlFruFJB4Hi/rhDMjXGqHewDZ68nYZVw==}
+    engines: {node: '>=20'}
+    hasBin: true
 
   prettier@3.9.9:
     resolution: {integrity: sha512-Z/CJHIkdujO/OtN7nXUii0Rf3VT5SRuhjBA82Xvu2XhBUgX3nhP67T0LHceBdQLex7OOFGTox+Q5Yg8Jk2Qivg==}
@@ -1948,6 +1956,8 @@ snapshots:
   path-to-regexp@8.4.2: {}
 
   pkce-challenge@5.0.1: {}
+
+  playwright-core@1.62.1: {}
 
   prettier@3.9.9: {}
 

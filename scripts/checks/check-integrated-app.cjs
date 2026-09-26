@@ -1,5 +1,5 @@
 const workDir=require('node:path').resolve(__dirname,'../../work');require('node:fs').mkdirSync(workDir,{recursive:true});
-const {_electron}=require('%USERPROFILE%/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const {_electron}=require('./lib/playwright.cjs');
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const {pathToFileURL}=require('node:url');
 const root=path.resolve(__dirname,'../..');
@@ -15,7 +15,7 @@ const root=path.resolve(__dirname,'../..');
  room.savePortfolio({id:f.id,revision:portfolio.revision,intro:'작업을 이어갈 수 있는 개발 도구',requirements:portfolio.requirements,entries:portfolio.entries});
  const record=room.snapshot().records.find(x=>x.sourceTaskId===r.id);
  const env={...process.env,WORKROOM_DATA_DIR:dir,WORKROOM_HEADLESS:'1'};delete env.ELECTRON_RUN_AS_NODE;
- const app=await _electron.launch({executablePath:path.join(root,'node_modules/electron/dist/electron.exe'),args:[root],env});
+ const app=await _electron.launch({executablePath:require('electron'),args:[root],env});
  try{
   const page=await app.firstWindow(),errors=[];page.setDefaultTimeout(7000);page.on('pageerror',e=>{errors.push(e.message);console.log('pageerror',e.message);});
   await page.getByRole('heading',{name:r.title,exact:true}).waitFor();await page.evaluate(()=>document.fonts.ready);

@@ -1,5 +1,5 @@
 const workDir=require('node:path').resolve(__dirname,'../../work');require('node:fs').mkdirSync(workDir,{recursive:true});
-const { _electron: electron } = require('%USERPROFILE%/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const { _electron: electron } = require('./lib/playwright.cjs');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -10,7 +10,7 @@ fs.writeFileSync(path.join(repo, 'README.md'), '# Test fixture');
 fs.writeFileSync(path.join(repo, 'package.json'), JSON.stringify({ scripts: { test: 'echo not-executed' } }));
 const env = { ...process.env, WORKROOM_DATA_DIR: dir, WORKROOM_HEADLESS: process.env.WORKROOM_HEADLESS || '1', WORKROOM_NODE: process.execPath };
 delete env.ELECTRON_RUN_AS_NODE;
-const launch = () => electron.launch({ executablePath: path.join(root, 'node_modules/electron/dist/electron.exe'), args: [root], env });
+const launch = () => electron.launch({ executablePath: require('electron'), args: [root], env });
 (async () => {
  let app; const errors=[];
  try {

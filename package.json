@@ -12,6 +12,7 @@
     "start": "electron .",
     "mcp": "node src/mcp/server.mjs",
     "test": "node --test tests/*.test.mjs",
+    "check:ui": "node scripts/checks/check-overview-app.cjs",
     "format": "prettier --write src tests",
     "format:check": "prettier --check src tests"
   },
@@ -23,6 +24,7 @@
   },
   "devDependencies": {
     "electron": "44.4.5",
+    "playwright-core": "1.62.1",
     "prettier": "3.9.9"
   }
 }

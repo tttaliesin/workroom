@@ -1,5 +1,5 @@
 const workDir=require('node:path').resolve(__dirname,'../../work');require('node:fs').mkdirSync(workDir,{recursive:true});
-const { _electron: electron } = require('%USERPROFILE%/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const { _electron: electron } = require('./lib/playwright.cjs');
 const fs=require('node:fs');const path=require('node:path');const {pathToFileURL}=require('node:url');const {spawn}=require('node:child_process');const assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'../..');
 (async()=>{
@@ -21,7 +21,7 @@ const root=path.resolve(__dirname,'../..');
  const draft=room.createPortfolio({target:'기본 포트폴리오',requirements:'검토용 데이터. 실제 사용자 소개와 기업 정보는 아직 입력하지 않았습니다.'});
  room.savePortfolio({id:draft.id,revision:draft.revision,intro:'에이전트와 함께 개발 도구를 만들고 검증합니다.',requirements:draft.requirements,entries:[{taskId:input.id,title:input.title,description:input.summary,contribution:input.contribution}]});room.close();
  const env={...process.env,WORKROOM_DATA_DIR:dir,WORKROOM_HEADLESS:'0',WORKROOM_NODE:process.execPath};delete env.ELECTRON_RUN_AS_NODE;
- const exe=path.join(root,'node_modules/electron/dist/electron.exe');
+ const exe=require('electron');
  const app=await electron.launch({executablePath:exe,args:[root],env});
  let observations={};
  try{

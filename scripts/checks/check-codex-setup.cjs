@@ -1,5 +1,5 @@
 const workDir=require('node:path').resolve(__dirname,'../../work');require('node:fs').mkdirSync(workDir,{recursive:true});
-const {_electron:electron}=require('%USERPROFILE%/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const {_electron:electron}=require('./lib/playwright.cjs');
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const {pathToFileURL}=require('node:url'),{execFileSync}=require('node:child_process');
 const root=path.resolve(__dirname,'../..');
@@ -10,7 +10,7 @@ const root=path.resolve(__dirname,'../..');
  const product=await room.createProduct({name:'자동 수집 검증',folder});
  room.createPortfolio({target:'자동 수집 초안',autoProductIds:[product.id]});
  const env={...process.env,WORKROOM_DATA_DIR:dir,WORKROOM_HEADLESS:'0',WORKROOM_NODE:process.execPath};delete env.ELECTRON_RUN_AS_NODE;
- const app=await electron.launch({executablePath:path.join(root,'node_modules/electron/dist/electron.exe'),args:[root],env});
+ const app=await electron.launch({executablePath:require('electron'),args:[root],env});
  let page;const errors=[];
  try{
   page=await app.firstWindow();page.on('pageerror',e=>errors.push(e.message));

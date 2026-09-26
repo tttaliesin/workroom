@@ -1,5 +1,5 @@
 const workDir=require('node:path').resolve(__dirname,'../../work');require('node:fs').mkdirSync(workDir,{recursive:true});
-const {_electron}=require('%USERPROFILE%/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const {_electron}=require('./lib/playwright.cjs');
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const {pathToFileURL}=require('node:url');
 const root=path.resolve(__dirname,'../..');
@@ -8,7 +8,7 @@ const root=path.resolve(__dirname,'../..');
  const productDirectory=path.join(directory,'example');fs.mkdirSync(productDirectory);fs.writeFileSync(path.join(productDirectory,'README.md'),'# Example\nImport validation is documented.');
  const env={...process.env,WORKROOM_DATA_DIR:directory,WORKROOM_HEADLESS:'1'};delete env.ELECTRON_RUN_AS_NODE;
  let app;
- const launch=async()=>{app=await _electron.launch({executablePath:path.join(root,'node_modules/electron/dist/electron.exe'),args:[root],env});const page=await app.firstWindow();page.setDefaultTimeout(15000);return page;};
+ const launch=async()=>{app=await _electron.launch({executablePath:require('electron'),args:[root],env});const page=await app.firstWindow();page.setDefaultTimeout(15000);return page;};
  const waitSnapshot=async(page,predicate)=>{for(let i=0;i<150;i++){const r=await page.evaluate(async()=>(await window.workroom.call('snapshot')).value);if(predicate(r))return r;await new Promise(r=>setTimeout(r,100));}throw new Error('runtime state wait timed out');};
  const close=async()=>{await app.evaluate(({app})=>app.exit(0)).catch(()=>{});};
  try {
