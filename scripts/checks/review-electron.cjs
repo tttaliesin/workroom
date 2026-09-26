@@ -1,0 +1,48 @@
+const workDir=require('node:path').resolve(__dirname,'../../work');require('node:fs').mkdirSync(workDir,{recursive:true});
+const { _electron: electron } = require('%USERPROFILE%/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const fs = require('node:fs');
+const path = require('node:path');
+const assert = require('node:assert/strict');
+const root = path.resolve(__dirname,'../..');
+const dir = fs.mkdtempSync(path.join(workDir, 'review-'));
+const env={...process.env,WORKROOM_DATA_DIR:dir,WORKROOM_HEADLESS:'0',WORKROOM_NODE:process.execPath};delete env.ELECTRON_RUN_AS_NODE;
+(async()=>{
+ const app=await electron.launch({executablePath:path.join(root,'node_modules/electron/dist/electron.exe'),args:[root],env});
+ const observations={};
+ try{
+  const page=await app.firstWindow();page.setDefaultTimeout(10000);
+  await page.getByRole('button',{name:'첫 제품 등록'}).waitFor();
+  const visible=await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].isVisible());
+  observations.actualWindowVisible=visible;
+  await app.evaluate(({dialog},folder)=>{dialog.showOpenDialog=async()=>({canceled:false,filePaths:[folder]});},root);
+  await page.getByRole('button',{name:'첫 제품 등록'}).click();
+  await page.getByLabel('제품 이름',{exact:true}).fill('작업실 자체 점검');
+  await page.getByRole('button',{name:'폴더 선택',exact:true}).click();
+  await page.getByLabel('지금 이 제품에서 이루고 싶은 것').fill('실제 사용 중 입력 손실과 탐색 문제 확인');
+  await page.getByRole('button',{name:'제품 등록',exact:true}).click();
+  await page.getByRole('button',{name:'지금 기본 점검',exact:true}).click();
+  await page.getByRole('heading',{name:'저장소 기본 점검',exact:true}).waitFor();
+  await page.screenshot({path:path.join(root,'outputs/app-review-inspection.png'),fullPage:true});
+  observations.inspection=await page.locator('.detail').innerText();
+  assert.match(observations.inspection,/일부 미확인/);
+  assert.match(observations.inspection,/확인하지 못한 항목/);
+  await page.getByRole('button',{name:'작업 결과 기록',exact:true}).click();
+  await page.getByLabel('작업 제목').fill('입력 보존 확인용 초안');
+  await page.getByLabel('무엇이 달라졌나요?').fill('작성 도중 기록을 확인하러 이동하는 상황');
+  await page.getByRole('button',{name:'기록 찾기',exact:true}).click();
+  observations.draftGuard=await page.getByLabel('작업 제목').isVisible();
+  observations.visibleAfterLeave=await page.locator('main').innerText();
+  assert.equal(observations.draftGuard,true);
+  observations.draftTitleAfterReturn=await page.getByLabel('작업 제목').inputValue();
+  assert.equal(observations.draftTitleAfterReturn,'입력 보존 확인용 초안');
+  await page.getByRole('button',{name:'수정 취소',exact:true}).click();
+  await page.getByRole('navigation',{name:'주요 메뉴'}).getByRole('button',{name:'운영',exact:true}).click();
+  await page.getByRole('button',{name:'작업 결과 기록',exact:true}).click();
+  await page.getByLabel('나와 에이전트의 기여 범위').scrollIntoViewIfNeeded();
+  observations.scrollBeforeNavigation=await page.evaluate(()=>window.scrollY);
+  await page.getByRole('button',{name:'MCP 연결',exact:true}).click();
+  observations.scrollAfterNavigation=await page.evaluate(()=>window.scrollY);
+  fs.writeFileSync(path.join(workDir,'review-observations.json'),JSON.stringify({dir,...observations},null,2));
+  console.log(JSON.stringify(observations,null,2));
+ }finally{await app.close();}
+})().catch(e=>{console.error(e);process.exitCode=1;});

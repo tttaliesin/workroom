@@ -1,0 +1,44 @@
+const workDir=require('node:path').resolve(__dirname,'../../work');require('node:fs').mkdirSync(workDir,{recursive:true});
+const {_electron}=require('%USERPROFILE%/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const {pathToFileURL}=require('node:url');
+const root=path.resolve(__dirname,'../..');
+(async()=>{
+ const {Workroom}=await import(pathToFileURL(path.join(root,'src/core/service.mjs')));
+ const dir=fs.mkdtempSync(path.join(workDir,'integrated-app-'));
+ const room=new Workroom(path.join(dir,'workroom.sqlite'));
+ const p=await room.createProduct({name:'작업실 · 흐름 확인',folder:dir,goal:'입력과 저장 문제를 조사하고 개발 경험을 정리합니다.'});
+ const f=room.createPortfolio({target:'프런트엔드 지원용',requirements:'입력 흐름과 문제 해결 경험',autoProductIds:[p.id]});
+ const r=room.reportWork({productId:p.id,externalId:'input',title:'입력 소실 수정',summary:'화면 이동과 닫기 취소 뒤에 입력을 이어갈 수 있도록 수정했습니다.',evidence:'입력 보존 검사 보고',limitations:'운영 배포 미확인',contribution:'사용자 문제 제기 / 에이전트 구현',changedFiles:[{path:'src/renderer/app.js',summary:'입력 유지'}]});
+ const child=room.reportWork({productId:p.id,externalId:'csv',workTaskId:r.id,title:'한글 CSV 인코딩 조사',summary:'CSV 입력 인코딩을 조사했습니다.',evidence:'CSV 검사 보고',limitations:'제품 연동 미확인',contribution:'에이전트 조사'});
+ let portfolio=room.store.get('portfolio',f.id);
+ room.savePortfolio({id:f.id,revision:portfolio.revision,intro:'작업을 이어갈 수 있는 개발 도구',requirements:portfolio.requirements,entries:portfolio.entries});
+ const record=room.snapshot().records.find(x=>x.sourceTaskId===r.id);
+ const env={...process.env,WORKROOM_DATA_DIR:dir,WORKROOM_HEADLESS:'1'};delete env.ELECTRON_RUN_AS_NODE;
+ const app=await _electron.launch({executablePath:path.join(root,'node_modules/electron/dist/electron.exe'),args:[root],env});
+ try{
+  const page=await app.firstWindow(),errors=[];page.setDefaultTimeout(7000);page.on('pageerror',e=>{errors.push(e.message);console.log('pageerror',e.message);});
+  await page.getByRole('heading',{name:r.title,exact:true}).waitFor();await page.evaluate(()=>document.fonts.ready);
+  const click=async action=>page.locator(`[data-action="${action}"]`).first().evaluate(el=>el.click());
+  const snap=async name=>{await page.waitForTimeout(160);await page.screenshot({path:path.join(root,'outputs',name),scale:'css'});};
+  await snap('app-integrated-task.png');await click(`task-portfolio:${r.id}`);
+  await click(`portfolio-evidence:${r.id}`);await click(`link-work:${child.id}`);
+  await page.getByLabel('연결할 문제').selectOption('');await page.getByLabel('연결을 바꾸는 이유').fill('다른 문제에 대한 조사입니다.');
+  await snap('app-integrated-correction.png');
+  await page.locator('form[data-form="work-link"] button[type="submit"]').evaluate(el=>el.click());
+  await page.getByText('원본을 보존하고 실행 연결을 정정했습니다.',{exact:false}).waitFor();
+  assert.equal(room.store.get('task',child.id).parentTaskId,null);
+  await click('return-location');await page.getByRole('heading',{name:'포트폴리오 초안',exact:true}).waitFor();
+  assert.doesNotMatch(await page.locator('.paper').innerText(),/CSV/);await snap('app-integrated-portfolio.png');
+  await click(`product:${p.id}`);assert.equal(await page.locator('.tasknav button').count(),2);
+  await click(`task:${r.id}`);await click(`record-detail:${record.id}`);await click('record-edit');
+  await page.getByLabel('어떤 변경에 적용하는가').fill('폼 상태와 종료 처리 변경');await page.getByLabel('현재 유효성').selectOption('needs_review');
+  await page.getByLabel('수정 또는 보류 이유').fill('저장 구조가 달라져 기존 절차를 재확인합니다.');
+  await page.locator('form[data-form="record-review"] button[type="submit"]').evaluate(el=>el.click());
+  await page.getByText('적용 조건과 유효성을 저장했습니다.',{exact:false}).waitFor();
+  assert.equal(room.store.get('record',record.id).validity,'needs_review');
+  assert.ok(!room.context({productId:p.id}).records.some(x=>x.id===record.id));await snap('app-integrated-knowledge.png');
+  assert.deepEqual(errors,[]);console.log(JSON.stringify({dir,checks:['actual Electron + SQLite','report separation','portfolio return and derived copy','knowledge hold and context exclusion'],errors}));
+ }catch(error){const page=await app.firstWindow();console.log('screen',await page.locator('.message').innerText());await page.screenshot({path:path.join(root,'outputs/app-integration-error.png'),scale:'css'});throw error;
+ }finally{await app.evaluate(({app})=>app.exit(0)).catch(()=>{});room.close();}
+})().catch(e=>{console.error(e);process.exitCode=1});

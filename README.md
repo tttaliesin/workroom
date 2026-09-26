@@ -112,13 +112,13 @@ pnpm test
 
 Electron 화면은 별도로 Playwright의 Electron API로 등록 → 점검 → 판단 → 결과 기록 → 포트폴리오 → HTML 저장 → 재시작 복원을 확인했습니다. OS의 파일 선택 창만 검사 경로로 대체하고, 실제 IPC·서비스·SQLite·내보내기를 사용했습니다. 테스트 데이터는 `work/` 아래에 격리됩니다.
 
-`work/check-live-report.cjs`는 별도 MCP 프로세스에서 보고를 전송해 실제 Electron의 자동 갱신·편집 병합·충돌 비교·제외 보존·구독 중단·내보내기 검토 보호를 검사합니다. 상세 계약은 [작업 보고 연결](outputs/report-flow.md)에 있습니다.
+`scripts/checks/check-live-report.cjs`는 별도 MCP 프로세스에서 보고를 전송해 실제 Electron의 자동 갱신·편집 병합·충돌 비교·제외 보존·구독 중단·내보내기 검토 보호를 검사합니다. 상세 계약은 [작업 보고 연결](outputs/report-flow.md)에 있습니다.
 
-`work/check-codex-setup.cjs`는 격리된 제품에서 설정 저장 → 생성된 훅 프로세스 → 앱 표시 → 초안 반영 → 수집 중단을 검사합니다. 실제 Codex의 이벤트 발생은 대체했으며 신뢰 설정을 우회하지 않았습니다. [Codex 자동 수집 안내](outputs/codex-capture.md).
+`scripts/checks/check-codex-setup.cjs`는 격리된 제품에서 설정 저장 → 생성된 훅 프로세스 → 앱 표시 → 초안 반영 → 수집 중단을 검사합니다. 실제 Codex의 이벤트 발생은 대체했으며 신뢰 설정을 우회하지 않았습니다. [Codex 자동 수집 안내](outputs/codex-capture.md).
 
-`work/check-change-app.cjs`는 실제 Electron에서 변경 비교 → 실제 검사 결과 → IPC로 예제 원본 반영 → 결과·반영 기록 저장과 테스트 실행 동의 입력을 확인합니다. 수정·검토의 모델 응답은 결정적 모의 응답이며 Node 검사는 실제 실행입니다.
+`scripts/checks/check-change-app.cjs`는 실제 Electron에서 변경 비교 → 실제 검사 결과 → IPC로 예제 원본 반영 → 결과·반영 기록 저장과 테스트 실행 동의 입력을 확인합니다. 수정·검토의 모델 응답은 결정적 모의 응답이며 Node 검사는 실제 실행입니다.
 
-`work/check-overview-app.cjs`는 격리된 예제 데이터를 사용한 실제 Electron에서 개요 분류·결과 중복 제거, 로그인 전 요청, 설정 왕복·재로드·제품 전환 시 초안 보존, 조사에서 후속 요청으로 연결, 기존 초안 복원, 기록 제공 이력과 대상별 초안 이동, 좁은 어두운 화면과 일반 편집 보호를 확인합니다. `outputs/app-overview-*.png`는 이 검토 데이터의 화면입니다. 이 자동 UI 검사는 모의 데이터로 진행합니다. 실제 계정·모델은 [별도 실제 실행](outputs/live-model-verification.md)으로 확인했습니다.
+`scripts/checks/check-overview-app.cjs`는 격리된 예제 데이터를 사용한 실제 Electron에서 개요 분류·결과 중복 제거, 로그인 전 요청, 설정 왕복·재로드·제품 전환 시 초안 보존, 조사에서 후속 요청으로 연결, 기존 초안 복원, 기록 제공 이력과 대상별 초안 이동, 좁은 어두운 화면과 일반 편집 보호를 확인합니다. `outputs/app-overview-*.png`는 이 검토 데이터의 화면입니다. 이 자동 UI 검사는 모의 데이터로 진행합니다. 실제 계정·모델은 [별도 실제 실행](outputs/live-model-verification.md)으로 확인했습니다.
 
 ## 구조
 
@@ -128,9 +128,11 @@ src/desktop/    Electron 메인과 제한된 preload API
 src/runtime/    Pi·OAuth·실행 대기열·소스 복사·검사·버전별 반영
 src/renderer/   로컬 화면
 src/mcp/        같은 핵심 기능에 연결하는 stdio MCP
-tests/         저장 및 MCP 통합 검사
-outputs/       기획·UX 문서와 시작 안내
-outputs/archive/  더 이상 기준이 아닌 이전 기획·조사 자료
+tests/          저장 및 MCP 통합 검사
+scripts/checks/ 실제 Electron 화면 흐름·실제 계정 검사
+outputs/        기획·UX 문서와 시작 안내
+outputs/archive/ 더 이상 기준이 아닌 이전 기획·조사 자료
+work/           검사용 임시 데이터 (Git 제외)
 ```
 
 렌더러의 Node 직접 접근을 끄고, context isolation과 sandbox를 사용하며, IPC 송신 화면을 검증합니다. 외부 페이지로 이동하거나 새 창을 열지 않습니다. [Electron IPC](https://www.electronjs.org/docs/latest/tutorial/ipc), [Electron Security](https://www.electronjs.org/docs/latest/tutorial/security)

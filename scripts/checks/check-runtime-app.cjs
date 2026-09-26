@@ -1,0 +1,56 @@
+const workDir=require('node:path').resolve(__dirname,'../../work');require('node:fs').mkdirSync(workDir,{recursive:true});
+const {_electron}=require('%USERPROFILE%/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const {pathToFileURL}=require('node:url');
+const root=path.resolve(__dirname,'../..');
+(async()=>{
+ const directory=fs.mkdtempSync(path.join(workDir,'runtime-app-'));
+ const productDirectory=path.join(directory,'example');fs.mkdirSync(productDirectory);fs.writeFileSync(path.join(productDirectory,'README.md'),'# Example\nImport validation is documented.');
+ const env={...process.env,WORKROOM_DATA_DIR:directory,WORKROOM_HEADLESS:'1'};delete env.ELECTRON_RUN_AS_NODE;
+ let app;
+ const launch=async()=>{app=await _electron.launch({executablePath:path.join(root,'node_modules/electron/dist/electron.exe'),args:[root],env});const page=await app.firstWindow();page.setDefaultTimeout(15000);return page;};
+ const waitSnapshot=async(page,predicate)=>{for(let i=0;i<150;i++){const r=await page.evaluate(async()=>(await window.workroom.call('snapshot')).value);if(predicate(r))return r;await new Promise(r=>setTimeout(r,100));}throw new Error('runtime state wait timed out');};
+ const close=async()=>{await app.evaluate(({app})=>app.exit(0)).catch(()=>{});};
+ try {
+  let page=await launch();const errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await waitSnapshot(page,r=>r.runtime.state==='disconnected');
+  const snapshot=await page.evaluate(async()=>(await window.workroom.call('snapshot')).value);console.log(JSON.stringify({runtime:snapshot.runtime}));assert(snapshot.runtime.models.length>0);
+  const click=async action=>page.locator(`[data-action="${action}"]`).first().evaluate(el=>el.click());
+  await page.getByRole('heading',{name:'어떤 제품을 함께 관리할까요?',exact:true}).waitFor();
+  assert.equal(await page.locator('.taskpane').count(),0);
+  await click('nav:account');await page.getByRole('heading',{name:'내장 에이전트 연결',exact:true}).waitFor();
+  await page.locator('#runtime-model').selectOption(snapshot.runtime.models[0].id);
+  await page.locator('form[data-form="runtime-model"] button[type="submit"]').evaluate(el=>el.click());
+  await page.getByText('작업 모델을 저장했습니다.',{exact:false}).waitFor();
+  await page.evaluate(()=>document.fonts.ready);await page.screenshot({path:path.join(root,'outputs/app-runtime-account.png'),scale:'css'});
+  const product=await page.evaluate(async folder=>(await window.workroom.call('createProduct',{name:'조사 예제',folder,goal:'Import 검증 근거 확인'})).value,productDirectory);
+  await click('refresh');await click(`product:${product.id}`);
+  assert.equal(await page.locator('.overview-task').count(),0);
+  await page.screenshot({path:path.join(root,'outputs/app-overview-empty.png'),scale:'css'});
+  await click('delegate');await page.getByRole('heading',{name:'어떤 결과가 필요한가요?',exact:true}).waitFor();
+  await page.locator('#request-goal').fill('Import 검증 근거 확인');
+  await page.locator('form[data-form="delegation"] button[type="submit"]').evaluate(el=>el.click());
+  await page.locator('.connection-return').waitFor();
+  assert.equal((await page.evaluate(async()=>(await window.workroom.call('snapshot')).value)).tasks.length,0);
+  await click('delegate-return');assert.equal(await page.locator('#request-goal').inputValue(),'Import 검증 근거 확인');
+  // A queued task from an existing runtime client still waits safely for auth.
+  const created=await page.evaluate(async productId=>await window.workroom.runtime('start',{productId,goal:'Import 검증 근거 확인'}),product.id);
+  assert.equal(created.ok,true);
+  await waitSnapshot(page,r=>r.tasks.some(t=>t.kind==='agent'&&t.status==='waiting_auth'));
+  await click('refresh');await click('nav:ops');await click(`task:${created.value.id}`);await page.getByRole('heading',{name:'Import 검증 근거 확인',exact:true}).waitFor();
+  await page.screenshot({path:path.join(root,'outputs/app-runtime-waiting.png'),scale:'css'});
+  const task=await page.evaluate(async()=>(await window.workroom.call('snapshot')).value.tasks.find(t=>t.kind==='agent'));
+  await click(`agent-stop:${task.id}`);await page.getByText('중지됨 · 읽기 전용 조사',{exact:true}).waitFor();
+  const vaultResult=await app.evaluate(({safeStorage})=>{const encrypted=safeStorage.encryptString('fixture-secret-access');return {encrypted:!encrypted.toString('utf8').includes('fixture-secret-access'),restored:safeStorage.decryptString(encrypted)==='fixture-secret-access'};});
+  assert.deepEqual(vaultResult,{encrypted:true,restored:true});
+  assert.deepEqual(errors,[]);
+  await close();page=await launch();
+  await waitSnapshot(page,r=>r.runtime.state==='disconnected');
+  const restored=await page.evaluate(async()=>(await window.workroom.call('snapshot')).value);
+  assert.equal(restored.tasks.find(t=>t.id===task.id).status,'stopped');assert.equal(restored.runtime.modelId,snapshot.runtime.models[0].id);
+  await page.locator('[data-action="nav:account"]').first().evaluate(el=>el.click());
+  await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].setSize(900,700));
+  await page.emulateMedia({colorScheme:'dark'});await page.screenshot({path:path.join(root,'outputs/app-runtime-account-dark.png'),scale:'css'});
+  console.log(JSON.stringify({directory,checks:['real Pi utility process + model catalog','empty app and empty product overview','account/model UI','disconnected request preserved without task creation','existing runtime client task waits for auth','stop and app restart restoration','real Windows safeStorage encryption round trip','narrow dark UI'],vaultResult,errors}));
+ } finally {if(app)await close();}
+})().catch(error=>{console.error(error);process.exitCode=1;});

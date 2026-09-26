@@ -1,0 +1,48 @@
+const workDir=require('node:path').resolve(__dirname,'../../work');require('node:fs').mkdirSync(workDir,{recursive:true});
+const {_electron:electron}=require('%USERPROFILE%/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const {pathToFileURL}=require('node:url'),{execFileSync}=require('node:child_process');
+const root=path.resolve(__dirname,'../..');
+(async()=>{
+ const {Workroom}=await import(pathToFileURL(path.join(root,'src/core/service.mjs')));
+ const dir=fs.mkdtempSync(path.join(workDir,'codex-setup-')),folder=path.join(dir,'제품');fs.mkdirSync(folder);
+ const room=new Workroom(path.join(dir,'workroom.sqlite'));
+ const product=await room.createProduct({name:'자동 수집 검증',folder});
+ room.createPortfolio({target:'자동 수집 초안',autoProductIds:[product.id]});
+ const env={...process.env,WORKROOM_DATA_DIR:dir,WORKROOM_HEADLESS:'0',WORKROOM_NODE:process.execPath};delete env.ELECTRON_RUN_AS_NODE;
+ const app=await electron.launch({executablePath:path.join(root,'node_modules/electron/dist/electron.exe'),args:[root],env});
+ let page;const errors=[];
+ try{
+  page=await app.firstWindow();page.on('pageerror',e=>errors.push(e.message));
+  const click=name=>page.getByRole('button',{name,exact:true}).click();
+  await click('연결 설정 확인');await page.locator('.hook-plan').waitFor();
+  assert.match(await page.locator('.hook-plan').innerText(),/새 프로젝트 훅 파일/);
+  await page.screenshot({path:path.join(root,'outputs/app-codex-setup.png'),scale:'css'});
+  await click('이 제품에 연결 설정 저장');await page.getByText('첫 이벤트 수신 대기',{exact:true}).waitFor();
+  assert.match(await page.locator('.capture-setup').innerText(),/검토·신뢰/);
+  const config=JSON.parse(fs.readFileSync(path.join(folder,'.codex/hooks.json'),'utf8'));
+  const run=event=>{const encoded=config.hooks.Stop[0].hooks[0].commandWindows.split(' ').at(-1);return JSON.parse(execFileSync('powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',encoded],{input:JSON.stringify(event),encoding:'utf8',windowsHide:true,timeout:15000}));};
+  const base={session_id:'integration-fixture',turn_id:'1',cwd:folder};
+  run({...base,hook_event_name:'PostToolUse',tool_name:'apply_patch',tool_use_id:'p1',tool_input:{command:'*** Begin Patch\n*** Update File: src/input.js\n@@\n-before\n+after\n*** End Patch'},tool_response:{}});
+  run({...base,hook_event_name:'Stop',last_assistant_message:'입력 보존 동작을 정리했습니다.\n이 응답은 훅 전송 경로 검증용입니다.'});
+  await page.getByRole('heading',{name:'입력 보존 동작을 정리했습니다.',exact:true}).waitFor({timeout:8000});
+  await click('제품 설정');
+  await page.getByText('최근 수집',{exact:false}).first().waitFor({timeout:8000});
+  await click('최근 수집 작업');await page.getByRole('heading',{name:'입력 보존 동작을 정리했습니다.',exact:true}).waitFor();
+  await click('실행 근거 보기');await page.getByText('Codex 자동 수집',{exact:false}).waitFor();
+  await click('← 작업으로 돌아가기');await click('포트폴리오 초안 보기');
+  assert.match(await page.locator('.paper').innerText(),/입력 보존/);
+  await click('← 입력 보존 동작을 정리했습니다.');await click('제품 설정');
+  await click('수집 끄기');assert.equal(room.store.get('product',product.id).codexCaptureEnabled,false);
+  run({...base,turn_id:'2',hook_event_name:'PostToolUse',tool_name:'apply_patch',tool_use_id:'p2',tool_input:{command:'*** Update File: src/ignored.js'},tool_response:{}});
+  run({...base,turn_id:'2',hook_event_name:'Stop',last_assistant_message:'수집 중단 뒤 응답'});
+  assert.equal(room.snapshot().tasks.length,1);
+  await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].setSize(760,700));
+  await page.waitForFunction(()=>innerWidth<800);
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  await page.screenshot({path:path.join(root,'outputs/app-codex-status.png'),scale:'css'});
+  assert.deepEqual(errors,[]);fs.writeFileSync(path.join(workDir,'codex-setup-check.json'),JSON.stringify({passed:true,actualCodexLifecycle:false,checks:['desktop preview and scoped setup','real generated hook process with fixture events','live task and portfolio update','capture provenance','disable stops collection','minimum width'],dataDirectory:dir},null,2));
+  console.log('PASS: desktop setup → generated hook process → task → subscribed draft. Events were fixtures, not a live Codex turn.');
+ }catch(error){if(page){await page.screenshot({path:path.join(workDir,'codex-setup-failure.png'),scale:'css'}).catch(()=>{});console.error((await page.locator('main').innerText()).slice(0,2500));}throw error;
+ }finally{await app.close();room.close();}
+})().catch(e=>{console.error(e);process.exitCode=1});

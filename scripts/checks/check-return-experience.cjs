@@ -1,0 +1,48 @@
+const workDir=require('node:path').resolve(__dirname,'../../work');require('node:fs').mkdirSync(workDir,{recursive:true});
+const {_electron}=require('%USERPROFILE%/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const {pathToFileURL}=require('node:url');
+const root=path.resolve(__dirname,'../..');
+(async()=>{
+ const {Workroom}=await import(pathToFileURL(path.join(root,'src/core/service.mjs')));
+ const dir=fs.mkdtempSync(path.join(workDir,'return-experience-'));
+ const room=new Workroom(path.join(dir,'workroom.sqlite'));
+ const p=await room.createProduct({name:'작업실',folder:dir,goal:'입력과 저장 문제를 줄이고, 개발 경험을 다음 작업에 활용합니다.'});
+ const env={...process.env,WORKROOM_DATA_DIR:dir,WORKROOM_HEADLESS:'1'};delete env.ELECTRON_RUN_AS_NODE;
+ const app=await _electron.launch({executablePath:path.join(root,'node_modules/electron/dist/electron.exe'),args:[root],env});
+ try {
+  const page=await app.firstWindow(),errors=[];page.setDefaultTimeout(8000);page.on('pageerror',e=>errors.push(e.message));
+  const click=async action=>page.locator(`[data-action="${action}"]`).first().evaluate(el=>el.click());
+  const snap=async name=>{await page.evaluate(()=>document.fonts.ready);await page.screenshot({path:path.join(root,'outputs',name),scale:'css'});};
+  await page.getByRole('heading',{name:'작업을 모을 방법을 연결하세요',exact:true}).waitFor();
+  await snap('app-return-first.png');
+  const report=room.reportWork({productId:p.id,title:'입력 소실 수정',summary:'화면 이동과 닫기 취소 후에도 작성하던 입력을 유지하도록 바꿨습니다.',evidence:'화면 이동과 저장을 확인했습니다. 종료 처리의 재검사가 필요합니다.',limitations:'Windows에서 창을 닫았다가 돌아오는 흐름은 재검사가 필요합니다. 운영 배포는 확인하지 않았습니다.',contribution:'사용자 문제 제기 / 에이전트 구현',checks:[{name:'화면 이동 후 입력 유지',result:'passed',detail:'작성 중인 입력을 유지함'},{name:'닫기 취소 후 다시 저장',result:'failed',detail:'첫 검사에서는 저장 버튼 상태가 갱신되지 않음'}]},'mcp');
+  await page.getByRole('heading',{name:report.title,exact:true}).waitFor();
+  const decision=room.requestDecision({productId:p.id,title:'입력 초안을 어디까지 보관할까요?',reason:'앱을 다시 열었을 때도 입력을 이어갈 수 있도록 보관 범위를 정해야 합니다.',options:[{label:'이 컴퓨터에 보관',effect:'앱을 다시 열어도 작성 중인 입력을 이어갑니다.'},{label:'현재 창에서만 유지',effect:'창을 닫으면 임시 입력을 보관하지 않습니다.'}]},'mcp');
+  await page.locator('.taskpane > .attention-link').waitFor();
+  assert.equal(await page.locator('h1').innerText(),report.title,'new decision must not replace current reading');
+  await snap('app-return-work.png');
+  await page.getByLabel('작업 검색').fill('없는 검색어');
+  assert.equal(await page.locator('.tasknav button').count(),0);
+  await page.locator('.taskpane > .attention-link').evaluate(el=>el.click());
+  await page.getByRole('heading',{name:decision.title,exact:true}).waitFor();
+  assert.equal(await page.getByLabel('작업 검색').inputValue(),'없는 검색어');
+  await click(`defer:${decision.id}`);await page.getByText('보류 ·',{exact:false}).waitFor();
+  await page.getByLabel('작업 검색').fill('');
+  await page.locator('.task-group h3').filter({hasText:'보류한 판단'}).waitFor();
+  await click(`defer:${decision.id}`);
+  await page.locator('.taskpane > .attention-link').waitFor();
+  await click(`task:${report.id}`);await click('open-executions');
+  assert.equal(await page.locator('.execution-group').getAttribute('open'),'');
+  await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].setSize(900,700));
+  await page.locator('.mobile-attention').waitFor({state:'visible'});
+  await page.locator('.main').evaluate(el=>el.scrollTop=0);
+  await snap('app-return-narrow.png');
+  await page.locator('.mobile-attention').evaluate(el=>el.click());
+  await page.getByRole('heading',{name:decision.title,exact:true}).waitFor();
+  await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].setSize(1240,860));
+  await page.emulateMedia({colorScheme:'dark'});await snap('app-return-decision-dark.png');
+  assert.deepEqual(errors,[]);
+  console.log(JSON.stringify({dir,checks:['empty product next actions','incoming decision preserves current work','search-independent decision access','defer and reopen','evidence anchor','narrow window decision access'],errors}));
+ } finally {await app.evaluate(({app})=>app.exit(0)).catch(()=>{});room.close();}
+})().catch(e=>{console.error(e);process.exitCode=1});
