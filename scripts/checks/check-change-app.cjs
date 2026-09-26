@@ -39,8 +39,14 @@ const {pathToFileURL}=require('node:url');const root=path.resolve(__dirname,'../
   const state=await page.evaluate(async()=>(await window.workroom.call('snapshot')).value);
   const done=state.tasks.find(t=>t.id===task.id);assert(done.appliedAt);assert(done.resultTaskId);assert.equal(state.applyJournals[0].state,'applied');
   await click('delegate');await page.locator('#request-goal').fill('합계 검증');await page.locator('[name="mode"][value="change"]').evaluate(el=>el.click());await page.locator('.request-tests summary').evaluate(el=>el.click());
-  await page.locator('#request-tests').fill('sum.test.mjs');await page.locator('form[data-form="delegation"] button[type="submit"]').evaluate(el=>el.click());
-  await page.getByText('지정한 테스트의 실행을 허용하거나 테스트 경로를 비워주세요.',{exact:true}).waitFor();
+  await page.locator('#request-tests').fill('sum.test.mjs');
+  // Without a connected account the request can be drafted but not submitted.
+  const submit=page.locator('form[data-form="delegation"] button[type="submit"]');
+  assert.equal(await submit.isDisabled(),true);assert.equal(await submit.getAttribute('aria-describedby'),'request-connection');
+  // The renderer checks test consent before the connection, so enabling the button in the DOM
+  // exercises the real submit handler's consent guard without an account.
+  await submit.evaluate(el=>{el.disabled=false;el.click();});
+  await page.locator('.request-dialog .request-notice').filter({hasText:'지정한 테스트의 실행을 허용하거나 테스트 경로를 비워주세요.'}).waitFor();
   await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].setSize(900,720));await page.emulateMedia({colorScheme:'dark'});await page.screenshot({path:path.join(root,'outputs/app-change-start-dark.png'),scale:'css'});
   assert.deepEqual(errors,[]);console.log(JSON.stringify({directory,checks:['real Node verification displayed','versioned diff','actual IPC application to fixture source','journal and result persisted','test execution requires selected scope','narrow dark form'],model:'deterministic fixture',errors}));
  }finally{await app.evaluate(({app})=>app.exit(0)).catch(()=>{});}

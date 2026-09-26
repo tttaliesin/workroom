@@ -27,9 +27,11 @@ const root=path.resolve(__dirname,'../..');
   await click('refresh');await click(`product:${product.id}`);
   assert.equal(await page.locator('.overview-task').count(),0);
   await page.screenshot({path:path.join(root,'outputs/app-overview-empty.png'),scale:'css'});
-  await click('delegate');await page.getByRole('heading',{name:'어떤 결과가 필요한가요?',exact:true}).waitFor();
+  await click('delegate');await page.getByRole('heading',{name:'일 맡기기',exact:true}).waitFor();
   await page.locator('#request-goal').fill('Import 검증 근거 확인');
-  await page.locator('form[data-form="delegation"] button[type="submit"]').evaluate(el=>el.click());
+  // Without a connected account the request cannot be submitted; setup keeps the draft and returns to it.
+  assert.equal(await page.locator('form[data-form="delegation"] button[type="submit"]').isDisabled(),true);
+  await page.locator('.request-dialog [data-action="nav:account"]').evaluate(el=>el.click());
   await page.locator('.connection-return').waitFor();
   assert.equal((await page.evaluate(async()=>(await window.workroom.call('snapshot')).value)).tasks.length,0);
   await click('delegate-return');assert.equal(await page.locator('#request-goal').inputValue(),'Import 검증 근거 확인');

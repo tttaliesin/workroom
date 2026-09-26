@@ -36,7 +36,7 @@ const wait=async fn=>{for(let i=0;i<800;i++){if(await fn())return;await new Prom
   const snap=()=>page.evaluate(async()=>(await window.workroom.call('snapshot')).value);
   await page.getByRole('heading',{name:product.name,exact:true}).waitFor();await page.evaluate(()=>document.fonts.ready);
   await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].setSize(1280,840));await page.emulateMedia({colorScheme:'light'});
-  assert.match(await page.locator('.operation-issue').innerText(),/원본 반영 검토/);assert.match(await page.locator('.operation-line').innerText(),/지속 운영 켜짐/);
+  assert.match(await page.locator('.operation-issue').innerText(),/원본 반영 검토/);assert.match(await page.locator('.operation-overview').innerText(),/지속 운영 켜짐/);assert.match(await page.locator('.operation-line').innerText(),/새 실행 일시 정지/);
   await page.screenshot({path:path.join(root,'outputs/app-operations-overview.png'),scale:'css'});
   await click(`task:${issue.changeTaskId}`);assert.match(await page.locator('.operation-origin').innerText(),/운영에서 이어진 작업/);await click(`task:${issue.operationTaskId}`);assert.match(await page.locator('.main').innerText(),/다음 작업 판단/);
   await click('nav:scope');const form=page.locator('[data-form="operation-policy"]');await form.locator('[name="allowTests"]').uncheck();await form.locator('button[type="submit"]').click();await page.getByText('자동 수정안의 지정 테스트 실행을 허용하세요.',{exact:true}).waitFor();

@@ -18,8 +18,10 @@ const root=path.resolve(__dirname,'../..');
  const app=await _electron.launch({executablePath:require('electron'),args:[root],env});
  try{
   const page=await app.firstWindow(),errors=[];page.setDefaultTimeout(7000);page.on('pageerror',e=>{errors.push(e.message);console.log('pageerror',e.message);});
-  await page.getByRole('heading',{name:r.title,exact:true}).waitFor();await page.evaluate(()=>document.fonts.ready);
   const click=async action=>page.locator(`[data-action="${action}"]`).first().evaluate(el=>el.click());
+  // The app opens on the product overview; the task detail is under the task tab.
+  await page.getByRole('heading',{name:p.name,exact:true}).waitFor();await click('nav:ops');await click(`task:${r.id}`);
+  await page.getByRole('heading',{name:r.title,exact:true}).waitFor();await page.evaluate(()=>document.fonts.ready);
   const snap=async name=>{await page.waitForTimeout(160);await page.screenshot({path:path.join(root,'outputs',name),scale:'css'});};
   await snap('app-integrated-task.png');await click(`task-portfolio:${r.id}`);
   await click(`portfolio-evidence:${r.id}`);await click(`link-work:${child.id}`);
@@ -30,7 +32,7 @@ const root=path.resolve(__dirname,'../..');
   assert.equal(room.store.get('task',child.id).parentTaskId,null);
   await click('return-location');await page.getByRole('heading',{name:'포트폴리오 초안',exact:true}).waitFor();
   assert.doesNotMatch(await page.locator('.paper').innerText(),/CSV/);await snap('app-integrated-portfolio.png');
-  await click(`product:${p.id}`);assert.equal(await page.locator('.tasknav button').count(),2);
+  await click(`product:${p.id}`);await click('nav:ops');assert.equal(await page.locator('.tasknav button').count(),2);
   await click(`task:${r.id}`);await click(`record-detail:${record.id}`);await click('record-edit');
   await page.getByLabel('어떤 변경에 적용하는가').fill('폼 상태와 종료 처리 변경');await page.getByLabel('현재 유효성').selectOption('needs_review');
   await page.getByLabel('수정 또는 보류 이유').fill('저장 구조가 달라져 기존 절차를 재확인합니다.');

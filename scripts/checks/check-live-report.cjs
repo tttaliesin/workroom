@@ -10,7 +10,7 @@ const root = path.resolve(__dirname,'../..');
  const dir = fs.mkdtempSync(path.join(workDir, 'live-report-'));
  const room = new Workroom(path.join(dir, 'workroom.sqlite'));
  const p = await room.createProduct({ name: '작업실', folder: root, goal: '보고에서 초안까지 자동 연결' });
- const env = { ...process.env, WORKROOM_DATA_DIR: dir, WORKROOM_HEADLESS: '0' }; delete env.ELECTRON_RUN_AS_NODE;
+ const env = { ...process.env, WORKROOM_DATA_DIR: dir, WORKROOM_HEADLESS: process.env.WORKROOM_HEADLESS || '1' }; delete env.ELECTRON_RUN_AS_NODE;
  const client = new Client({ name: 'live-report-review', version: '1.0' });
  const transport = new StdioClientTransport({ command: process.execPath, args: [path.join(root, 'src/mcp/server.mjs')], env, stderr: 'pipe' });
  const app = await electron.launch({ executablePath: require('electron'), args: [root], env });
@@ -18,6 +18,13 @@ const root = path.resolve(__dirname,'../..');
  try {
   await client.connect(transport); page = await app.firstWindow(); page.on('pageerror', e => errors.push(e.message));
   const click = name => page.getByRole('button', { name, exact: true }).click();
+  // The portfolio list shows targets, so confirm a synced report in the product's task list and come back.
+  const arrivedInTasks = async (title) => {
+   await page.getByRole('navigation', { name: '등록한 제품' }).getByRole('button', { name: '작업실', exact: true }).click();
+   await page.getByRole('navigation', { name: '제품 화면' }).getByRole('button', { name: '작업', exact: true }).click();
+   await page.locator('.tasknav').getByText(title, { exact: true }).waitFor({ timeout: 8000 });
+   await click('포트폴리오');
+  };
   const report = async (externalId, sourceVersion = 1, extra = {}) => {
    const response = await client.callTool({ name: 'workroom_report_work', arguments: { productId: p.id, externalId, sourceVersion, title: externalId === 'input' ? '입력 소실 수정' : externalId, summary: '미저장 입력을 보호하도록 수정했습니다.', evidence: '격리된 UI 연동 검증 자료', limitations: '실제 제품 검사의 증명이 아닙니다.', contribution: '사용자 문제 제기 · 에이전트 구현', changedFiles: [{ path: 'src/renderer/app.js', summary: '입력 보존' }], checks: [{ name: '입력 보호', result: 'passed', detail: '검증용 보고' }], ...extra } });
    assert.ok(!response.isError, response.content[0].text); return JSON.parse(response.content[0].text);
@@ -54,11 +61,11 @@ const root = path.resolve(__dirname,'../..');
   checks.push('export review freezes displayed content and blocks exporting a changed revision');
   await click('초안 편집'); await page.locator('.entry-editor').filter({ has: page.getByRole('heading', { name: '입력 보호 재검사', exact: true }) }).getByRole('button', { name: '제외', exact: true }).click();
   await click('초안 저장'); await report('input', 3, { title: '제외한 작업의 수정 보고' });
-  await page.locator('.tasknav').getByText('제외한 작업의 수정 보고', { exact: true }).waitFor({ timeout: 8000 });
+  await arrivedInTasks('제외한 작업의 수정 보고');
   assert.ok(!(await page.locator('.paper').innerText()).includes('제외한 작업'));
   assert.ok(!room.snapshot().portfolios[0].entries.some(e => e.taskId === task.id)); checks.push('excluded case stays excluded on a newer report');
   await click('초안 편집'); await page.locator('.subscriptions summary').click(); await page.locator('.subscriptions').getByRole('checkbox', { name: '작업실', exact: true }).uncheck(); await click('초안 저장');
-  await report('반영 중단 뒤 작업'); await page.locator('.tasknav').getByText('반영 중단 뒤 작업', { exact: true }).waitFor({ timeout: 8000 });
+  await report('반영 중단 뒤 작업'); await arrivedInTasks('반영 중단 뒤 작업');
   assert.equal(room.snapshot().portfolios[0].entries.length, 1); checks.push('stopping subscription preserves existing cases and stops future inclusion');
   await page.screenshot({ path: path.join(root, 'outputs/app-report-flow.png'), scale: 'css' });
   assert.deepEqual(errors, []);
