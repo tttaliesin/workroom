@@ -114,6 +114,14 @@ Electron 화면은 별도로 Playwright의 Electron API로 등록 → 점검 →
 
 `pnpm check:app`은 예제 데이터로 실제 Electron 앱을 띄우는 화면 흐름 검사 11개를 실행합니다(약 1분). 화면을 바꾸면 함께 실행하세요. [검사 스크립트 안내](scripts/checks/README.md)
 
+`pnpm lint`는 ESLint로 가져오지 않은 이름과 쓰이지 않는 import·변수를 찾습니다. 화면 코드를 구조만 바꿀 때는 `scripts/render-snapshot.mjs`로 전후의 모든 화면 HTML을 비교하세요. `pnpm check:app`이 `work/`에 남긴 예제 DB로 약 1,100개 화면 상태를 그립니다.
+
+```sh
+node scripts/render-snapshot.mjs save before.json
+node scripts/render-snapshot.mjs save after.json --same-as before.json
+node scripts/render-snapshot.mjs compare before.json after.json
+```
+
 `scripts/checks/check-live-report.cjs`는 별도 MCP 프로세스에서 보고를 전송해 실제 Electron의 자동 갱신·편집 병합·충돌 비교·제외 보존·구독 중단·내보내기 검토 보호를 검사합니다. 상세 계약은 [작업 보고 연결](outputs/report-flow.md)에 있습니다.
 
 `scripts/checks/check-codex-setup.cjs`는 격리된 제품에서 설정 저장 → 생성된 훅 프로세스 → 앱 표시 → 초안 반영 → 수집 중단을 검사합니다. 실제 Codex의 이벤트 발생은 대체했으며 신뢰 설정을 우회하지 않았습니다. [Codex 자동 수집 안내](outputs/codex-capture.md).

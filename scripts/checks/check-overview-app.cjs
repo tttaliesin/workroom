@@ -18,7 +18,7 @@ const {pathToFileURL}=require('node:url');const root=path.resolve(__dirname,'../
  const investigation=room.store.create('task',{kind:'agent',mode:'investigation',productId:product.id,title:'화면 이동 시 입력이 사라지는 경로 조사',goal:'입력 유실 원인 확인',status:'accepted',stage:'knowledge',resultTaskId:report.id,outputs:{investigate:{runId:'fixture-investigate',result:{summary:'화면 전환 때 입력 상태를 복원하는 경로를 확인했습니다.',findings:[],limitations:'예제 조사 내용입니다.',nextStep:'화면을 이동해도 입력 초안이 남도록 보관과 복원을 연결해 주세요.'}},review:{runId:'fixture-review',result:{verdict:'supported',assessment:'예제 근거 확인 결과입니다.',evidenceIds:[],limitations:'화면 검토용 예제입니다.'}},knowledge:{runId:'fixture-knowledge',result:{records:[]}}}});
  const record=room.store.list('record').find(r=>r.sourceTaskId===report.id);
  room.store.create('agent-context',{taskId:investigation.id,runId:'fixture-context',context:{records:[{...record}]} });
- const pending=room.store.create('task',{kind:'agent',mode:'change',productId:product.id,title:'긴 입력의 복원 조건 확인',goal:'복원 조건 확인',status:'queued',stage:'develop',outputs:{},productRevision:product.revision,testFiles:[]});
+ room.store.create('task',{kind:'agent',mode:'change',productId:product.id,title:'긴 입력의 복원 조건 확인',goal:'복원 조건 확인',status:'queued',stage:'develop',outputs:{},productRevision:product.revision,testFiles:[]});
  room.store.create('runtime-settings',{paused:true,modelId:null});room.close();
  const env={...process.env,WORKROOM_DATA_DIR:directory,WORKROOM_HEADLESS:'1',WORKROOM_NODE:process.execPath};delete env.ELECTRON_RUN_AS_NODE;
  const app=await _electron.launch({executablePath:require('electron'),args:[root],env});

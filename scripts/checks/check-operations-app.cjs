@@ -26,7 +26,7 @@ const wait=async fn=>{for(let i=0;i<800;i++){if(await fn())return;await new Prom
  engine=new AgentEngine(room,broker,{agentDirectory:path.join(directory,'runtime'),nodeExecutable:process.execPath});engine.configure({modelId:'fixture'});
  await engine.operations.configure({productId:product.id,version:0,enabled:true,intervalMinutes:60,maxDailyStarts:4,allowChanges:true,testFiles:['sum.test.mjs'],allowTests:true,maxRepairs:1});await engine.operations.tick();
  await wait(()=>room.store.list('task').some(t=>t.mode==='change' && t.status==='awaiting_apply') && !engine.active.size && !engine.operations.busy);
- const editTask=engine.editor.request({portfolioId:portfolio.id});await wait(()=>room.store.list('portfolio-edit')[0]?.status==='proposed' && !engine.active.size && !engine.operations.busy);
+ engine.editor.request({portfolioId:portfolio.id});await wait(()=>room.store.list('portfolio-edit')[0]?.status==='proposed' && !engine.active.size && !engine.operations.busy);
  engine.configure({paused:true});engine.closed=true;const issue=room.store.list('operation-issue')[0],edit=room.store.list('portfolio-edit')[0];room.close();
  const env={...process.env,WORKROOM_DATA_DIR:directory,WORKROOM_HEADLESS:'1',WORKROOM_NODE:process.execPath};delete env.ELECTRON_RUN_AS_NODE;
  const app=await _electron.launch({executablePath:require('electron'),args:[root],env});

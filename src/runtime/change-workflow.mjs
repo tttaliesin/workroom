@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { readFile } from 'node:fs/promises';
 import { sourceTree, copyTree, treeHash, replaceCandidate, applyOne } from './change-files.mjs';
-import { readProductFile, relativeFile, allowed, digest } from './files.mjs';
+import { readProductFile, relativeFile, allowed } from './files.mjs';
 import { verifyChange } from './change-checks.mjs';
 import { evidenceRefs } from './contracts.mjs';
 import { redact } from './errors.mjs';

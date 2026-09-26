@@ -1,7 +1,6 @@
 const workDir=require('node:path').resolve(__dirname,'../../work');require('node:fs').mkdirSync(workDir,{recursive:true});
 const {_electron}=require('./lib/playwright.cjs');
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
-const {pathToFileURL}=require('node:url');
 const root=path.resolve(__dirname,'../..');
 (async()=>{
  const directory=fs.mkdtempSync(path.join(workDir,'runtime-app-'));
