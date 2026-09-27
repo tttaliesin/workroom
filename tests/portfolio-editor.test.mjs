@@ -154,7 +154,7 @@ test('editing the target while a model is running preserves the newer version', 
 
 test('verbatim limitation citations remain valid and are reviewed before application', async (t) => {
   const f = await fixture(t, { limitQuote: true });
-  const task = f.engine.editor.request({ portfolioId: f.p.id });
+  f.engine.editor.request({ portfolioId: f.p.id });
   await until(
     () =>
       f.room.store.list('portfolio-edit')[0]?.status === 'proposed' &&
@@ -190,7 +190,7 @@ test('curation omits unselected automatic cases but preserves explicit exclusion
       .filter((e) => e.taskId !== excluded.id)
       .map((e) => (e.taskId === third.id ? { ...e, title: 'Human-selected case' } : e)),
   });
-  const task = f.engine.editor.request({ portfolioId: p.id });
+  f.engine.editor.request({ portfolioId: p.id });
   await until(
     () =>
       f.room.store.list('portfolio-edit')[0]?.status === 'proposed' &&
