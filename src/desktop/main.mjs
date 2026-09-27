@@ -21,6 +21,7 @@ import { prepareCodexSetup, installCodexSetup } from '../integrations/codex-setu
 import { CredentialVault } from '../runtime/vault.mjs';
 import { RuntimeBroker } from '../runtime/broker.mjs';
 import { AgentEngine } from '../runtime/engine.mjs';
+import { runtimeEmbeddings } from '../runtime/local-embeddings.mjs';
 
 const appId = 'workroom.local.desktop';
 const appIcon = path.join(
@@ -36,7 +37,7 @@ if (!app.requestSingleInstanceLock()) {
   process.exit(0);
 }
 const pageURL = pathToFileURL(path.join(projectRoot, 'src/renderer/index.html')).href;
-const room = new Workroom(databaseFile);
+const room = new Workroom(databaseFile, { embedding: runtimeEmbeddings(dataDirectory) });
 let window;
 let broker,
   engine,
@@ -274,6 +275,7 @@ app
       if (choice === 1) event.preventDefault();
     });
     await window.loadURL(pageURL);
+    room.knowledge.index?.start();
     const operationTick = () =>
       void engine.operations.tick().catch((error) => {
         if (!exiting) room.store.log('운영 점검 오류', 'runtime', error.message);

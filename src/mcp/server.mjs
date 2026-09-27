@@ -2,9 +2,10 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import { Workroom, schemas } from '../core/service.mjs';
-import { databaseFile } from '../core/paths.mjs';
+import { databaseFile, dataDirectory } from '../core/paths.mjs';
+import { runtimeEmbeddings } from '../runtime/local-embeddings.mjs';
 
-const room = new Workroom(databaseFile);
+const room = new Workroom(databaseFile, { embedding: runtimeEmbeddings(dataDirectory) });
 const server = new McpServer({ name: 'workroom-local', version: '0.1.0' });
 function tool(name, description, schema, readOnly, handler) {
   server.registerTool(
@@ -63,7 +64,7 @@ tool(
 );
 tool(
   'workroom_product_context',
-  '한 제품의 목표와 유효한 활성 기록을 검색하고 조회에 제공한 버전을 기록합니다. 제외·재확인 보류 기록은 반환하지 않습니다. 조회 이력은 실제 활용 확인이 아닙니다.',
+  'Pi와 같은 검색·근거 검증으로 한 제품의 활성 기록을 최대 8개 조회하고 제공 버전을 기록합니다. 준비된 로컬 의미 색인과 단어 검색을 결합하며, 준비·실패 시 단어 검색을 사용합니다. 실제 검색 방식은 retrieval.mode에 표시됩니다. 변경·삭제된 파일 근거와 제외·재확인 보류 기록은 반환하지 않습니다. 파일 근거 없는 보고는 독립 검증된 사실이 아니며 조회 이력은 실제 활용 확인이 아닙니다.',
   schemas.context,
   false,
   (args) => room.context(args),
@@ -121,6 +122,7 @@ tool(
 
 const transport = new StdioServerTransport();
 await server.connect(transport);
+room.knowledge.index?.start();
 process.stdin.on('end', async () => {
   await server.close();
   room.close();

@@ -13,6 +13,7 @@ for (const file of checks) {
   const result = spawnSync(process.execPath, [path.join(__dirname, file)], {
     cwd: path.resolve(__dirname, '../..'),
     encoding: 'utf8',
+    env: { ...process.env, WORKROOM_SEMANTIC_SEARCH: '0' },
     timeout: 300000,
   });
   const ok = result.status === 0;

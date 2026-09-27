@@ -2,6 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { initializeKnowledgeIndex } from './knowledge-index-schema.mjs';
 
 export class Store {
   constructor(filename) {
@@ -17,6 +18,7 @@ export class Store {
         id INTEGER PRIMARY KEY, at TEXT NOT NULL, action TEXT NOT NULL,
         subject TEXT NOT NULL, detail TEXT NOT NULL
       );`);
+    initializeKnowledgeIndex(this.db);
   }
   decode(row) {
     return row
@@ -30,11 +32,14 @@ export class Store {
       : null;
   }
   get(kind, id) {
-    const found = this.decode(
-      this.db.prepare('SELECT * FROM entities WHERE kind=? AND id=?').get(kind, id),
-    );
+    const found = this.find(kind, id);
     if (!found) throw new Error('항목을 찾을 수 없습니다. 새로고침 후 다시 시도하세요.');
     return found;
+  }
+  find(kind, id) {
+    return this.decode(
+      this.db.prepare('SELECT * FROM entities WHERE kind=? AND id=?').get(kind, id),
+    );
   }
   list(kind) {
     return this.db

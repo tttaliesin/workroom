@@ -69,7 +69,7 @@ test('inspection observes files without executing scripts; repeated inspection u
     assert.equal(a.snapshot().records.length, 1);
     assert.equal(a.snapshot().records[0].active, false);
     assert.equal(a.snapshot().tasks.length, 2);
-    assert.equal(a.context({ productId: p.id }).records.length, 0);
+    assert.equal((await a.context({ productId: p.id })).records.length, 0);
   } finally {
     a.close();
   }
@@ -99,8 +99,8 @@ test('decision and knowledge are atomic, one-time, and scoped to the selected pr
     a.resolveDecision({ id: t.id, revision: t.revision, option: 0 });
     assert.throws(() => a.resolveDecision({ id: t.id, revision: t.revision, option: 1 }));
     assert.equal(a.snapshot().records.length, 1);
-    assert.equal(a.context({ productId: other.id }).records.length, 0);
-    assert.match(a.context({ productId: p.id, query: '중복' }).records[0].content, /유지/);
+    assert.equal((await a.context({ productId: other.id })).records.length, 0);
+    assert.match((await a.context({ productId: p.id, query: '중복' })).records[0].content, /유지/);
   } finally {
     a.close();
   }

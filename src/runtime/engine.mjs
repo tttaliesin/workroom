@@ -557,7 +557,7 @@ export class AgentEngine {
       taskId: task.id,
       context,
       reason:
-        '같은 제품에서 조사 목표와 검색어가 일치한 유효 기록. 제공 사실이며 활용 확인은 아님.',
+        '같은 제품의 목표 관련 검색 후보 중 현재 근거를 확인한 기록. 제공 사실이며 활용 확인은 아님.',
     });
     const handoff = {
       outputs: task.outputs,
@@ -846,59 +846,26 @@ export class AgentEngine {
     }
   }
   async prepareContext(task) {
-    const product = this.store.get('product', task.productId);
-    const terms = task.goal
-      .toLowerCase()
-      .split(/[\s,。.?!]+/)
-      .filter((x) => x.length > 1);
-    const candidates = this.store
-      .list('record')
-      .filter(
-        (r) =>
-          r.productId === task.productId &&
-          r.active &&
-          r.validity !== 'needs_review' &&
-          terms.some((term) => `${r.title} ${r.content} ${r.scope}`.toLowerCase().includes(term)),
-      )
-      .slice(0, 8);
-    const records = [];
-    for (const record of candidates) {
-      let valid = true;
-      for (const evidenceId of record.evidenceIds || []) {
-        try {
-          const evidence = this.store.get('agent-evidence', evidenceId);
-          const file = await readProductFile(product.folder, evidence.path);
-          if (file.hash !== evidence.hash) valid = false;
-        } catch {
-          valid = false;
-        }
-      }
-      const current = this.store.get('record', record.id);
-      if (
-        current.revision !== record.revision ||
-        !current.active ||
-        current.validity === 'needs_review'
-      )
-        continue;
-      if (!valid) {
-        this.store.update('record', record.id, record.revision, {
-          ...record,
-          validity: 'needs_review',
-          validityReason: '인용한 소스 파일이 변경되어 자동 제공을 보류했습니다.',
-        });
-        this.store.log('지식 근거 변경', record.id);
-        continue;
-      }
-      records.push({
-        id: record.id,
-        revision: record.revision,
-        title: record.title,
-        content: record.content,
-        scope: record.scope,
-        source: record.source,
-      });
-    }
-    return { product: { name: product.name, goal: product.goal }, records };
+    const { product, records, retrieval } = await this.room.knowledge.query({
+      productId: task.productId,
+      query: task.goal,
+    });
+    return {
+      product: { name: product.name, goal: product.goal },
+      retrieval,
+      records: records.map(
+        ({ id, revision, productId, title, content, scope, source, provenance }) => ({
+          id,
+          revision,
+          productId,
+          title,
+          content,
+          scope,
+          source,
+          provenance,
+        }),
+      ),
+    };
   }
   async shutdown() {
     this.closed = true;

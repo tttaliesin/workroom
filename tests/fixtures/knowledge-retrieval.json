@@ -1,0 +1,121 @@
+{
+  "description": "Frozen before the retrieval change; separately authored technical notes and queries, not user logs.",
+  "records": [
+    {
+      "key": "cpp",
+      "title": "C++ 객체 수명",
+      "content": "C++ 자원 관리는 RAII를 사용한다. 객체가 범위를 벗어나면 소멸자가 실행되어 파일 핸들을 닫는다.",
+      "scope": "네이티브 클라이언트"
+    },
+    {
+      "key": "csharp",
+      "title": "C# 자원 해제",
+      "content": "C#의 IDisposable 구현은 using 문으로 해제한다. 관리되는 객체의 수집 시점에 외부 핸들 정리를 맡기지 않는다.",
+      "scope": "데스크톱 클라이언트"
+    },
+    {
+      "key": "r",
+      "title": "R 통계 분석",
+      "content": "R 스크립트에서 결측값은 NA로 표시한다. 평균 계산 전 결측값 처리 방침을 명시한다.",
+      "scope": "분석 도구"
+    },
+    {
+      "key": "userid",
+      "title": "userId 키 규칙",
+      "content": "userId는 사용자 UUID를 저장하는 필드다. 표시 이름이 바뀌어도 식별자는 유지한다.",
+      "scope": "사용자 자료"
+    },
+    {
+      "key": "identity",
+      "title": "userIdentity 표현",
+      "content": "userIdentity 객체는 이름과 소개 문장을 묶어 화면에 표시한다.",
+      "scope": "프로필 화면"
+    },
+    {
+      "key": "rate",
+      "title": "요청 속도 제한",
+      "content": "HTTP 429 응답에서는 Retry-After 헤더가 지정한 시간을 기다린 뒤 다시 요청한다. 즉시 반복 전송하지 않는다.",
+      "scope": "외부 API 호출"
+    },
+    {
+      "key": "tls",
+      "title": "인증서 교체",
+      "content": "TLS 인증서 만료 전에 새 인증서를 배포하고 연결 시험을 수행한다. 개인 키는 저장소에 넣지 않는다.",
+      "scope": "HTTPS 서비스"
+    },
+    {
+      "key": "etag",
+      "title": "조건부 다운로드",
+      "content": "ETag 값을 저장하고 다음 요청에 If-None-Match를 전달한다. 서버가 304를 반환하면 기존 응답 본문을 재사용한다.",
+      "scope": "브라우저 캐시"
+    },
+    {
+      "key": "focus",
+      "title": "모달 닫기 후 초점",
+      "content": "대화상자가 닫히면 키보드 초점을 처음 열었던 버튼으로 돌린다. 사용자가 탭 이동을 처음부터 반복하지 않게 한다.",
+      "scope": "접근성"
+    },
+    {
+      "key": "lock",
+      "title": "재현 가능한 의존성 설치",
+      "content": "CI에서는 잠금 파일을 고정한 설치를 사용한다. 의존성 선언과 잠금 파일이 다르면 빌드를 실패시켜 조용한 버전 변경을 막는다.",
+      "scope": "빌드 자동화"
+    },
+    {
+      "key": "transaction",
+      "title": "송금 트랜잭션",
+      "content": "보내는 계좌의 출금과 받는 계좌의 입금을 하나의 SQL 트랜잭션으로 처리한다. 입금이 실패하면 출금도 롤백한다.",
+      "scope": "결제 서비스"
+    },
+    {
+      "key": "log",
+      "title": "로그에서 비밀값 가림",
+      "content": "로그를 저장하기 전에 토큰과 비밀번호를 가린다. 오류 메시지에 인증 헤더 원문을 포함하지 않는다.",
+      "scope": "운영 관측"
+    }
+  ],
+  "queries": [
+    { "query": "C++", "expected": "cpp" },
+    { "query": "C#", "expected": "csharp" },
+    { "query": "R", "expected": "r" },
+    { "query": "userId", "expected": "userid" },
+    { "query": "userIdentity", "expected": "identity" },
+    { "query": "ＵＳＥＲＩＤ", "expected": "userid" },
+    { "query": "HTTP 429", "expected": "rate" },
+    { "query": "If-None-Match", "expected": "etag" },
+    { "query": "요청이 너무 많다는 응답을 받으면 언제 다시 보내야 하나?", "expected": "rate" },
+    {
+      "query": "When the server throttles requests, how long should retries wait?",
+      "expected": "rate"
+    },
+    { "query": "TLS 인증서가 만료되기 전에 무엇을 준비해?", "expected": "tls" },
+    { "query": "How do we renew an expiring HTTPS certificate?", "expected": "tls" },
+    { "query": "내용이 그대로인 응답을 또 다운로드하지 않으려면?", "expected": "etag" },
+    {
+      "query": "How can a browser reuse an unchanged response instead of downloading it again?",
+      "expected": "etag"
+    },
+    { "query": "대화상자를 닫으면 키보드 초점은 어디로 가야 하나?", "expected": "focus" },
+    { "query": "Where should keyboard focus return when a modal closes?", "expected": "focus" },
+    { "query": "빌드마다 의존성 버전이 달라지지 않게 하려면?", "expected": "lock" },
+    {
+      "query": "How can continuous integration avoid silently installing different package versions?",
+      "expected": "lock"
+    },
+    { "query": "입금이 실패했을 때 출금도 취소하는 방법은?", "expected": "transaction" },
+    {
+      "query": "How do we undo the debit when the credit fails during a transfer?",
+      "expected": "transaction"
+    },
+    { "query": "오류 로그에 인증 토큰이 노출되지 않게 하려면?", "expected": "log" },
+    { "query": "How do we keep secrets out of saved error messages?", "expected": "log" },
+    { "query": "집에서 감자 수프를 만드는 순서를 알려줘", "expected": null },
+    { "query": "What is the tallest mountain in Peru?", "expected": null },
+    { "query": "Where can I reserve a hotel room in Lisbon?", "expected": null },
+    { "query": "이 제품의 연간 이용 가격과 할인 조건은?", "expected": null },
+    { "query": "What is the Redis shard count in production?", "expected": null },
+    { "query": "모바일 앱의 앱스토어 심사 일정은?", "expected": null },
+    { "query": "How do I tune a violin?", "expected": null },
+    { "query": "이 서비스의 고객센터 전화번호는?", "expected": null }
+  ]
+}

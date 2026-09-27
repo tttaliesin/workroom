@@ -10,4 +10,10 @@ The following bundled components keep their original licenses.
 
 The font is redistributed unmodified. Under the OFL it stays under that license and may not be sold by itself; the MIT License of this project does not apply to it.
 
-npm dependencies (listed in `package.json`, installed from the registry, not included in this repository) are under their own licenses: MIT for the runtime dependencies and for Electron, Prettier, ESLint and globals; Apache-2.0 for playwright-core, which is used only by the development checks.
+npm dependencies (listed in `package.json`, installed from the registry, not included in this repository) retain their own licenses. Pi, the MCP SDK, Zod, Electron, Prettier, ESLint and globals use MIT; Transformers.js and playwright-core use Apache-2.0. Transitive packages retain the licenses distributed in their packages.
+
+The optional-at-runtime [multilingual MiniLM ONNX weights](https://huggingface.co/Xenova/paraphrase-multilingual-MiniLM-L12-v2) are downloaded into the local model cache, not bundled in this source repository. Their upstream model license applies separately from this project's MIT license. The model repository and exact revision are pinned in `src/runtime/local-embeddings.mjs`.
+
+The optional-at-runtime [mMARCO multilingual cross-encoder](https://huggingface.co/cross-encoder/mmarco-mMiniLMv2-L12-H384-v1) is Apache-2.0 licensed upstream. Its official quantized ONNX export (`model_quint8_avx2.onnx`) and tokenizer are downloaded to the model cache, not bundled here. The exact repository revision is pinned in `src/runtime/reranking-model.mjs`.
+
+The opt-in external retrieval evaluation downloads [KorQuAD 1.0 development data](https://github.com/korquad/korquad.github.io) to ignored `work/` storage. That dataset is not redistributed as part of this repository and retains its upstream terms; this project's MIT license does not apply to it. The script checks its SHA-256 and derives a deterministic passage-retrieval subset, not the official KorQuAD QA benchmark.

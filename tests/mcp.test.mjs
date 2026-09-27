@@ -1,12 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdirSync, mkdtempSync } from 'node:fs';
-import { rm } from 'node:fs/promises';
+import { rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { Workroom } from '../src/core/service.mjs';
 import { projectRoot } from '../src/core/paths.mjs';
+import { readProductFile } from '../src/runtime/files.mjs';
 
 test('real MCP stdio handshake and tool calls share the app database without exposing authority changes', async (t) => {
   const parent = path.join(projectRoot, 'work/tests');
@@ -21,7 +22,7 @@ test('real MCP stdio handshake and tool calls share the app database without exp
   const transport = new StdioClientTransport({
     command: process.execPath,
     args: [path.join(projectRoot, 'src/mcp/server.mjs')],
-    env: { ...process.env, WORKROOM_DATA_DIR: dir },
+    env: { ...process.env, WORKROOM_DATA_DIR: dir, WORKROOM_SEMANTIC_SEARCH: '0' },
     stderr: 'pipe',
   });
   try {
@@ -109,6 +110,32 @@ test('real MCP stdio handshake and tool calls share the app database without exp
       room.snapshot().tasks.find((t) => t.id === reported.id).checks[0].result,
       'passed',
     );
+    // The separate MCP process must check current source files without an earlier Pi query.
+    await writeFile(path.join(repo, 'README.md'), 'UniqueMarker original setting');
+    const evidence = room.store.create('agent-evidence', {
+      productId: product.id,
+      ...(await readProductFile(repo, 'README.md')),
+    });
+    const record = room.store.create('record', {
+      productId: product.id,
+      title: 'UniqueMarker setting',
+      content: 'Original setting',
+      scope: 'UniqueMarker',
+      source: 'Fixture',
+      active: true,
+      evidenceIds: [evidence.id],
+    });
+    const query = () =>
+      client.callTool({
+        name: 'workroom_product_context',
+        arguments: { productId: product.id, query: 'UniqueMarker' },
+      });
+    assert.equal(JSON.parse((await query()).content[0].text).records[0].id, record.id);
+    await writeFile(path.join(repo, 'README.md'), 'UniqueMarker changed setting');
+    const stale = await query();
+    assert.ok(!stale.isError);
+    assert.deepEqual(JSON.parse(stale.content[0].text).records, []);
+    assert.equal(room.store.get('record', record.id).validity, 'needs_review');
   } finally {
     await client.close();
     room.close();

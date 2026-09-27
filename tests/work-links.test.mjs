@@ -205,7 +205,7 @@ test('held records are not served; changed reports preserve edited conditions an
     const report = input(p.id, '입력 보호');
     r.reportWork(report, 'mcp');
     let record = r.snapshot().records[0];
-    r.context({ productId: p.id, query: '입력' });
+    await r.context({ productId: p.id, query: '입력' });
     const provided = r.snapshot().contextUses[0].records[0];
     record = r.reviewRecord({
       id: record.id,
@@ -219,7 +219,7 @@ test('held records are not served; changed reports preserve edited conditions an
     record = r.store.get('record', record.id);
     assert.equal(record.validity, 'needs_review');
     assert.equal(record.scope, '폼 상태와 종료 처리 변경');
-    assert.equal(r.context({ productId: p.id }).records.length, 0);
+    assert.equal((await r.context({ productId: p.id })).records.length, 0);
     assert.equal(r.snapshot().contextUses[0].records[0].content, provided.content);
     assert.ok(r.snapshot().recordHistory.length >= 2);
     record = r.toggleRecord({ id: record.id, revision: record.revision, active: false });
@@ -232,7 +232,7 @@ test('held records are not served; changed reports preserve edited conditions an
       reason: '재확인',
     });
     assert.equal(
-      r.context({ productId: p.id }).records.length,
+      (await r.context({ productId: p.id })).records.length,
       0,
       'validity review does not revoke user exclusion',
     );

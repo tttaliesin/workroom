@@ -27,7 +27,7 @@ export default [
   },
   // Check scripts pass callbacks to page.evaluate(), which run inside the app window.
   {
-    files: ['scripts/checks/**'],
+    files: ['scripts/checks/**', 'scripts/check-semantic-app.cjs'],
     languageOptions: { globals: { ...globals.node, ...globals.browser } },
   },
 ];

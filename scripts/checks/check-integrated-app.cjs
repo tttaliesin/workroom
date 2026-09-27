@@ -39,7 +39,7 @@ const root=path.resolve(__dirname,'../..');
   await page.locator('form[data-form="record-review"] button[type="submit"]').evaluate(el=>el.click());
   await page.getByText('적용 조건과 유효성을 저장했습니다.',{exact:false}).waitFor();
   assert.equal(room.store.get('record',record.id).validity,'needs_review');
-  assert.ok(!room.context({productId:p.id}).records.some(x=>x.id===record.id));await snap('app-integrated-knowledge.png');
+  assert.ok(!(await room.context({productId:p.id})).records.some(x=>x.id===record.id));await snap('app-integrated-knowledge.png');
   assert.deepEqual(errors,[]);console.log(JSON.stringify({dir,checks:['actual Electron + SQLite','report separation','portfolio return and derived copy','knowledge hold and context exclusion'],errors}));
  }catch(error){const page=await app.firstWindow();console.log('screen',await page.locator('.message').innerText());await page.screenshot({path:path.join(root,'outputs/app-integration-error.png'),scale:'css'});throw error;
  }finally{await app.evaluate(({app})=>app.exit(0)).catch(()=>{});room.close();}

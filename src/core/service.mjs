@@ -6,6 +6,7 @@ import { inspectFolder, normalizeFolder } from './inspection.mjs';
 import { applyTaskToPortfolio, preserveEntryEdits } from './portfolio-sync.mjs';
 import { WorkLinks } from './work-links.mjs';
 import { projectWork } from './work-projection.mjs';
+import { KnowledgeService } from './knowledge.mjs';
 
 const text = (max = 4000) => z.string().trim().min(1).max(max);
 const id = z.string().uuid();
@@ -107,8 +108,9 @@ export const schemas = {
 };
 
 export class Workroom {
-  constructor(filename) {
+  constructor(filename, { embedding = null } = {}) {
     this.store = new Store(filename);
+    this.knowledge = new KnowledgeService(this.store, { embedding });
     this.busy = new Set();
     this.links = new WorkLinks(this.store);
   }
@@ -170,6 +172,7 @@ export class Workroom {
   }
   snapshot() {
     return {
+      knowledgeIndex: this.knowledge.index?.status() || { enabled: false },
       operationPolicies: this.store.list('operation-policy'),
       operationObservations: this.store
         .list('operation-observation')
@@ -461,25 +464,15 @@ export class Workroom {
       return task;
     });
   }
-  context(input) {
+  async context(input) {
     const { productId, query } = schemas.context.parse(input);
-    const product = this.store.get('product', productId);
-    const tokens = query.toLocaleLowerCase().split(/\s+/).filter(Boolean);
-    const records = this.store
-      .list('record')
-      .filter(
-        (r) =>
-          r.productId === productId &&
-          r.active &&
-          r.validity !== 'needs_review' &&
-          tokens.every((t) => `${r.title} ${r.content} ${r.scope}`.toLocaleLowerCase().includes(t)),
-      )
-      .slice(0, 12);
+    const { product, records, retrieval } = await this.knowledge.query({ productId, query });
     if (records.length)
       this.store.transaction(() => {
         this.store.create('context-use', {
           productId,
           query,
+          retrieval,
           records: records.map((r) => ({
             id: r.id,
             revision: r.revision,
@@ -492,7 +485,8 @@ export class Workroom {
     return {
       product,
       records,
-      note: '같은 제품의 활성·보류되지 않은 기록입니다. 이 조회에 제공한 버전을 기록했습니다. 실제 에이전트 활용이나 관련성 검증을 뜻하지 않습니다. 적용 조건과 출처를 확인하세요.',
+      retrieval,
+      note: `${retrieval.mode === 'hybrid' ? '단어·의미 검색을 함께 사용했습니다.' : '현재 단어 검색을 사용했습니다.'} 같은 제품의 활성·보류되지 않은 기록을 최대 8개 제공합니다. 연결된 파일 근거와 기록 버전을 조회 시 확인하고 제공 버전을 기록했습니다. 파일 근거가 없는 사용자 기록·외부 보고는 독립 검증된 사실이 아닙니다. 적용 조건과 출처를 확인하세요. 조회 이력은 실제 활용 확인이 아닙니다.`,
     };
   }
   createPortfolio(input) {
@@ -593,6 +587,7 @@ export class Workroom {
     });
   }
   close() {
+    this.knowledge.close();
     this.store.close();
   }
 }

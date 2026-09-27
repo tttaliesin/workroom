@@ -66,7 +66,8 @@ test('report identity is durable, product-scoped, versioned, and preserves exclu
     assert.match(a.snapshot().records[0].content, /새 근거/);
     assert.throws(() => a.reportWork(input, 'mcp'), /더 최신/);
     assert.notEqual(a.reportWork(report(q.id), 'mcp').id, first.id);
-    assert.equal(a.context({ productId: q.id, query: '새 근거' }).records.length, 0);
+    // Use a term unique to product A; partial matching may also match generic '근거'.
+    assert.equal((await a.context({ productId: q.id, query: '보완한' })).records.length, 0);
     assert.throws(
       () => a.reportWork({ ...report(p.id), externalId: undefined, sourceVersion: 2 }),
       /externalId/,

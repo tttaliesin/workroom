@@ -15,13 +15,18 @@
     "test": "node --test tests/*.test.mjs",
     "check:ui": "node scripts/checks/check-overview-app.cjs",
     "check:app": "node scripts/checks/run-all.cjs",
+    "check:semantic": "node scripts/check-semantic.mjs && node scripts/check-semantic-app.cjs",
+    "evaluate:retrieval": "node scripts/evaluate-retrieval.mjs",
+    "evaluate:retrieval:external": "node scripts/evaluate-retrieval-external.mjs",
     "lint": "eslint src tests scripts",
     "format": "prettier --write src tests",
-    "format:check": "prettier --check src tests"
+    "format:check": "prettier --check src tests",
+    "docs:screenshots": "node scripts/capture-readme.cjs"
   },
   "dependencies": {
     "@earendil-works/pi-ai": "0.87.1",
     "@earendil-works/pi-coding-agent": "0.87.1",
+    "@huggingface/transformers": "4.3.0",
     "@modelcontextprotocol/sdk": "1.30.1",
     "zod": "4.6.5"
   },
