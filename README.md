@@ -96,11 +96,11 @@ Windows에서는 설치 후 `start-workroom.cmd`로도 열 수 있습니다.
 
 앱 왼쪽 아래 **Codex 연결**에서 실행 환경 확인 → MCP 등록 → 자동 수집 설정 → Codex 승인을 순서대로 진행하세요. 설정 파일을 직접 편집하거나 별도 터미널을 열 필요 없이, 앱 안의 Codex 화면에서 훅을 검토·승인할 수 있습니다. **실제 연결 검사**로 서버와 제품 데이터도 확인합니다. [연결 방법 →](docs/guide.md#mcp)
 
-### Jev Context와 선택적으로 연결
+### Jev Context와 함께 사용하기
 
-Workroom과 [Jev Context](https://github.com/tttaliesin/jev-context)는 저장소·DB·배포를 분리한 독립 제품입니다. Jev 없이도 Workroom을 사용할 수 있습니다. **Jev 기억 연결**에서 Jev가 내보낸 연결 JSON을 선택하고, 명령과 제품 폴더를 확인한 뒤 **연결 검사 후 저장**을 누르세요. 작업 결과를 검토해 명시적으로 보내고, 해당 제품으로 보낸 기억을 검색할 수 있습니다.
+Workroom은 작업과 결과를, [Jev Context](https://github.com/tttaliesin/jev-context)는 장기 기억을 관리합니다. **각 앱의 MCP를 Codex 또는 Claude Desktop에 독립적으로 연결**하면 에이전트가 Workroom의 결과를 읽고, 필요한 내용을 Jev에 기억시키거나 조회할 수 있습니다. 두 앱 사이에 별도 연결이나 전송 화면은 없습니다.
 
-기본은 꺼짐이며 자동 전송·기존 검색 교체·포트폴리오 자동 반영은 하지 않습니다. 첫 버전의 Jev 검색은 전송한 기억에 대한 모델 없는 단어 검색입니다. [독립 제품 원칙](docs/independent-products.md) · [사용 방법과 검증 결과](docs/jev-integration-results.md) · [적용 계획](docs/jev-integration-plan.md)
+두 MCP를 등록하는 것만으로 자동 기억되지는 않습니다. 저장 시점과 범위는 사용자 요청이나 에이전트 작업 지침으로 정합니다. 저장소·DB·배포는 계속 분리되며 각 앱을 단독으로 사용할 수 있습니다. [에이전트 사용 안내](docs/agent-memory-workflow.md) · [독립 제품 원칙](docs/independent-products.md) · [수정 계획과 결과](docs/jev-integration-results.md)
 
 ## 데이터는 어디에 남나요?
 

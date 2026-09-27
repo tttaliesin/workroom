@@ -107,11 +107,11 @@ You do not need to edit configuration files or open a separate terminal. Initial
 
 Generic stdio settings for other MCP clients are available under **Other MCP clients · Recent record changes → View connection settings**. Workroom and the MCP server use the same local SQLite data.
 
-### Optional Jev Context connection
+### Use alongside Jev Context
 
-Workroom and [Jev Context](https://github.com/tttaliesin/jev-context) remain independent products with separate repositories, databases and releases. Both apps work on their own. In **Jev memory connection**, select a connection JSON exported by Jev, review the command and product folder, then choose **Verify and save connection**. Review each result before sending it and search the memories sent for that product.
+Workroom manages work and results; [Jev Context](https://github.com/tttaliesin/jev-context) manages long-term memory. **Register each app's MCP server independently in Codex or Claude Desktop.** The agent can read Workroom results and use Jev's memory tools when needed. There is no direct connection or transfer screen between the apps.
 
-The connection is off by default. Version 1 uses model-free word matching over explicitly transferred memories; it does not replace Workroom search or automatically update tasks or portfolios. See the [independence policy](docs/independent-products.md), [implementation plan](docs/jev-integration-plan.md) and [usage and verification](docs/jev-integration-results.md).
+Registering both servers does not automatically save memories. User requests or explicit agent instructions determine what to remember and when. Repositories, databases and releases stay separate, and either app works on its own. For example: “Read this Workroom result and remember its key decisions and limitations in Jev, including its source and reported status.” See the [agent workflow (Korean)](docs/agent-memory-workflow.md), [independence policy](docs/independent-products.md) and [change results](docs/jev-integration-results.md).
 
 ## Where does the data stay?
 

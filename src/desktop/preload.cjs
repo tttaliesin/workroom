@@ -8,7 +8,6 @@ contextBridge.exposeInMainWorld(
     exportPortfolio: (id, revision) => ipcRenderer.invoke('workroom:export', id, revision),
     connectionInfo: () => ipcRenderer.invoke('workroom:connection'),
     language: (value) => ipcRenderer.invoke('workroom:language', value),
-    jev: (action, args) => ipcRenderer.invoke('workroom:jev', action, args),
     codexSetup: (productId, revision) =>
       ipcRenderer.invoke('workroom:codex-setup', productId, revision),
     codexConnection: (action, productId, value) =>

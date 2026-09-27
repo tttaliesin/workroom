@@ -11,6 +11,24 @@ const { _electron } = require('./lib/playwright.cjs');
   const { Workroom } = await import('../../src/core/service.mjs');
   const room = new Workroom(path.join(directory, 'workroom.sqlite'));
   const product = await room.createProduct({ name: '기록', folder, goal: '한국어로 작성한 목표' });
+  // A previous installation may retain enabled bridge settings. Opening the app
+  // must preserve them as inert data without exposing the removed interface.
+  const legacy = [
+    [
+      'jev-connection',
+      {
+        productId: product.id,
+        enabled: true,
+        descriptor: {
+          command: path.join(directory, 'removed-provider.exe'),
+          args: [],
+          cwd: folder,
+        },
+      },
+    ],
+    ['jev-origin', {}],
+    ['jev-receipt', { productId: product.id, memoryId: 'old-memory', reportRevision: 1 }],
+  ].map(([kind, body]) => ({ kind, value: room.store.create(kind, body) }));
   room.addRecord({
     productId: product.id,
     title: '계정 연결',
@@ -53,6 +71,14 @@ const { _electron } = require('./lib/playwright.cjs');
       await page.waitForFunction((v) => document.documentElement.lang === v, value);
     };
     await page.getByRole('heading', { name: '기록', exact: true }).waitFor();
+    const checkIndependent = async () => {
+      assert.equal(await page.locator('[data-action="nav:jev"]').count(), 0);
+      assert.equal(await page.evaluate(() => typeof window.workroom.jev), 'undefined');
+      const snapshot = await page.evaluate(() => window.workroom.call('snapshot'));
+      assert.equal(snapshot.ok, true);
+      assert.equal('jev' in snapshot.value, false);
+    };
+    await checkIndependent();
     await language('en');
     const duplicate = await page.evaluate(
       (folder) => window.workroom.call('createProduct', { name: '중복', folder }),
@@ -122,6 +148,14 @@ const { _electron } = require('./lib/playwright.cjs');
     page.on('pageerror', (e) => errors.push(e.message));
     await page.getByRole('button', { name: 'Assign a task', exact: true }).waitFor();
     assert.equal(await page.locator('html').getAttribute('lang'), 'en');
+    await checkIndependent();
+    const reopened = new Workroom(path.join(directory, 'workroom.sqlite'));
+    try {
+      for (const { kind, value } of legacy)
+        assert.deepEqual(reopened.store.get(kind, value.id), value);
+    } finally {
+      reopened.close();
+    }
     assert.equal((await page.evaluate(() => window.workroom.language('invalid'))).ok, false);
     await language('ko');
     await page.getByRole('button', { name: '일 맡기기', exact: true }).waitFor();

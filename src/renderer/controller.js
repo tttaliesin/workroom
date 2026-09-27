@@ -264,11 +264,9 @@ export async function syncExternal() {
 export async function run(fn) {
   if (ui.busy) return;
   ui.busy = true;
-  app
-    .querySelectorAll('button[type=submit],button[data-action^="inspect:"],#jev-product')
-    .forEach((b) => {
-      b.disabled = true;
-    });
+  app.querySelectorAll('button[type=submit],button[data-action^="inspect:"]').forEach((b) => {
+    b.disabled = true;
+  });
   try {
     await fn();
   } catch (error) {

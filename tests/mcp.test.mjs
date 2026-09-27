@@ -106,6 +106,12 @@ test('real MCP stdio handshake and tool calls share the app database without exp
     const reported = JSON.parse(work.content[0].text);
     assert.equal(reported.actor, 'mcp');
     assert.equal(reported.verification, 'reported');
+    const readBack = await client.callTool({
+      name: 'workroom_list_work',
+      arguments: { productId: product.id },
+    });
+    assert.ok(!readBack.isError);
+    assert.deepEqual(JSON.parse(readBack.content[0].text), [reported]);
     assert.equal(
       room.snapshot().tasks.find((t) => t.id === reported.id).checks[0].result,
       'passed',

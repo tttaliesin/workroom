@@ -17,7 +17,6 @@ import {
   startRequest,
 } from './controller.js';
 import { app, data, loadDraft, persistRequests, requestDraft, rootTasks, ui } from './state.js';
-import { jevAction } from './jev-actions.js';
 async function codexConnection(action, value) {
   const response = await window.workroom.codexConnection(action, ui.productId, value);
   if (!response.ok) throw new Error(response.error);
@@ -516,7 +515,6 @@ export async function handleClick(event) {
     return;
   }
   await run(async () => {
-    if (action.startsWith('jev-')) return jevAction(action);
     if (Object.hasOwn(clickActions, action)) await clickActions[action](id, action);
   });
 }

@@ -11,7 +11,7 @@ export function handleInput(event) {
     rememberRequest(el.closest('form'));
     return;
   }
-  if (el.closest('form[data-form]') && !el.closest('form[data-form^="jev-"]')) ui.formDirty = true;
+  if (el.closest('form[data-form]')) ui.formDirty = true;
   if (el.id === 'task-query') {
     ui.taskQuery = el.value;
     document.querySelector('.tasknav').innerHTML = taskRows();
@@ -36,14 +36,6 @@ export function handleInput(event) {
 }
 export async function handleChange(event) {
   if (ui.rendering || !event.target.isConnected) return;
-  if (event.target.id === 'jev-product') {
-    ui.productId = event.target.value;
-    ui.jevPreview = ui.jevResult = ui.jevCandidate = null;
-    ui.formDirty = false;
-    ui.resetForm = true;
-    render();
-    return;
-  }
   if (event.target.name === 'portfolio-template') {
     ui.draft.templateId = event.target.value;
     ui.dirty = true;
@@ -80,8 +72,7 @@ export async function handleChange(event) {
     }
     return;
   }
-  if (event.target.closest('form[data-form]') && !event.target.closest('form[data-form^="jev-"]'))
-    ui.formDirty = true;
+  if (event.target.closest('form[data-form]')) ui.formDirty = true;
   if (event.target.id === 'link-parent') {
     ui.linkParent = event.target.value;
     render();
