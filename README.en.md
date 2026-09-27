@@ -36,9 +36,9 @@ Connect a product folder and a goal, then describe the work you want done. The b
 
 | Flow | What Workroom does |
 | :--- | :--- |
-| **Work and review** | Connects investigation, proposed changes and review by task. Shows decisions and changes awaiting your approval. |
+| **Work and review** | Connects investigation, proposed changes, before/after checks and independent review. Inspect the results and diff before applying changes to the source. |
 | **Records and evidence** | Keeps sources and applicability together. The built-in agent and MCP use the same records. |
-| **Experience and introduction** | Adds new results to target-specific drafts. Preserves your edits and exports standalone HTML. |
+| **Experience and introduction** | Adds new results to target-specific drafts. Preserves your edits, exports standalone HTML and optionally publishes reviewed content through Vercel. |
 
 ## Getting started
 
@@ -129,20 +129,29 @@ The built-in agent sends investigation and change requests to the connected mode
 
 Closing the window exits by default. Enable tray execution in project settings to keep running, then use **Quit Workroom** in the tray to stop. See the [workflow guide](docs/quality-workflows.md) and [implementation plan and validation](docs/quality-implementation-plan.md).
 
+**Latest local validation · 2026-09-27:** **110 unit/integration tests** and **15 actual Electron app checks** passed, along with lint and formatting checks. Publication interruption and recovery were tested with simulated provider responses; these results do not establish live Vercel account deployment.
+
+The latest cleanup removes a circular dependency in verification, reduces redundant persisted state and automatically cleans up temporary profiles after successful checks. See the [cleanup plan and completed results (Korean)](docs/cleanup-implementation-plan.md).
+
 ## Help improve Workroom
 
 Report the screen involved and steps to reproduce in an [issue](https://github.com/tttaliesin/workroom/issues). For code changes, run:
 
 ```sh
 pnpm test
+pnpm check:app
 pnpm lint
 pnpm format:check
 ```
+
+App checks use isolated example data. Temporary directories are deleted after successful checks and retained on failure for diagnosis. Set `WORKROOM_KEEP_FIXTURES=1` when you need the example databases for comparisons of rendered HTML. See [execution and retention instructions (Korean)](docs/development.md).
 
 | Document | Contents |
 | :--- | :--- |
 | [User guide (Korean)](docs/guide.md) | Running tasks, data and security, MCP, retrieval and evidence |
 | [Development and validation (Korean)](docs/development.md) | App checks, model evaluation and code structure |
+| [Recovery, checks and publishing (Korean/English)](docs/quality-workflows.md) | Retries, decision resume, npm checks, tray execution and Vercel publication |
+| [Cleanup plan and results (Korean)](docs/cleanup-implementation-plan.md) | Test artifact retention, dependency and state cleanup, regression validation |
 | [Screenshot capture (Korean)](docs/images/README.md) | Recreate screenshots from illustrative data |
 
 ## License
