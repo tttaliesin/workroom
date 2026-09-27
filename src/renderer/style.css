@@ -808,49 +808,6 @@ button.file-row:hover {
 .record:last-child {
   border-bottom: 0;
 }
-#folio-preview {
-  background: var(--side);
-  padding: 22px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-}
-.paper {
-  padding: 36px 30px;
-  color: #25272e;
-  background: #fff;
-  border: 1px solid #e5e6eb;
-  min-height: 360px;
-}
-.paper h2 {
-  font-size: 25px;
-  line-height: 1.4;
-  font-weight: 600;
-  white-space: pre-wrap;
-  margin-bottom: 32px;
-  max-width: 19em;
-}
-.paper section {
-  padding: 24px 0;
-  border-top: 1px solid #e5e6eb;
-}
-.paper section:last-child {
-  padding-bottom: 0;
-}
-.paper h3 {
-  font-size: 17px;
-  margin-bottom: 12px;
-}
-.paper p {
-  white-space: pre-wrap;
-  line-height: 1.75;
-}
-.paper .small,
-.paper .muted {
-  color: #646874;
-}
-.paper .small {
-  margin-top: 16px;
-}
 .entry-editor {
   border-top: 1px solid var(--line);
   padding-top: 20px;
@@ -949,12 +906,6 @@ legend {
   }
   .view-label {
     display: none;
-  }
-  #folio-preview {
-    padding: 12px;
-  }
-  .paper {
-    padding: 26px 22px;
   }
 }
 .preserve-lines {

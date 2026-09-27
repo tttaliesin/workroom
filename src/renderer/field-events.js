@@ -36,6 +36,12 @@ export function handleInput(event) {
 }
 export async function handleChange(event) {
   if (ui.rendering || !event.target.isConnected) return;
+  if (event.target.name === 'portfolio-template') {
+    ui.draft.templateId = event.target.value;
+    ui.dirty = true;
+    render();
+    return;
+  }
   if (event.target.id === 'app-language') {
     const language = event.target.value;
     await run(async () => {

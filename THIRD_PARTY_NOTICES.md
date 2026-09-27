@@ -10,6 +10,16 @@ The following bundled components keep their original licenses.
 
 The font is redistributed unmodified. Under the OFL it stays under that license and may not be sold by itself; the MIT License of this project does not apply to it.
 
+## Portfolio design references
+
+The portfolio templates in `src/shared/portfolio.mjs` and `src/shared/portfolio.css` are independently implemented for Workroom's public work examples. Their design references are:
+
+- [Ryan Fitzgerald's DevPortfolio](https://github.com/RyanFitzgerald/devportfolio), [MIT](https://github.com/RyanFitzgerald/devportfolio/blob/master/LICENSE.md), © 2025 Ryan Fitzgerald: numbered project cards, strong introductory typography, and separated contribution details informed Studio.
+- [Bartosz Jarocki's CV](https://github.com/BartoszJarocki/cv), [MIT](https://github.com/BartoszJarocki/cv/blob/main/LICENSE), © 2023 Bartosz Jarocki: restrained type hierarchy, compact project sections and print-friendly presentation informed Resume.
+- Editorial is an original variation with a serif introduction, large case numbers and a paper palette.
+
+No upstream source code, personal content, photographs, logos, fonts, or framework dependencies are bundled from those two projects. All three layouts share Workroom's offline preview/export renderer and use system fonts.
+
 npm dependencies (listed in `package.json`, installed from the registry, not included in this repository) retain their own licenses. Pi, the MCP SDK, Zod, Electron, Prettier, ESLint and globals use MIT; Transformers.js and playwright-core use Apache-2.0. Transitive packages retain the licenses distributed in their packages.
 
 The optional-at-runtime [multilingual MiniLM ONNX weights](https://huggingface.co/Xenova/paraphrase-multilingual-MiniLM-L12-v2) are downloaded into the local model cache, not bundled in this source repository. Their upstream model license applies separately from this project's MIT license. The model repository and exact revision are pinned in `src/runtime/local-embeddings.mjs`.

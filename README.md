@@ -77,6 +77,10 @@ Windows에서는 설치 후 `start-workroom.cmd`로도 열 수 있습니다.
 
 ![포트폴리오 화면: 대상별 강조점과 작업 사례가 담긴 로컬 초안](docs/images/portfolio.png)
 
+포트폴리오 화면에서 **Studio · Editorial · Resume** 중 하나를 고르고 **초안 저장**을 누르세요. 다크 카드형, 편집지형, 두 열 이력서형을 대상별로 저장하며, 편집 중인 문장은 그대로 유지됩니다. 미리보기와 HTML은 같은 디자인을 사용하고, 내보낸 파일은 인터넷 없이 열거나 인쇄할 수 있습니다.
+
+디자인은 [DevPortfolio](https://github.com/RyanFitzgerald/devportfolio)와 [미니멀 CV](https://github.com/BartoszJarocki/cv)를 참고했습니다. 자세한 출처는 [Third-party notices](THIRD_PARTY_NOTICES.md#portfolio-design-references)에 정리했습니다.
+
 <details>
 <summary><strong>재사용할 기록과 출처도 살펴보기</strong></summary>
 

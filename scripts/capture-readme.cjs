@@ -267,6 +267,10 @@ const demo = (text) => (language === 'en' ? englishDemo[text] || text : text);
     await app.evaluate(({ BrowserWindow }) =>
       BrowserWindow.getAllWindows()[0].setContentSize(1280, 1080),
     );
+    await page.locator('.template-picker').evaluate((picker) => {
+      const main = picker.closest('.main');
+      main.scrollTop += picker.getBoundingClientRect().top - main.getBoundingClientRect().top - 24;
+    });
     await capture('portfolio');
     assert.deepEqual(errors, []);
     fs.writeFileSync(

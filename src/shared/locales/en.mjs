@@ -1,5 +1,11 @@
 // UI source strings only; user-authored content is never translated.
 export default {
+  '포트폴리오 템플릿': 'Portfolio template',
+  '다크 카드 · 작업을 선명하게': 'Dark cards · Put work in focus',
+  '편집지 · 문장과 여백을 크게': 'Editorial · Room for your story',
+  '이력서 · 한눈에 읽는 두 열': 'Resume · A compact two-column view',
+  '디자인을 고르고 초안을 저장하세요. HTML에도 그대로 적용됩니다.':
+    'Choose a design and save your draft. The HTML export uses the same template.',
   '기록 {0}건 연결': { one: '{0} record linked', other: '{0} records linked' },
   '초안 {0}곳에 포함': { one: 'Included in {0} draft', other: 'Included in {0} drafts' },
   '{0}개 작업 실행 중': { one: '{0} task running', other: '{0} tasks running' },

@@ -1,4 +1,5 @@
 import { t as tr } from '../shared/i18n.mjs';
+import { normalizeTemplate } from '../shared/portfolio.mjs';
 const equal = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 const fields = ['title', 'description', 'contribution'];
 
@@ -16,6 +17,11 @@ export function mergeDraft(base, local, remote, preferLocal = false) {
       ),
     );
   }
+  next.templateId = mergeValue(
+    normalizeTemplate(base.templateId),
+    normalizeTemplate(local.templateId),
+    normalizeTemplate(remote.templateId),
+  );
   for (const field of ['intro', 'requirements', 'autoProductIds'])
     next[field] = mergeValue(
       base[field] ?? (field === 'autoProductIds' ? [] : ''),

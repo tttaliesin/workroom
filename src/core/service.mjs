@@ -7,6 +7,7 @@ import { applyTaskToPortfolio, preserveEntryEdits } from './portfolio-sync.mjs';
 import { WorkLinks } from './work-links.mjs';
 import { projectWork } from './work-projection.mjs';
 import { KnowledgeService } from './knowledge.mjs';
+import { normalizeTemplate, portfolioTemplates } from '../shared/portfolio.mjs';
 
 const text = (max = 4000) => z.string().trim().min(1).max(max);
 const id = z.string().uuid();
@@ -79,6 +80,7 @@ export const schemas = {
   createPortfolio: z
     .object({
       target: text(160),
+      templateId: z.enum(portfolioTemplates).default('studio'),
       requirements: z.string().trim().max(5000).default(''),
       autoProductIds: z.array(id).max(100).default([]),
     })
@@ -86,6 +88,7 @@ export const schemas = {
   savePortfolio: z
     .object({
       id,
+      templateId: z.enum(portfolioTemplates).optional(),
       revision: z.number().int().positive(),
       intro: z.string().trim().max(2000),
       requirements: z.string().trim().max(5000),
@@ -531,6 +534,7 @@ export class Workroom {
       ].filter((id) => !included.has(id));
       let next = {
         ...old,
+        templateId: data.templateId ?? normalizeTemplate(old.templateId),
         intro: data.intro,
         requirements: data.requirements,
         entries: data.entries,
@@ -565,6 +569,7 @@ export class Workroom {
       throw new Error('소개와 작업 사례를 하나 이상 넣어주세요.');
     return {
       target: p.target,
+      templateId: normalizeTemplate(p.templateId),
       intro: p.intro,
       entries: p.entries.map(({ title, description, contribution }) => ({
         title,

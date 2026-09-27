@@ -39,7 +39,7 @@ test('language switching translates UI literals, never interpolated user text or
       { language: 'en' },
     );
     assert.match(exported, /lang="en"/);
-    assert.match(exported, /Contribution: 기여 원문/);
+    assert.match(exported, /Contribution:<\/span><p>기여 원문/);
     assert.match(exported, /소개 원문/);
     assert.match(date('2026-09-27T00:00:00Z'), /Sep/);
     const labels = localizedLabels({ ready: '실행 가능' });

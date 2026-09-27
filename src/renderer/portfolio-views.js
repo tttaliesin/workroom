@@ -1,4 +1,5 @@
-import { t as tr } from '../shared/i18n.mjs';
+import { portfolioMarkup, normalizeTemplate, portfolioTemplates } from '../shared/portfolio.mjs';
+import { t as tr, getLanguage } from '../shared/i18n.mjs';
 import { html, button, date, e, empty, field, header } from './html.js';
 import { portfolioAgentPanel } from './operations-ui.js';
 import { data, loadDraft, product, productName, ui } from './state.js';
@@ -22,22 +23,33 @@ export function newTarget() {
   );
 }
 export function preview(d) {
-  return html`<article class="paper" aria-label="포트폴리오 미리보기">
-      ${d.intro ? `<h2>${e(d.intro)}</h2>` : tr('<p class="muted small">소개 문장 없음</p>')}
-      ${
-        d.entries.length
-          ? d.entries
-              .map(
-                (x) => html`<section ${x.taskId === ui.fromTaskId ? 'class="current-entry"' : ''}>
-          <h3>${e(x.title)}</h3>
-          <p>${e(x.description)}</p>
-          <p class="small">기여 범위: ${e(x.contribution)}</p>
-        </section>`,
-              )
-              .join('')
-          : tr('<p class="muted gap">아직 포함한 작업이 없습니다.</p>')
-      }
-    </article>`;
+  return portfolioMarkup(d, {
+    language: getLanguage(),
+    preview: true,
+    currentTaskId: ui.fromTaskId,
+  });
+}
+function templatePicker(d) {
+  const descriptions = {
+    studio: tr('다크 카드 · 작업을 선명하게'),
+    editorial: tr('편집지 · 문장과 여백을 크게'),
+    resume: tr('이력서 · 한눈에 읽는 두 열'),
+  };
+  const names = { studio: 'Studio', editorial: 'Editorial', resume: 'Resume' };
+  return html`<fieldset class="template-picker"><legend>포트폴리오 템플릿</legend>
+    <p class="small muted">디자인을 고르고 초안을 저장하세요. HTML에도 그대로 적용됩니다.</p>
+    <div class="template-options">${portfolioTemplates
+      .map(
+        (id) => html`<label class="template-option">
+      <input id="template-${id}" type="radio" name="portfolio-template" value="${id}" ${normalizeTemplate(d.templateId) === id ? 'checked' : ''}>
+      <span class="template-card"><span class="template-swatch swatch-${id}" aria-hidden="true"><span class="swatch-heading"></span><span class="swatch-content"><i></i><i></i></span></span>
+      <span class="template-name">${names[id]}<span class="template-check" aria-hidden="true">✓</span></span>
+      <span class="template-description">${descriptions[id]}</span></span>
+    </label>`,
+      )
+      .join('')}</div>
+    ${ui.dirty && !ui.editing ? html`<div class="actions">${button(tr('초안 저장'), 'save-portfolio', 'class="primary"')}${button(tr('수정 취소'), 'discard-draft')}</div>` : ''}
+  </fieldset>`;
 }
 function subscriptions(d) {
   return html`<details class="subscriptions">
@@ -110,6 +122,7 @@ export function portfolioPage() {
           : ''
       }
       ${!ui.editing && !ui.review ? portfolioAgentPanel(d, data) : ''}
+      ${!ui.review ? templatePicker(d) : ''}
       ${portfolioSourceNotices(d)}
       ${d.pendingTaskIds?.length ? tr`<p class="notice">사례 20개 한도로 ${d.pendingTaskIds.length}개 작업이 대기 중입니다. 사례를 제외하고 저장하면 빈자리에 반영합니다.</p>` : ''}
       ${
@@ -172,7 +185,7 @@ export function portfolioPage() {
           <div class="actions">
             ${button(tr('초안 저장'), 'save-portfolio', 'class="primary"')}
             ${button(tr('수정 취소'), 'discard-draft')}</div>
-        </section>`
+        </section><div id="folio-preview" class="editor-preview">${preview(d)}</div>`
             : html`<div id="folio-preview">${preview(d)}</div>
         <div class="actions">${button(tr('초안 편집'), 'edit-portfolio')}
           ${from ? button(tr('작업 근거 보기'), `portfolio-evidence:${from.id}`, 'class="plain"') : ''}

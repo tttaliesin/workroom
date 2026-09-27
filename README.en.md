@@ -77,6 +77,10 @@ Choose the experience to emphasize for each target and collect new results in a 
 
 ![Portfolio draft with target-specific focus and work examples](docs/images/en/portfolio.png)
 
+Choose **Studio · Editorial · Resume** on the portfolio screen, then **Save draft**. Save dark cards, an editorial layout, or a compact two-column resume for each target without losing your wording. Preview and HTML share the same design; exported files work offline and include print styles.
+
+Design references: [DevPortfolio](https://github.com/RyanFitzgerald/devportfolio) and [minimalist CV](https://github.com/BartoszJarocki/cv). See [Third-party notices](THIRD_PARTY_NOTICES.md#portfolio-design-references) for attribution.
+
 <details>
 <summary><strong>Explore reusable records and their sources</strong></summary>
 

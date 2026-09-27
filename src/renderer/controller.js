@@ -218,12 +218,14 @@ export async function saveDraft(preferLocal = false) {
     d = mergeDraft(ui.draftBase, ui.draft, remote, preferLocal);
   } catch (error) {
     ui.conflictRemote = remote;
+    ui.editing = true;
     throw error;
   }
   const saved = await call('savePortfolio', {
     id: d.id,
     revision: remote.revision,
     intro: d.intro,
+    templateId: d.templateId,
     requirements: d.requirements,
     entries: d.entries,
     autoProductIds: d.autoProductIds || [],
