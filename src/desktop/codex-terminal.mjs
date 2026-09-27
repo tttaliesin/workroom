@@ -1,6 +1,7 @@
 import { BrowserWindow, ipcMain } from 'electron';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { getLanguage, t } from '../shared/i18n.mjs';
 
 export function codexTerminal({ connection, root, parent, product }) {
   const page = pathToFileURL(path.join(root, 'src/renderer/codex-terminal.html')).href;
@@ -10,7 +11,7 @@ export function codexTerminal({ connection, root, parent, product }) {
     height: 760,
     minWidth: 700,
     minHeight: 500,
-    title: `Codex 연결 · ${product.name}`,
+    title: `${t('Codex 연결')} · ${product.name}`,
     show: process.env.WORKROOM_HEADLESS !== '1',
     webPreferences: {
       preload: path.join(root, 'src/desktop/codex-terminal-preload.cjs'),
@@ -36,6 +37,7 @@ export function codexTerminal({ connection, root, parent, product }) {
         event.senderFrame.url !== page
       )
         throw new Error('허용되지 않은 화면 요청입니다.');
+      if (action === 'language') return { ok: true, language: getLanguage() };
       if (action === 'start') {
         if (started) throw new Error('이미 Codex를 실행했습니다.');
         started = true;
@@ -75,7 +77,7 @@ export function codexTerminal({ connection, root, parent, product }) {
       } else throw new Error('지원하지 않는 터미널 요청입니다.');
       return { ok: true };
     } catch (error) {
-      return { ok: false, error: error.message };
+      return { ok: false, error: t(error.message) };
     }
   });
   terminal.setMenuBarVisibility(false);

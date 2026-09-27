@@ -1,4 +1,13 @@
 /* global Terminal, FitAddon */
+import { t as tr, setLanguage, getLanguage, translateSource } from '../shared/i18n.mjs';
+const preference = await window.codexTerminal.request('language');
+if (preference.ok) setLanguage(preference.language);
+document.documentElement.lang = getLanguage();
+document.title = tr('Codex 연결');
+document.getElementById('terminal').setAttribute('aria-label', tr('Codex 터미널'));
+// This header is static app markup; no process output or user content is translated.
+const header = document.querySelector('header');
+header.innerHTML = translateSource(header.innerHTML);
 const terminal = new Terminal({
   cursorBlink: true,
   fontSize: 14,
@@ -22,7 +31,7 @@ window.codexTerminal.onData((value) => {
   if (value.data) terminal.write(Uint8Array.from(atob(value.data), (c) => c.charCodeAt(0)));
   if (value.exit !== undefined) {
     ready = false;
-    status.textContent = `Codex가 종료되었습니다 (${value.exit}). 창을 닫고 연결 상태를 확인하세요.`;
+    status.textContent = tr`Codex가 종료되었습니다 (${value.exit}). 창을 닫고 연결 상태를 확인하세요.`;
     document.getElementById('hooks').disabled = document.getElementById('mcp').disabled = true;
   }
 });
@@ -44,7 +53,7 @@ document.getElementById('close').onclick = () => window.close();
 void request('start')
   .then((result) => {
     ready = true;
-    status.textContent = `제품 폴더: ${result.folder} · 승인이 끝나면 창을 닫고 연결 상태를 확인하세요.`;
+    status.textContent = tr`제품 폴더: ${result.folder} · 승인이 끝나면 창을 닫고 연결 상태를 확인하세요.`;
     document.getElementById('hooks').disabled = document.getElementById('mcp').disabled = false;
     resize();
     terminal.focus();

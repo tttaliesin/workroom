@@ -1,3 +1,4 @@
+import { t as tr } from '../shared/i18n.mjs';
 import {
   call,
   canLeave,
@@ -54,7 +55,9 @@ async function operationAction(id, action) {
     ui.source = null;
   } else
     flash(
-      action === 'operation-check' ? '현재 운영 상태를 확인했습니다.' : '운영 상태를 저장했습니다.',
+      action === 'operation-check'
+        ? tr('현재 운영 상태를 확인했습니다.')
+        : tr('운영 상태를 저장했습니다.'),
     );
 }
 async function runtimeAction(id, action) {
@@ -124,7 +127,7 @@ async function sourceReviewAction(id, action) {
   });
   await refresh();
   loadDraft(p.id);
-  flash('현재 근거를 확인한 결과를 저장했습니다. 내보낸 버전은 그대로입니다.');
+  flash(tr('현재 근거를 확인한 결과를 저장했습니다. 내보낸 버전은 그대로입니다.'));
 }
 async function savePortfolioAction(id, action) {
   await saveDraft(action === 'save-portfolio-overwrite');
@@ -160,7 +163,7 @@ const clickActions = {
     await refresh();
     ui.taskId = task.id;
     ui.view = 'ops';
-    flash('기존 수정안을 보존하고 최신 원본으로 새 수정을 맡겼습니다.');
+    flash(tr('기존 수정안을 보존하고 최신 원본으로 새 수정을 맡겼습니다.'));
   },
   'toggle-list': async (id) => {
     ui.listOpen = !ui.listOpen;
@@ -202,7 +205,7 @@ const clickActions = {
     if (!canLeave()) return;
     await refresh();
     ui.draft = null;
-    flash('최신 기록을 불러왔습니다.');
+    flash(tr('최신 기록을 불러왔습니다.'));
   },
   product: async (id) => {
     if (!canLeave()) return;
@@ -347,18 +350,18 @@ const clickActions = {
   },
   inspect: async (id) => {
     if (!canLeave()) return;
-    flash('저장소를 읽고 있습니다…');
+    flash(tr('저장소를 읽고 있습니다…'));
     render();
     const t = await call('inspect', { productId: id });
     await refresh();
     ui.taskId = t.id;
     ui.view = 'ops';
-    flash('기본 점검 완료. 확인한 내용과 미확인 범위를 함께 저장했습니다.');
+    flash(tr('기본 점검 완료. 확인한 내용과 미확인 범위를 함께 저장했습니다.'));
   },
   'discard-form': async (id) => {
     ui.formDirty = false;
     ui.resetForm = true;
-    flash('저장하지 않은 입력을 취소했습니다.');
+    flash(tr('저장하지 않은 입력을 취소했습니다.'));
   },
   defer: async (id) => {
     if (!canLeave()) return;
@@ -367,8 +370,8 @@ const clickActions = {
     await refresh();
     flash(
       t.status === 'deferred'
-        ? '판단 대기로 되돌렸습니다.'
-        : '보류했습니다. 해결된 것으로 처리하지 않습니다.',
+        ? tr('판단 대기로 되돌렸습니다.')
+        : tr('보류했습니다. 해결된 것으로 처리하지 않습니다.'),
     );
   },
   'record-toggle': async (id) => {
@@ -379,8 +382,8 @@ const clickActions = {
     ui.relatedOpen = true;
     flash(
       r.active
-        ? '다음 MCP 조회의 자동 참조에서 제외했습니다. 원본은 보존됩니다.'
-        : '자동 참조에 다시 포함했습니다.',
+        ? tr('다음 MCP 조회의 자동 참조에서 제외했습니다. 원본은 보존됩니다.')
+        : tr('자동 참조에 다시 포함했습니다.'),
     );
   },
   'codex-prepare': async (id) => {
@@ -399,7 +402,9 @@ const clickActions = {
     ui.hookPlan = null;
     if (ui.codexStatus) ui.codexStatus = { ...ui.codexStatus, hooks: [], warnings: [] };
     await refresh();
-    flash('수집 설정을 저장했습니다. Codex 연결의 승인 화면을 열어 작업실 훅을 검토·승인하세요.');
+    flash(
+      tr('수집 설정을 저장했습니다. Codex 연결의 승인 화면을 열어 작업실 훅을 검토·승인하세요.'),
+    );
   },
   'codex-toggle': async (id) => {
     if (!canLeave()) return;
@@ -408,8 +413,8 @@ const clickActions = {
     await refresh();
     flash(
       p.codexCaptureEnabled
-        ? '새 이벤트 수집을 중단했습니다. 기존 기록은 유지합니다.'
-        : '수집을 다시 켰습니다. 다음 응답 종료 이벤트를 기다립니다.',
+        ? tr('새 이벤트 수집을 중단했습니다. 기존 기록은 유지합니다.')
+        : tr('수집을 다시 켰습니다. 다음 응답 종료 이벤트를 기다립니다.'),
     );
   },
   'connection-load': async (id) => {
@@ -443,12 +448,12 @@ const clickActions = {
     ui.mcpPlan = null;
     ui.mcpBackup = result.backup;
     ui.codexStatus = null;
-    flash('Codex에 MCP 설정을 저장했습니다. 실제 연결 검사로 서버 응답을 확인하세요.');
+    flash(tr('Codex에 MCP 설정을 저장했습니다. 실제 연결 검사로 서버 응답을 확인하세요.'));
     await connectionStatus();
   },
   'connection-probe': async () => {
     await connectionStatus('probe');
-    flash('MCP 서버의 도구 목록과 제품 데이터 조회를 확인했습니다.');
+    flash(tr('MCP 서버의 도구 목록과 제품 데이터 조회를 확인했습니다.'));
   },
   'connection-terminal': async () => {
     await codexConnection('terminal');
@@ -459,7 +464,7 @@ const clickActions = {
     await refresh();
     loadDraft(ui.portfolioId);
     ui.editing = false;
-    flash('저장된 초안으로 돌아왔습니다.');
+    flash(tr('저장된 초안으로 돌아왔습니다.'));
   },
   'remove-entry': async (id) => {
     ui.draft.entries.splice(Number(id), 1);
@@ -473,7 +478,7 @@ const clickActions = {
   'review-export': async (id) => {
     if (!canLeave()) return;
     if (!ui.draft.intro.trim() || !ui.draft.entries.length)
-      throw new Error('소개와 작업 사례를 하나 이상 넣고 저장해주세요.');
+      throw new Error(tr('소개와 작업 사례를 하나 이상 넣고 저장해주세요.'));
     ui.review = true;
   },
   'cancel-export': async (id) => {
@@ -486,7 +491,7 @@ const clickActions = {
       await refresh();
       loadDraft(ui.portfolioId);
       ui.review = false;
-      flash(`HTML 저장 완료: ${result.value.filename} · 웹 배포는 하지 않았습니다.`);
+      flash(tr`HTML 저장 완료: ${result.value.filename} · 웹 배포는 하지 않았습니다.`);
     }
   },
 };

@@ -1,3 +1,4 @@
+import { t as tr } from '../shared/i18n.mjs';
 import { projectWork, workReports } from '../core/work-projection.mjs';
 import { html, button, date, e, empty, field, header, icon } from './html.js';
 import { productHome } from './product-overview.js';
@@ -27,10 +28,10 @@ export function observation(p) {
     .filter((t) => t.productId === p.id && ['work', 'inspection'].includes(t.kind))
     .sort((a, b) => b.created.localeCompare(a.created))[0];
   if (connection?.lastReceivedAt && (!received || connection.lastReceivedAt >= received.created))
-    return `마지막 자동 수집 · ${date(connection.lastReceivedAt)}`;
+    return tr`마지막 자동 수집 · ${date(connection.lastReceivedAt)}`;
   if (received)
-    return `${received.kind === 'work' ? '최근 보고 등록' : '마지막 폴더 점검'} · ${date(received.created)}`;
-  return p.codexCaptureEnabled ? '설정됨 · 첫 수집 미확인' : '아직 받은 작업 보고 없음';
+    return `${received.kind === 'work' ? tr('최근 보고 등록') : tr('마지막 폴더 점검')} · ${date(received.created)}`;
+  return p.codexCaptureEnabled ? tr('설정됨 · 첫 수집 미확인') : tr('아직 받은 작업 보고 없음');
 }
 export function taskRows() {
   const tasks = rootTasks().filter(
@@ -45,7 +46,7 @@ export function taskRows() {
         </span>
         <span class="task-meta">
           <span>
-            ${e(t.mode === 'change' && t.status === 'accepted' ? '반영·기록 완료' : shortStatus[t.status] || t.status)}
+            ${e(t.mode === 'change' && t.status === 'accepted' ? tr('반영·기록 완료') : shortStatus[t.status] || t.status)}
           </span>
           <time>${e(date(t.updated || t.created))}</time>
         </span>`,
@@ -53,11 +54,11 @@ export function taskRows() {
       ui.taskId === t.id && ui.view === 'ops' ? 'aria-current="page"' : '',
     );
   if (!tasks.length)
-    return `<p class="navempty">${ui.taskQuery ? '일치하는 작업이 없습니다.' : '아직 작업이 없습니다.'}</p>`;
+    return `<p class="navempty">${ui.taskQuery ? tr('일치하는 작업이 없습니다.') : tr('아직 작업이 없습니다.')}</p>`;
   return [
-    ['진행 중', (t) => ['running', 'queued', 'stopping', 'applying'].includes(t.status)],
+    [tr('진행 중'), (t) => ['running', 'queued', 'stopping', 'applying'].includes(t.status)],
     [
-      '판단·복구 대기',
+      tr('판단·복구 대기'),
       (t) =>
         [
           'needs_decision',
@@ -73,9 +74,9 @@ export function taskRows() {
           'apply_partial',
         ].includes(t.status),
     ],
-    ['보류한 판단', (t) => t.status === 'deferred'],
+    [tr('보류한 판단'), (t) => t.status === 'deferred'],
     [
-      '작업과 결과',
+      tr('작업과 결과'),
       (t) =>
         ![
           'running',
@@ -112,7 +113,7 @@ export function taskPane() {
     return html`<section class="taskpane" aria-label="대상 탐색">
         <div class="pane-heading">
           <h2>지원 대상</h2>
-          ${button('상세로 돌아가기', 'toggle-list', 'class="plain list-toggle"')}
+          ${button(tr('상세로 돌아가기'), 'toggle-list', 'class="plain list-toggle"')}
         </div>
         <nav class="tasknav" aria-label="포트폴리오 대상">
           ${
@@ -125,11 +126,11 @@ export function taskPane() {
                   ui.portfolioId === p.id ? 'aria-current="page"' : '',
                 ),
               )
-              .join('') || '<p class="navempty">아직 대상이 없습니다.</p>'
+              .join('') || tr('<p class="navempty">아직 대상이 없습니다.</p>')
           }
         </nav>
         <div class="pane-footer">
-          ${button('대상 추가', 'nav:new-target', 'class="plain"')}
+          ${button(tr('대상 추가'), 'nav:new-target', 'class="plain"')}
         </div>
       </section>`;
   return html`<section class="taskpane" aria-label="작업 탐색">
@@ -153,13 +154,13 @@ function artifact(t) {
       <h2>포트폴리오</h2>
       <div class="artifact-row">${icon('page')}<div>
           <strong>
-            ${e(targets.map((p) => p.target).join(', ') || '이 작업을 사례로 활용')}
+            ${e(targets.map((p) => p.target).join(', ') || tr('이 작업을 사례로 활용'))}
           </strong>
           <p>
-            ${targets.length ? '로컬 초안에 포함됨 · 웹 미공개' : '저장한 작업에서 대상별 소개를 작성합니다.'}
+            ${targets.length ? tr('로컬 초안에 포함됨 · 웹 미공개') : tr('저장한 작업에서 대상별 소개를 작성합니다.')}
           </p>
         </div>
-        ${button('초안 열기 →', `task-portfolio:${t.id}`, 'class="plain artifact-open" aria-label="포트폴리오 초안 보기"')}
+        ${button(tr('초안 열기 →'), `task-portfolio:${t.id}`, tr('class="plain artifact-open" aria-label="포트폴리오 초안 보기"'))}
       </div>
     </section>`;
 }
@@ -177,13 +178,13 @@ function relatedRecords(t) {
           <p class="small muted gap">적용: ${e(r.scope)} · ${e(provenance[r.provenance])}</p>
           <p class="gap">${e(r.content)}</p>
           <div class="row gap">
-            ${button(r.active ? '자동 참조에서 제외' : '다시 포함', `record-toggle:${r.id}`)}
-            <span class="small muted">${r.active ? 'MCP 조회에 포함' : 'MCP 조회에서 제외'}</span>
+            ${button(r.active ? tr('자동 참조에서 제외') : tr('다시 포함'), `record-toggle:${r.id}`)}
+            <span class="small muted">${r.active ? tr('MCP 조회에 포함') : tr('MCP 조회에서 제외')}</span>
           </div>
         </article>`,
               )
               .join('')
-          : '<p class="muted gap">이 작업에 연결된 기록이 없습니다.</p>'
+          : tr('<p class="muted gap">이 작업에 연결된 기록이 없습니다.</p>')
       }
     </details>`;
 }
@@ -193,12 +194,12 @@ export function operations() {
         <h1>제품 폴더 연결</h1>
         <p class="muted gap">개발 중인 제품의 폴더를 선택하세요. 점검과 에이전트가 보고한 작업을 제품별로 모아 볼 수 있습니다.</p>
         <div class="actions">
-          ${button('첫 제품 등록', 'nav:new-product', 'class="primary"')}
+          ${button(tr('첫 제품 등록'), 'nav:new-product', 'class="primary"')}
         </div>
       </div>`;
   const selected = data.tasks.find((t) => t.id === ui.taskId && t.productId === ui.productId);
   return selected
-    ? `<section class="detail" aria-label="작업 상세">${taskDetail(selected)}</section>`
+    ? tr`<section class="detail" aria-label="작업 상세">${taskDetail(selected)}</section>`
     : productWelcome();
 }
 function taskDetail(t) {
@@ -231,7 +232,7 @@ function taskDetail(t) {
             </fieldset>
             <div class="actions">
               <button type="submit" class="primary">결정 저장</button>
-              ${button(t.status === 'deferred' ? '보류 해제' : '보류', `defer:${t.id}`)}
+              ${button(t.status === 'deferred' ? tr('보류 해제') : tr('보류'), `defer:${t.id}`)}
             </div>
           </form>`
         }`
@@ -257,11 +258,11 @@ function taskDetail(t) {
     const origin = ui.evidenceReturn === 'route' ? ui.history.at(-1)?.view : 'ops';
     const back =
       {
-        ops: '← 작업으로 돌아가기',
-        portfolio: '← 포트폴리오 초안',
-        'record-detail': '← 기록으로 돌아가기',
-      }[origin] || '← 이전 화면으로 돌아가기';
-    return `${button(back, 'source-close', 'class="link back"')}${header(file ? '변경 내용' : '실행 근거', t.title)}${
+        ops: tr('← 작업으로 돌아가기'),
+        portfolio: tr('← 포트폴리오 초안'),
+        'record-detail': tr('← 기록으로 돌아가기'),
+      }[origin] || tr('← 이전 화면으로 돌아가기');
+    return `${button(back, 'source-close', 'class="link back"')}${header(file ? tr('변경 내용') : tr('실행 근거'), t.title)}${
       file
         ? html`<div class="note">
         <code>${e(file.path)}</code>
@@ -306,7 +307,7 @@ function inspectionSummary(result) {
     : '';
   return (
     findings + unavailable ||
-    '<p class="status">확인한 기본 항목에서 추가 확인 사항이 없었습니다.</p>'
+    tr('<p class="status">확인한 기본 항목에서 추가 확인 사항이 없었습니다.</p>')
   );
 }
 function productWelcome() {
@@ -335,7 +336,7 @@ function reportDetails(t) {
                 html`${icon('file')}<span class="file-info">
           <span class="file-name">${e(name)} <span class="file-dir">${e(parts.join('/'))}</span>
           </span>
-          <span class="file-description">${e(f.summary || '변경 설명 없음')}</span>
+          <span class="file-description">${e(f.summary || tr('변경 설명 없음'))}</span>
         </span>${icon('arrow')}`,
                 `source:${i}`,
                 `class="file-row" aria-label="${e(f.path)}"`,
@@ -343,13 +344,13 @@ function reportDetails(t) {
             })
             .join('')}
         </div>`
-          : '<p class="muted small gap">변경 파일 목록이 첨부되지 않았습니다.</p>'
+          : tr('<p class="muted small gap">변경 파일 목록이 첨부되지 않았습니다.</p>')
       }
     </section>
     <section class="section">
       <div class="row between sectionhead">
         <h2>실행 결과</h2>
-        ${button('실행 근거 보기', 'source:evidence', 'class="link"')}
+        ${button(tr('실행 근거 보기'), 'source:evidence', 'class="link"')}
       </div>
       ${
         t.checks?.length
@@ -362,9 +363,9 @@ function reportDetails(t) {
               ${icon(c.result === 'passed' ? 'check' : c.result === 'failed' ? 'failed' : 'pending')}
               <span class="check-name">${e(c.name)}</span>
               <span class="check-status ${c.result}">
-                ${{ passed: '통과 보고', failed: '실패 보고', unconfirmed: '미확인' }[c.result]}
+                ${{ passed: tr('통과 보고'), failed: tr('실패 보고'), unconfirmed: tr('미확인') }[c.result]}
               </span>${icon('arrow')}</summary>
-            <p>${e(c.detail || '상세 보고 없음')}</p>
+            <p>${e(c.detail || tr('상세 보고 없음'))}</p>
           </details>
         </li>`,
             )
@@ -391,11 +392,11 @@ function executionList(t) {
                 <p class="small muted gap">${actorLabel(r.actor)} · 보고
                 v${r.sourceVersion || 1} · ${date(r.created)}</p>
               </div>
-              ${button(r.parentTaskId ? '연결 바로잡기' : '다른 작업에 연결', `link-work:${r.id}`, 'class="plain"')}
+              ${button(r.parentTaskId ? tr('연결 바로잡기') : tr('다른 작업에 연결'), `link-work:${r.id}`, 'class="plain"')}
             </div>
             <p class="gap">${e(r.summary)}</p>
             <p class="small muted gap">
-              ${e(r.linkReason || (r.parentTaskId ? '보고자가 명시한 작업 ID로 연결' : '이 문제의 기준 보고'))}
+              ${e(r.linkReason || (r.parentTaskId ? tr('보고자가 명시한 작업 ID로 연결') : tr('이 문제의 기준 보고')))}
             </p>
             <details>
               <summary>원문과 보고 버전 보기</summary>
@@ -436,20 +437,20 @@ function workFollowup(reports) {
                 (c) =>
                   html`<li>
                 <strong>${e(c.name)}</strong>
-                <span>${c.result === 'failed' ? '실패 보고' : '미확인'} · ${e(c.report)}</span>
+                <span>${c.result === 'failed' ? tr('실패 보고') : tr('미확인')} · ${e(c.report)}</span>
               </li>`,
               )
               .join('')}
           </ul>`
-        : '<p>현재 제품의 정상 동작 여부는 이 보고만으로 판단하지 않습니다.</p>'
+        : tr('<p>현재 제품의 정상 동작 여부는 이 보고만으로 판단하지 않습니다.</p>')
     }
     ${limits
       .slice(0, 2)
       .map((l) => `<p class="reported-limit">${e(l)}</p>`)
       .join('')}
     <div class="actions">
-        ${button('보고와 실행 근거 확인', 'open-executions', 'class="link"')}
-        ${limits.length > 2 || checks.length > 3 ? '<span class="small muted">나머지 항목은 실행 근거에 보관되어 있습니다.</span>' : ''}
+        ${button(tr('보고와 실행 근거 확인'), 'open-executions', 'class="link"')}
+        ${limits.length > 2 || checks.length > 3 ? tr('<span class="small muted">나머지 항목은 실행 근거에 보관되어 있습니다.</span>') : ''}
       </div>
     </section>`;
 }
@@ -465,7 +466,7 @@ function workDetail(t) {
       t.parentTaskId
         ? html`<div class="task-outcome">
         <h2>다른 문제에 연결된 실행입니다</h2>
-        ${button(data.tasks.find((x) => x.id === t.parentTaskId)?.title || '상위 작업', `task:${t.parentTaskId}`, 'class="link"')}
+        ${button(data.tasks.find((x) => x.id === t.parentTaskId)?.title || tr('상위 작업'), `task:${t.parentTaskId}`, 'class="link"')}
       </div>`
         : `${workFollowup(reports)}`
     }
@@ -479,7 +480,7 @@ function workDetail(t) {
                     html`<span>
         <strong>${e(r.title)}</strong>
         <small>
-          ${r.validity === 'needs_review' ? '절차 재확인 중 · MCP 제공 보류' : !r.active ? '자동 참조에서 제외' : e(r.scope)}
+          ${r.validity === 'needs_review' ? tr('절차 재확인 중 · MCP 제공 보류') : !r.active ? tr('자동 참조에서 제외') : e(r.scope)}
         </small>
       </span>${icon('arrow')}`,
                     `record-detail:${r.id}`,
@@ -487,7 +488,7 @@ function workDetail(t) {
                   ),
                 )
                 .join('')
-            : '<p class="small muted gap">연결된 기록이 없습니다.</p>'
+            : tr('<p class="small muted gap">연결된 기록이 없습니다.</p>')
         }
       </section>
     <details class="execution-group">
@@ -505,7 +506,7 @@ function workDetail(t) {
               .map(
                 (l) =>
                   html`<p class="small muted gap">${date(l.created)} · ${e(l.reason)}<br>
-                ${e(data.tasks.find((t) => t.id === l.taskId)?.title)} → ${e(data.tasks.find((t) => t.id === l.toTaskId)?.title || '별도 작업')}
+                ${e(data.tasks.find((t) => t.id === l.taskId)?.title)} → ${e(data.tasks.find((t) => t.id === l.toTaskId)?.title || tr('별도 작업'))}
               </p>`,
               )
               .join('')}
@@ -517,14 +518,14 @@ function workDetail(t) {
 // What correcting this link does to a portfolio case built from the affected reports.
 function impactNote(source, isMovedReport) {
   if (!source?.automatic || source.editedFields.length)
-    return '직접 쓴 문장 보존 · 근거 재확인 표시';
+    return tr('직접 쓴 문장 보존 · 근거 재확인 표시');
   if (isMovedReport && ui.linkParent)
-    return '자동 생성한 별도 사례 제외 · 원문은 연결한 작업에서 보존';
-  return '자동 생성한 문장을 현재 연결로 갱신';
+    return tr('자동 생성한 별도 사례 제외 · 원문은 연결한 작업에서 보존');
+  return tr('자동 생성한 문장을 현재 연결로 갱신');
 }
 export function linkPage() {
   const report = data.tasks.find((t) => t.id === ui.linkTaskId);
-  if (!report) return empty('보고를 찾을 수 없습니다.', '목록에서 다시 선택하세요.');
+  if (!report) return empty(tr('보고를 찾을 수 없습니다.'), tr('목록에서 다시 선택하세요.'));
   const affected = new Set([report.id, report.parentTaskId, ui.linkParent].filter(Boolean));
   const impacts = data.portfolios.filter((p) => p.entries.some((e) => affected.has(e.taskId)));
   const candidates = rootTasks().filter(
@@ -532,9 +533,9 @@ export function linkPage() {
   );
   const hasChildren = data.tasks.some((t) => t.parentTaskId === report.id);
   return (
-    header('실행 연결 바로잡기', report.title) +
+    header(tr('실행 연결 바로잡기'), report.title) +
     html`<p>원문과 보고 버전은 보존하고 어떤 문제에 속하는지만 바꿉니다. 다른 작업에 연결하면 이 보고는 그 작업의 실행 근거에서 볼 수 있습니다.</p>
-    ${hasChildren ? '<p class="notice">이 작업에 연결된 실행이 있습니다. 먼저 해당 실행의 연결을 정리하세요.</p>' : ''}
+    ${hasChildren ? tr('<p class="notice">이 작업에 연결된 실행이 있습니다. 먼저 해당 실행의 연결을 정리하세요.</p>') : ''}
     <form data-form="work-link" data-id="${report.id}" class="form gap">
         <div>
           <label for="link-parent">연결할 문제</label>
@@ -543,7 +544,7 @@ export function linkPage() {
             ${candidates.map((t) => `<option value="${t.id}" ${ui.linkParent === t.id ? 'selected' : ''}>${e(t.title)}</option>`).join('')}
           </select>
         </div>
-    ${field('reason', '연결을 바꾸는 이유', '', 'textarea', 'required maxlength="1000"')}
+    ${field('reason', tr('연결을 바꾸는 이유'), '', 'textarea', 'required maxlength="1000"')}
     <section>
           <h2>함께 영향을 받는 초안</h2>
           ${
@@ -565,13 +566,13 @@ export function linkPage() {
                   </div>`,
                   )
                   .join('')
-              : '<p class="small muted gap">이 연결을 사용하는 초안이 없습니다.</p>'
+              : tr('<p class="small muted gap">이 연결을 사용하는 초안이 없습니다.</p>')
           }
           <p class="small muted gap">내보낸 HTML과 기존 버전은 바뀌지 않습니다. 분리한 기록을 새 사례로 자동 추가하지 않습니다.</p>
         </section>
     <div class="actions">
           <button type="submit" class="primary" ${hasChildren ? 'disabled' : ''}>연결 정정
-          저장</button>${button('취소', 'link-cancel')}</div>
+          저장</button>${button(tr('취소'), 'link-cancel')}</div>
       </form>`
   );
 }

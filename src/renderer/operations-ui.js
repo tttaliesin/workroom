@@ -1,23 +1,24 @@
+import { t as tr, localizedLabels, getLocale } from '../shared/i18n.mjs';
 import { html, e } from './html.js';
 const startedToday = (p, data) =>
   data.tasks.filter(
     (t) => t.productId === p.id && t.automation?.day === new Date().toLocaleDateString('sv-SE'),
   ).length;
 function runLine(r) {
-  const usage = `${r.turns || 0}턴 · ${Number(r.tokens || 0).toLocaleString()} 토큰`;
+  const usage = tr`${r.turns || 0}턴 · ${Number(r.tokens || 0).toLocaleString(getLocale())} 토큰`;
   return `<p class="small gap">${e(r.role)} · ${e(r.status)} · ${usage}</p>`;
 }
 const b = (label, action, extra = '') =>
   `<button type="button" data-action="${action}" ${extra}>${label}</button>`;
 const date = (x) =>
   x
-    ? new Date(x).toLocaleString('ko-KR', {
+    ? new Date(x).toLocaleString(getLocale(), {
         month: 'short',
         day: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
       })
-    : '아직 없음';
+    : tr('아직 없음');
 const policy = (p, data) =>
   data.operationPolicies?.find((x) => x.productId === p.id) || {
     version: 0,
@@ -28,7 +29,7 @@ const policy = (p, data) =>
     testFiles: [],
     maxRepairs: 0,
   };
-const issueLabels = {
+const issueLabels = localizedLabels({
   proposed: '조사 예정',
   investigating: '조사 중',
   awaiting_scope: '수정 범위 확인',
@@ -36,25 +37,25 @@ const issueLabels = {
   awaiting_apply: '원본 반영 검토',
   completed: '처리 완료',
   deferred: '보류',
-};
+});
 export function operationStatus(p, data) {
   const s = policy(p, data);
   return s.enabled
-    ? `지속 운영 켜짐 · 다음 확인 ${date(s.nextAt)}`
-    : '지속 운영 꺼짐 · 직접 맡긴 작업만 실행';
+    ? tr`지속 운영 켜짐 · 다음 확인 ${date(s.nextAt)}`
+    : tr('지속 운영 꺼짐 · 직접 맡긴 작업만 실행');
 }
 export function operationOverview(p, data) {
   const s = policy(p, data);
   return html`<section class="overview-section operation-overview">
       <div class="section-title">
-        <h2>지속 운영</h2>${b('설정', 'nav:scope', 'class="link"')}</div>
+        <h2>지속 운영</h2>${b(tr('설정'), 'nav:scope', 'class="link"')}</div>
       <p class="small muted">${e(operationStatus(p, data))}</p>
       <p class="small muted">최근 확인 ${date(s.lastAt)}
-        ${s.enabled ? ` · 오늘 ${startedToday(p, data)}/${s.maxDailyStarts}개 시작` : ''}
+        ${s.enabled ? tr` · 오늘 ${startedToday(p, data)}/${s.maxDailyStarts}개 시작` : ''}
       </p>
       ${s.lastReason ? `<p class="small muted">${e(s.lastReason)}</p>` : ''}
       <div class="actions">
-        ${b('지금 확인', `operation-check:${p.id}`)}
+        ${b(tr('지금 확인'), `operation-check:${p.id}`)}
       </div>
     </section>`;
 }
@@ -78,17 +79,21 @@ export function operationIssues(p, data) {
             <div class="row between">
               <strong>${e(i.title)}</strong>
               <span class="small muted">
-                ${i.priority === 'high' ? '우선' : i.priority === 'low' ? '낮음' : '보통'} · ${e(issueLabels[i.status])}</span>
+                ${i.priority === 'high' ? tr('우선') : i.priority === 'low' ? tr('낮음') : tr('보통')} · ${e(issueLabels[i.status])}</span>
             </div>
             <p class="small muted gap">${e(i.reason)}</p>
             <div class="actions">
-              ${b('발견 근거', `task:${i.operationTaskId}`, 'class="link"')}
+              ${b(tr('발견 근거'), `task:${i.operationTaskId}`, 'class="link"')}
               ${
                 i.changeTaskId || i.investigationId
-                  ? b('연결된 작업', `task:${i.changeTaskId || i.investigationId}`, 'class="link"')
-                  : b('조사 시작', `issue-start:${i.id}`, 'class="plain"')
+                  ? b(
+                      tr('연결된 작업'),
+                      `task:${i.changeTaskId || i.investigationId}`,
+                      'class="link"',
+                    )
+                  : b(tr('조사 시작'), `issue-start:${i.id}`, 'class="plain"')
               }
-              ${b('보류', `issue-defer:${i.id}`, 'class="link"')}
+              ${b(tr('보류'), `issue-defer:${i.id}`, 'class="link"')}
             </div>
           </article>`,
           )
@@ -111,10 +116,10 @@ export function operationSettings(p, data) {
             <label for="operation-interval">확인 간격</label>
             <select id="operation-interval" name="intervalMinutes">
               ${[
-                [15, '15분'],
-                [60, '1시간'],
-                [360, '6시간'],
-                [1440, '하루'],
+                [15, tr('15분')],
+                [60, tr('1시간')],
+                [360, tr('6시간')],
+                [1440, tr('하루')],
               ]
                 .map(
                   ([v, l]) =>
@@ -150,10 +155,10 @@ export function operationSettings(p, data) {
         </details>
         <div class="actions">
           <button type="submit" class="primary">운영 범위 저장</button>
-          ${b('지금 확인', `operation-check:${p.id}`, 'class="plain"')}
+          ${b(tr('지금 확인'), `operation-check:${p.id}`, 'class="plain"')}
         </div>
         <p class="small muted">설정을 바꾸면 이전 범위의 자동 작업을 중지합니다. 직접 맡긴 작업은 유지합니다.<br>
-          ${e(s.lastReason || '아직 운영 범위를 저장하지 않았습니다.')}
+          ${e(s.lastReason || tr('아직 운영 범위를 저장하지 않았습니다.'))}
         </p>
       </form>
     </section>`;
@@ -166,17 +171,17 @@ export function managedDetail(task, data) {
     evidence = (data.agentEvidence || []).filter((r) => r.taskId === task.id);
   return html`<header class="heading">
       <div>
-        <p class="eyebrow">${op ? '제품 운영 판단' : '대상별 포트폴리오 편집'}</p>
+        <p class="eyebrow">${op ? tr('제품 운영 판단') : tr('대상별 포트폴리오 편집')}</p>
         <h1>${e(task.title)}</h1>
         <p>
-          ${e(task.status === 'accepted' ? '결과 저장 완료' : task.status === 'running' ? '진행 중' : task.status)}
+          ${e(task.status === 'accepted' ? tr('결과 저장 완료') : task.status === 'running' ? tr('진행 중') : task.status)}
         </p>
       </div>
     </header>
     <p>${e(task.message || task.goal)}</p>
     <div class="actions">
-      ${['running', 'queued', 'waiting_auth'].includes(task.status) ? b('이 작업 중지', `agent-stop:${task.id}`) : ''}
-      ${op ? b('제품 개요', 'nav:home') : b('대상 초안 보기', `target:${task.portfolioId}`)}
+      ${['running', 'queued', 'waiting_auth'].includes(task.status) ? b(tr('이 작업 중지'), `agent-stop:${task.id}`) : ''}
+      ${op ? b(tr('제품 개요'), 'nav:home') : b(tr('대상 초안 보기'), `target:${task.portfolioId}`)}
     </div>
     ${
       result
@@ -195,7 +200,7 @@ export function managedDetail(task, data) {
       </article>`,
             )
             .join('') ||
-          '<p class="small muted gap">이번 관측에서 새로 맡길 문제를 제안하지 않았습니다.</p>'
+          tr('<p class="small muted gap">이번 관측에서 새로 맡길 문제를 제안하지 않았습니다.</p>')
         }
         <p class="small muted gap">${e(result.limitations)}</p>
       </section>`
@@ -219,20 +224,20 @@ export function automationOrigin(task, data) {
   const issue = data.operationIssues?.find((i) => i.id === task.automation.issueId);
   return html`<div class="operation-origin">
       <strong>운영에서 이어진 작업</strong>
-      <p>${e(task.reason || '정해진 운영 범위에서 시작했습니다.')} · 보완 ${task.automation.repairs || 0}회</p>
-      ${issue ? b('문제를 발견한 근거', `task:${issue.operationTaskId}`, 'class="link"') : ''}
+      <p>${e(task.reason || tr('정해진 운영 범위에서 시작했습니다.'))} · 보완 ${task.automation.repairs || 0}회</p>
+      ${issue ? b(tr('문제를 발견한 근거'), `task:${issue.operationTaskId}`, 'class="link"') : ''}
     </div>`;
 }
 function portfolioEditResult(edit) {
   const labels = {
-    writing: '초안 작성 중',
-    reviewing: '근거 검토 중',
-    proposed: '검토를 통과한 제안',
-    applied: '초안에 반영됨',
-    needs_review: '주장 보완 필요',
-    stale: '기준 변경으로 보류',
-    failed: '실행 중단',
-    stopped: '중지됨',
+    writing: tr('초안 작성 중'),
+    reviewing: tr('근거 검토 중'),
+    proposed: tr('검토를 통과한 제안'),
+    applied: tr('초안에 반영됨'),
+    needs_review: tr('주장 보완 필요'),
+    stale: tr('기준 변경으로 보류'),
+    failed: tr('실행 중단'),
+    stopped: tr('중지됨'),
   };
   return html`<section class="section portfolio-agent-result">
       <h2>${e(labels[edit.status] || edit.status)}</h2>
@@ -252,7 +257,7 @@ function portfolioEditResult(edit) {
             .map(
               (
                 c,
-              ) => html`<blockquote>${e(c.quote)} ${b('출처 보기', `task:${c.taskId}`, 'class="link"')}
+              ) => html`<blockquote>${e(c.quote)} ${b(tr('출처 보기'), `task:${c.taskId}`, 'class="link"')}
         </blockquote>`,
             )
             .join('')}
@@ -263,11 +268,11 @@ function portfolioEditResult(edit) {
         </details>`
           : ''
       }
-      ${edit.review ? `<p class="small muted gap">별도 검토: ${e(edit.review.assessment)}<br>${e(edit.review.limitations)}</p>` : ''}
+      ${edit.review ? tr`<p class="small muted gap">별도 검토: ${e(edit.review.assessment)}<br>${e(edit.review.limitations)}</p>` : ''}
       ${
         edit.status === 'proposed'
           ? html`<div class="actions">
-          ${b('검토한 제안 반영', `portfolio-apply:${edit.id}`)}
+          ${b(tr('검토한 제안 반영'), `portfolio-apply:${edit.id}`)}
         </div>
         <p class="small muted">직접 쓴 문장·순서·제외는 보존하고 자동으로 관리되는 부분을 반영합니다.</p>`
           : ''
@@ -280,12 +285,12 @@ export function portfolioAgentPanel(p, data) {
       <div class="section-title">
         <h2>이 대상에게 맞는 경험 정리</h2>
         <span class="small muted">
-          ${p.autoEdit ? '새 근거에서 자동 편집 · 하루 최대 2회' : '직접 요청할 때 편집'}
+          ${p.autoEdit ? tr('새 근거에서 자동 편집 · 하루 최대 2회') : tr('직접 요청할 때 편집')}
         </span>
       </div>
       <p class="small muted">저장한 대상 요구와 작업 결과에서 사례를 선택하고 별도로 근거를 검토합니다. 자동 편집도 직접 쓴 문장과 제외한 사례를 보존합니다.</p>
       <div class="actions">
-        ${b('대상에 맞게 정리', `portfolio-edit:${p.id}`)}
-        ${b(p.autoEdit ? '자동 편집 끄기' : '새 결과 자동 편집 켜기', `portfolio-auto:${p.id}`, 'class="plain"')}
+        ${b(tr('대상에 맞게 정리'), `portfolio-edit:${p.id}`)}
+        ${b(p.autoEdit ? tr('자동 편집 끄기') : tr('새 결과 자동 편집 켜기'), `portfolio-auto:${p.id}`, 'class="plain"')}
       </div>${edit ? portfolioEditResult(edit) : ''}</section>`;
 }

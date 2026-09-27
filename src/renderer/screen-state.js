@@ -1,3 +1,4 @@
+import { t as tr } from '../shared/i18n.mjs';
 // Re-rendering replaces #app wholesale. These helpers carry what the user had on screen
 // (scroll, open sections, typed values, focus) from the old DOM to the new one.
 import { button, e } from './html.js';
@@ -20,6 +21,7 @@ export function captureScreen() {
     scrollTop: main?.scrollTop || 0,
     taskScroll: app.querySelector('.tasknav')?.scrollTop || 0,
     expanded: openSections(),
+    expandedIndices: [...app.querySelectorAll('details')].flatMap((d, i) => (d.open ? [i] : [])),
     requestScroll: app.querySelector('.request-fields')?.scrollTop || 0,
     forms: [...app.querySelectorAll('form[data-form]:not([data-form="delegation"])')].map(
       (form) => ({
@@ -62,7 +64,7 @@ function markUnsaved(form) {
   const unsaved = document.createElement('div');
   unsaved.className = 'notice row between';
   unsaved.innerHTML =
-    '<span>저장하지 않은 입력이 있습니다.</span>' + button('수정 취소', 'discard-form');
+    tr('<span>저장하지 않은 입력이 있습니다.</span>') + button(tr('수정 취소'), 'discard-form');
   form.before(unsaved);
 }
 function showRequestDialog(requestScroll) {
@@ -104,6 +106,10 @@ export function restoreScreen(before) {
   const sameLocation = before.location === main.dataset.location;
   if (sameLocation) {
     openDetails(before.expanded);
+    if (ui.languageChanged)
+      app.querySelectorAll('details').forEach((d, i) => {
+        d.open = before.expandedIndices.includes(i);
+      });
     main.scrollTop = before.scrollTop;
   }
   const remembered = !sameLocation && ui.locations[main.dataset.location];
@@ -127,6 +133,7 @@ export function restoreScreen(before) {
   if (ui.requestOpen) showRequestDialog(before.requestScroll);
   if (ui.busy) disableBusyControls();
   restoreFocus(before);
+  ui.languageChanged = false;
 }
 
 // Only stable screens are remembered; forms and dialogs are transient.

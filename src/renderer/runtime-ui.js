@@ -1,15 +1,16 @@
+import { t as tr, localizedLabels, getLocale } from '../shared/i18n.mjs';
 import { managedDetail, automationOrigin } from './operations-ui.js';
 import { changeDetail } from './change-ui.js';
 import { taskJourney, connectedOutcome } from './product-overview.js';
 import { html, e } from './html.js';
-const runStates = {
+const runStates = localizedLabels({
   completed: '결과 저장',
   running: '진행 중',
   failed: '미완료',
   stopping: '종료 확인 중',
   interrupted: '중단됨',
   discarded: '현재 결과에 미반영',
-};
+});
 const button = (label, action, extra = '') =>
   `<button type="button" data-action="${action}" ${extra}>${label}</button>`;
 const heading = (title, subtitle) =>
@@ -19,12 +20,12 @@ const heading = (title, subtitle) =>
         <p>${e(subtitle)}</p>
       </div>
     </header>`;
-const stageLabels = {
+const stageLabels = localizedLabels({
   investigate: '제품 조사',
   review: '근거 확인',
   knowledge: '재사용 기록 정리',
-};
-export const agentLabels = {
+});
+export const agentLabels = localizedLabels({
   queued: '실행 대기',
   running: '진행 중',
   stopping: '종료 확인 중',
@@ -35,7 +36,7 @@ export const agentLabels = {
   failed: '재개 필요',
   needs_review: '최신 근거 확인 필요',
   accepted: '결과 정리 완료',
-};
+});
 Object.assign(agentLabels, {
   check_failed: '검사 실패',
   changes_requested: '보완 필요',
@@ -44,7 +45,7 @@ Object.assign(agentLabels, {
   apply_conflict: '원본 변경 확인',
   apply_partial: '반영 상태 확인',
 });
-const accountLabels = {
+const accountLabels = localizedLabels({
   starting: '실행기 준비 중',
   disconnected: '계정 연결 전',
   logging_in: '로그인 대기',
@@ -58,32 +59,36 @@ const accountLabels = {
   storage_error: '보호 저장소 확인 필요',
   offline: '실행기 연결 끊김',
   error: '연결 확인 필요',
-};
-export const accountLabel = (runtime) => accountLabels[runtime?.state] || '계정 연결';
+});
+export const accountLabel = (runtime) => accountLabels[runtime?.state] || tr('계정 연결');
 function accountMessage(runtime) {
   if (runtime.failure?.message) return runtime.failure.message;
-  if (runtime.state === 'ready') return `${runtime.verifiedModel}의 실제 모델 응답을 확인했습니다.`;
+  if (runtime.state === 'ready')
+    return tr`${runtime.verifiedModel}의 실제 모델 응답을 확인했습니다.`;
   if (runtime.connected)
-    return '로그인을 저장했습니다. 모델 확인 또는 첫 조사 요청으로 실제 사용 가능 여부를 확인합니다.';
-  return 'ChatGPT 로그인은 시스템 브라우저에서 진행됩니다.';
+    return tr(
+      '로그인을 저장했습니다. 모델 확인 또는 첫 조사 요청으로 실제 사용 가능 여부를 확인합니다.',
+    );
+  return tr('ChatGPT 로그인은 시스템 브라우저에서 진행됩니다.');
 }
 function stageMessage(task) {
   if (task.message) return task.message;
-  if (task.status === 'queued') return '차례가 되면 이 단계를 시작합니다.';
-  if (task.status === 'running') return '소스와 기록을 확인하고 있습니다.';
-  if (task.status === 'accepted') return '인용 파일의 버전을 확인하고 관련 기록에 연결했습니다.';
+  if (task.status === 'queued') return tr('차례가 되면 이 단계를 시작합니다.');
+  if (task.status === 'running') return tr('소스와 기록을 확인하고 있습니다.');
+  if (task.status === 'accepted')
+    return tr('인용 파일의 버전을 확인하고 관련 기록에 연결했습니다.');
   return task.reason;
 }
 function nextStage(task) {
-  if (task.stage === 'investigate') return '다음: 별도 세션에서 근거 확인';
-  if (task.stage === 'review') return '다음: 조건부 기록 정리';
-  return '개발 결과와 별개로 재사용 기록을 정리합니다.';
+  if (task.stage === 'investigate') return tr('다음: 별도 세션에서 근거 확인');
+  if (task.stage === 'review') return tr('다음: 조건부 기록 정리');
+  return tr('개발 결과와 별개로 재사용 기록을 정리합니다.');
 }
 export function accountPage(runtime = {}) {
   const logging = runtime.state === 'logging_in',
     models = runtime.models || [];
   return (
-    heading('내장 에이전트 연결', '한 계정으로 제품별 조사·수정·검토를 실행합니다.') +
+    heading(tr('내장 에이전트 연결'), tr('한 계정으로 제품별 조사·수정·검토를 실행합니다.')) +
     html`
     <section class="task-outcome">
         <h2>${e(accountLabel(runtime))}</h2>
@@ -104,7 +109,7 @@ export function accountPage(runtime = {}) {
           </div>`
             : ''
         }
-        <div class="actions">${button('로그인 취소', 'runtime-cancel-login')}</div>
+        <div class="actions">${button(tr('로그인 취소'), 'runtime-cancel-login')}</div>
         ${
           runtime.manual
             ? html`<details>
@@ -120,10 +125,10 @@ export function accountPage(runtime = {}) {
         }
       </section>`
         : html`<div class="actions">
-        ${button(runtime.connected ? '다른 계정으로 로그인' : 'ChatGPT 계정으로 로그인', 'runtime-login', 'class="primary"')}
-          ${button('기기 코드로 로그인', 'runtime-device', 'class="plain"')}
-          ${runtime.connected || runtime.state === 'storage_error' ? button('이 앱의 연결 해제', 'runtime-logout', 'class="plain"') : ''}
-          ${['offline', 'error'].includes(runtime.state) ? button('실행기 다시 연결', 'runtime-restart') : ''}
+        ${button(runtime.connected ? tr('다른 계정으로 로그인') : tr('ChatGPT 계정으로 로그인'), 'runtime-login', 'class="primary"')}
+          ${button(tr('기기 코드로 로그인'), 'runtime-device', 'class="plain"')}
+          ${runtime.connected || runtime.state === 'storage_error' ? button(tr('이 앱의 연결 해제'), 'runtime-logout', 'class="plain"') : ''}
+          ${['offline', 'error'].includes(runtime.state) ? button(tr('실행기 다시 연결'), 'runtime-restart') : ''}
       </div>`
     }
     <section class="section">
@@ -139,17 +144,17 @@ export function accountPage(runtime = {}) {
         </select>
         <div class="actions">
           <button type="submit">모델 저장</button>
-          ${runtime.connected && runtime.modelId ? button('짧은 요청으로 연결 확인', 'runtime-verify') : ''}
+          ${runtime.connected && runtime.modelId ? button(tr('짧은 요청으로 연결 확인'), 'runtime-verify') : ''}
         </div>
       </form>`
-            : '<p class="small muted gap">실행기가 연결되면 모델 목록이 나타납니다.</p>'
+            : tr('<p class="small muted gap">실행기가 연결되면 모델 목록이 나타납니다.</p>')
         }
       </section>
     <section class="section">
         <h2>실행 관리</h2>
         <p class="gap">현재 ${runtime.active || 0}개 실행 중 · 최대 ${runtime.maxConcurrent || 2}개 병렬 실행</p>
         <div class="actions">
-          ${button(runtime.paused ? '대기 작업 계속 실행' : '새 실행 일시 정지', 'runtime-pause')}
+          ${button(runtime.paused ? tr('대기 작업 계속 실행') : tr('새 실행 일시 정지'), 'runtime-pause')}
         </div>
         <p class="small muted gap">일시 정지는 다음 단계와 새 작업의 시작을 막습니다. 현재 실행은 작업 상세에서 중지할 수 있습니다. 앱을 종료하면 실행도 끝나며
         다음
@@ -178,7 +183,7 @@ export function agentDetail(task, data) {
     task.status,
   );
   return (
-    heading(task.title, `${agentLabels[task.status] || task.status} · 읽기 전용 조사`) +
+    heading(task.title, tr`${agentLabels[task.status] || task.status} · 읽기 전용 조사`) +
     html`
     ${automationOrigin(task, data)}${taskJourney(task)}
     ${
@@ -188,13 +193,13 @@ export function agentDetail(task, data) {
           <h2>조사에서 다음 작업으로</h2>
           <p>${e(result.nextStep)}</p>
         </div>
-        ${button('이 조사로 수정안 맡기기', `agent-followup:${task.id}`, 'class="primary"')}
+        ${button(tr('이 조사로 수정안 맡기기'), `agent-followup:${task.id}`, 'class="primary"')}
       </section>`
         : ''
     }
     <section class="task-outcome">
         <h2>
-          ${task.status === 'accepted' ? '조사 결과를 저장했습니다' : e(stageLabels[task.stage])}
+          ${task.status === 'accepted' ? tr('조사 결과를 저장했습니다') : e(stageLabels[task.stage])}
         </h2>
         <p>
           ${e(stageMessage(task))}
@@ -204,10 +209,10 @@ export function agentDetail(task, data) {
         </p>
       </section>
     <div class="actions">
-        ${['running', 'queued', 'waiting_auth'].includes(task.status) ? button('이 작업 중지', `agent-stop:${task.id}`) : ''}
-        ${canResume ? button(task.status === 'needs_review' ? '최신 상태로 다시 조사' : '이 단계부터 재개', `agent-resume:${task.id}`) : ''}
-        ${['waiting_auth', 'waiting_quota', 'failed'].includes(task.status) ? button('계정 연결 보기', 'nav:account', 'class="plain"') : ''}
-        ${task.resultTaskId ? button('저장된 결과와 기록', `task:${task.resultTaskId}`) : ''}
+        ${['running', 'queued', 'waiting_auth'].includes(task.status) ? button(tr('이 작업 중지'), `agent-stop:${task.id}`) : ''}
+        ${canResume ? button(task.status === 'needs_review' ? tr('최신 상태로 다시 조사') : tr('이 단계부터 재개'), `agent-resume:${task.id}`) : ''}
+        ${['waiting_auth', 'waiting_quota', 'failed'].includes(task.status) ? button(tr('계정 연결 보기'), 'nav:account', 'class="plain"') : ''}
+        ${task.resultTaskId ? button(tr('저장된 결과와 기록'), `task:${task.resultTaskId}`) : ''}
       </div>
     ${
       result
@@ -220,7 +225,7 @@ export function agentDetail(task, data) {
             <h3>${e(f.title)}</h3>
             <p class="gap preserve-lines">${e(f.detail)}</p>
             <p class="small muted gap">
-              ${f.evidenceIds.map((id) => e(evidence.find((x) => x.id === id)?.path || '근거 기록')).join(' · ')}
+              ${f.evidenceIds.map((id) => e(evidence.find((x) => x.id === id)?.path || tr('근거 기록'))).join(' · ')}
             </p>
           </article>`,
           )
@@ -248,7 +253,7 @@ export function agentDetail(task, data) {
         <h3>${e(stageLabels[r.role])} · ${e(runStates[r.status] || r.status)}
         </h3>
         <p class="small muted gap">${e(r.modelId)} · ${r.turns || 0}턴 ·
-        관측 ${Number(r.tokens || 0).toLocaleString()} 토큰 · 파일 도구 ${r.toolCalls || 0}회</p>
+        관측 ${Number(r.tokens || 0).toLocaleString(getLocale())} 토큰 · 파일 도구 ${r.toolCalls || 0}회</p>
         <p class="small muted gap">실행 ID ${e(r.id)}</p>
         ${r.failure ? `<p class="gap">${e(r.failure.message)}</p>` : ''}
       </article>`,
@@ -260,7 +265,7 @@ export function agentDetail(task, data) {
         ${evidence
           .map(
             (x) => html`<details class="record">
-        <summary>${e(x.path)}${x.truncated ? ' · 일부 발췌' : ''}</summary>
+        <summary>${e(x.path)}${x.truncated ? tr(' · 일부 발췌') : ''}</summary>
         <p class="small muted gap">SHA256 ${e(x.hash)}</p>
         <pre>${e(x.content)}</pre>
       </details>`,
@@ -281,7 +286,7 @@ export function agentDetail(task, data) {
             <summary>${e(r.title)} · v${r.revision}</summary>
             <p class="gap preserve-lines">${e(r.content)}</p>
             <p class="small muted gap">적용 조건: ${e(r.scope)}</p>
-            ${button('현재 기록 보기', `record-detail:${r.id}`, 'class="plain"')}
+            ${button(tr('현재 기록 보기'), `record-detail:${r.id}`, 'class="plain"')}
           </details>`,
           )
           .join('')}

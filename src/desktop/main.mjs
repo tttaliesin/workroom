@@ -9,7 +9,7 @@ import {
   utilityProcess,
 } from 'electron';
 import { writeFile } from 'node:fs/promises';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, readFileSync } from 'node:fs';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import path from 'node:path';
@@ -24,6 +24,7 @@ import { AgentEngine } from '../runtime/engine.mjs';
 import { runtimeEmbeddings } from '../runtime/local-embeddings.mjs';
 import { CodexConnection } from '../integrations/codex-connection.mjs';
 import { codexTerminal } from './codex-terminal.mjs';
+import { t, getLanguage, setLanguage } from '../shared/i18n.mjs';
 
 const appId = 'workroom.local.desktop';
 const appIcon = path.join(
@@ -33,6 +34,12 @@ const appIcon = path.join(
 );
 if (process.platform === 'win32') app.setAppUserModelId(appId);
 mkdirSync(path.join(dataDirectory, 'desktop'), { recursive: true });
+const languageFile = path.join(dataDirectory, 'desktop', 'language.json');
+try {
+  setLanguage(JSON.parse(readFileSync(languageFile, 'utf8')));
+} catch {
+  /* Default: Korean. */
+}
 app.setPath('userData', path.join(dataDirectory, 'desktop'));
 if (!app.requestSingleInstanceLock()) {
   app.exit(0);
@@ -61,7 +68,7 @@ function checkSender(event) {
     event.senderFrame !== window.webContents.mainFrame ||
     event.senderFrame.url !== pageURL
   )
-    throw new Error('허용되지 않은 화면 요청입니다.');
+    throw new Error(t('허용되지 않은 화면 요청입니다.'));
 }
 const allowed = new Set([
   'snapshot',
@@ -89,12 +96,20 @@ function handle(channel, fn) {
       checkSender(event);
       return { ok: true, value: await fn(...args) };
     } catch (error) {
-      return { ok: false, error: error.message };
+      return { ok: false, error: t(error.message) };
     }
   });
 }
+handle('workroom:language', async (language) => {
+  if (language !== undefined) {
+    if (!['ko', 'en'].includes(language)) throw new Error('Unsupported language');
+    await writeFile(languageFile, JSON.stringify(language), 'utf8');
+    setLanguage(language);
+  }
+  return getLanguage();
+});
 handle('workroom:call', async (method, args) => {
-  if (!allowed.has(method)) throw new Error('지원하지 않는 작업입니다.');
+  if (!allowed.has(method)) throw new Error(t('지원하지 않는 작업입니다.'));
   if (method === 'snapshot')
     return {
       ...room.snapshot(),
@@ -108,7 +123,7 @@ handle('workroom:call', async (method, args) => {
   return room[method](args);
 });
 handle('workroom:runtime', async (method, args = {}) => {
-  if (!engine) throw new Error('내장 실행기를 준비하고 있습니다.');
+  if (!engine) throw new Error(t('내장 실행기를 준비하고 있습니다.'));
   if (method === 'configure') return engine.configure(args);
   if (method === 'configureOperations') return engine.operations.configure(args);
   if (method === 'checkOperations')
@@ -122,7 +137,7 @@ handle('workroom:runtime', async (method, args = {}) => {
   if (method === 'stop') return engine.stop(args);
   if (method === 'applyChange') return engine.changes.apply(args);
   if (method === 'restart') {
-    if (broker.child) throw new Error('실행기가 연결되어 있습니다.');
+    if (broker.child) throw new Error(t('실행기가 연결되어 있습니다.'));
     await broker.start();
     return engine.info();
   }
@@ -132,17 +147,17 @@ handle('workroom:runtime', async (method, args = {}) => {
     return engine.info();
   }
   if (!['login', 'cancelLogin', 'manualCode', 'logout', 'verify'].includes(method))
-    throw new Error('지원하지 않는 실행 요청입니다.');
+    throw new Error(t('지원하지 않는 실행 요청입니다.'));
   if (['login', 'logout', 'verify'].includes(method) && engine.active.size)
-    throw new Error('진행 중인 작업을 먼저 중지하세요.');
+    throw new Error(t('진행 중인 작업을 먼저 중지하세요.'));
   if (method === 'login' && !['browser', 'device_code'].includes(args.mode))
-    throw new Error('로그인 방법을 선택하세요.');
+    throw new Error(t('로그인 방법을 선택하세요.'));
   if (method === 'verify') args = { modelId: engine.settings.modelId };
   return broker.request(method, args);
 });
 handle('workroom:folder', async () => {
   const result = await dialog.showOpenDialog(window, {
-    title: '관리할 제품 폴더',
+    title: t('관리할 제품 폴더'),
     properties: ['openDirectory'],
   });
   return result.canceled ? null : result.filePaths[0];
@@ -150,19 +165,19 @@ handle('workroom:folder', async () => {
 handle('workroom:export', async (id, revision) => {
   const snapshot = room.prepareExport(id, revision);
   const result = await dialog.showSaveDialog(window, {
-    title: '포트폴리오 HTML 내보내기',
+    title: t('포트폴리오 HTML 내보내기'),
     defaultPath: 'portfolio.html',
     filters: [{ name: 'HTML', extensions: ['html'] }],
   });
   if (result.canceled || !result.filePath) return null;
-  await writeFile(result.filePath, portfolioHTML(snapshot), 'utf8');
+  await writeFile(result.filePath, portfolioHTML(snapshot, { language: getLanguage() }), 'utf8');
   // The exported snapshot is immutable even if MCP changes the draft while the dialog is open.
   room.recordExport(id, snapshot, result.filePath);
   return { filename: result.filePath };
 });
 handle('workroom:connection', () => ({
   dataDirectory,
-  nodeRequired: 'Node.js 24 이상',
+  nodeRequired: t('Node.js 24 이상'),
   config: {
     mcpServers: {
       workroom: {
@@ -191,7 +206,9 @@ handle('workroom:codex-setup', async (productId, revision) => {
       throw new Error('version');
   } catch {
     throw new Error(
-      '자동 수집에는 Node.js 24 이상이 필요합니다. Codex 연결 화면에서 Node.js 실행 파일을 선택하세요.',
+      t(
+        '자동 수집에는 Node.js 24 이상이 필요합니다. Codex 연결 화면에서 Node.js 실행 파일을 선택하세요.',
+      ),
     );
   }
   return revision === undefined
@@ -205,23 +222,25 @@ handle('workroom:codex-connection', async (action, productId, value) => {
   if (action === 'install') return codex.install(value);
   if (action === 'probe') return codex.probe(product);
   if (action === 'select') {
-    if (!['node', 'codex'].includes(value)) throw new Error('실행 파일 종류를 확인하세요.');
+    if (!['node', 'codex'].includes(value)) throw new Error(t('실행 파일 종류를 확인하세요.'));
     const result = await dialog.showOpenDialog(window, {
-      title: value === 'node' ? 'Node.js 24 이상 실행 파일 선택' : 'Codex 실행 파일 선택',
+      title: value === 'node' ? t('Node.js 24 이상 실행 파일 선택') : t('Codex 실행 파일 선택'),
       properties: ['openFile'],
       ...(process.platform === 'win32'
-        ? { filters: [{ name: '실행 파일', extensions: ['exe'] }] }
+        ? { filters: [{ name: t('실행 파일'), extensions: ['exe'] }] }
         : {}),
     });
     if (!result.canceled) await codex.select(value, result.filePaths[0]);
     return codex.status(product);
   }
   if (action === 'terminal') {
-    if (!product) throw new Error('제품을 먼저 등록하세요.');
+    if (!product) throw new Error(t('제품을 먼저 등록하세요.'));
     if (terminalWindow && !terminalWindow.isDestroyed()) {
       if (terminalProductId !== product.id)
         throw new Error(
-          '다른 제품의 Codex 창이 열려 있습니다. 해당 창을 닫은 뒤 이 제품의 승인 화면을 여세요.',
+          t(
+            '다른 제품의 Codex 창이 열려 있습니다. 해당 창을 닫은 뒤 이 제품의 승인 화면을 여세요.',
+          ),
         );
       terminalWindow.focus();
       return;
@@ -238,7 +257,7 @@ handle('workroom:codex-connection', async (action, productId, value) => {
     });
     return;
   }
-  throw new Error('지원하지 않는 Codex 연결 요청입니다.');
+  throw new Error(t('지원하지 않는 Codex 연결 요청입니다.'));
 });
 
 app
@@ -250,7 +269,7 @@ app
       vault: new CredentialVault(path.join(dataDirectory, 'credentials'), safeStorage),
       fork: () =>
         utilityProcess.fork(path.join(projectRoot, 'src/runtime/pi-worker.mjs'), [], {
-          serviceName: '작업실 Pi',
+          serviceName: t('작업실 Pi'),
           cwd: agentDirectory,
           stdio: 'pipe',
           env: Object.fromEntries(
@@ -271,7 +290,7 @@ app
       openBrowser: (url) => shell.openExternal(url),
       onChange: () => {
         if (!exiting) {
-          room.store.log('계정 연결 상태 변경', 'runtime');
+          room.store.log(t('계정 연결 상태 변경'), 'runtime');
           engine?.pump();
         }
       },
@@ -293,7 +312,7 @@ app
       minWidth: 760,
       minHeight: 600,
       show: process.env.WORKROOM_HEADLESS !== '1',
-      title: '작업실 · 로컬 알파',
+      title: t('작업실 · 로컬 알파'),
       icon: appIcon,
       backgroundColor: '#ffffff',
       webPreferences: {
@@ -313,9 +332,9 @@ app
     window.webContents.on('will-prevent-unload', (event) => {
       const choice = dialog.showMessageBoxSync(window, {
         type: 'question',
-        title: '저장하지 않은 변경',
-        message: '저장하지 않은 입력을 버리고 닫을까요?',
-        buttons: ['계속 작성', '입력 버리고 닫기'],
+        title: t('저장하지 않은 변경'),
+        message: t('저장하지 않은 입력을 버리고 닫을까요?'),
+        buttons: [t('계속 작성'), t('입력 버리고 닫기')],
         defaultId: 0,
         cancelId: 0,
         noLink: true,
@@ -326,7 +345,7 @@ app
     room.knowledge.index?.start();
     const operationTick = () =>
       void engine.operations.tick().catch((error) => {
-        if (!exiting) room.store.log('운영 점검 오류', 'runtime', error.message);
+        if (!exiting) room.store.log(t('운영 점검 오류'), 'runtime', error.message);
       });
     operationTimer = setInterval(operationTick, 30000);
     operationTimer.unref();

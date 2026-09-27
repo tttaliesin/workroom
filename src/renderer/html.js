@@ -1,6 +1,7 @@
 // Template tag for markup laid out over several source lines, with JSX-like whitespace: a line
 // break plus its indentation disappears next to a tag or an interpolation, and becomes one space
 // between words. Interpolated values are inserted untouched; joined strings are cached per call site.
+import { getLocale, interpolateSource } from '../shared/i18n.mjs';
 const joined = new WeakMap();
 const joinLines = (s) =>
   s.replace(/\n */g, (brk, at) => {
@@ -13,9 +14,7 @@ const joinLines = (s) =>
 export function html(strings, ...values) {
   let parts = joined.get(strings);
   if (!parts) joined.set(strings, (parts = strings.map(joinLines)));
-  let out = parts[0];
-  for (let i = 0; i < values.length; i++) out += `${values[i]}${parts[i + 1]}`;
-  return out;
+  return interpolateSource(parts, values);
 }
 export const e = (x) =>
   String(x ?? '').replace(
@@ -23,7 +22,7 @@ export const e = (x) =>
     (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
   );
 export const date = (value) =>
-  new Date(value).toLocaleString('ko-KR', {
+  new Date(value).toLocaleString(getLocale(), {
     month: 'short',
     day: 'numeric',
     hour: '2-digit',

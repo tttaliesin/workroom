@@ -1,4 +1,5 @@
-import { closeRequest, rememberRequest, render } from './controller.js';
+import { t as tr, setLanguage, getLanguage } from '../shared/i18n.mjs';
+import { closeRequest, rememberRequest, render, run } from './controller.js';
 import { preview } from './portfolio-views.js';
 import { recordResults } from './record-views.js';
 import { data, ui } from './state.js';
@@ -30,11 +31,24 @@ export function handleInput(event) {
   if (ui.dirty && ui.view === 'portfolio') {
     const previewNode = document.getElementById('folio-preview');
     if (previewNode) previewNode.innerHTML = preview(ui.draft);
-    document.getElementById('save-state').textContent = '저장하지 않은 변경';
+    document.getElementById('save-state').textContent = tr('저장하지 않은 변경');
   }
 }
-export function handleChange(event) {
+export async function handleChange(event) {
   if (ui.rendering || !event.target.isConnected) return;
+  if (event.target.id === 'app-language') {
+    const language = event.target.value;
+    await run(async () => {
+      const response = await window.workroom.language(language);
+      if (!response.ok) throw new Error(response.error);
+      setLanguage(response.value);
+      document.documentElement.lang = getLanguage();
+      document.title = getLanguage() === 'en' ? 'Workroom · Local alpha' : '작업실 · 로컬 알파';
+      ui.languageChanged = true;
+      ui.message = '';
+    });
+    return;
+  }
   if (event.target.dataset.subscription) {
     const ids = new Set(ui.draft.autoProductIds || []);
     event.target.checked
@@ -42,7 +56,7 @@ export function handleChange(event) {
       : ids.delete(event.target.dataset.subscription);
     ui.draft.autoProductIds = [...ids];
     ui.dirty = true;
-    document.getElementById('save-state').textContent = '저장하지 않은 변경';
+    document.getElementById('save-state').textContent = tr('저장하지 않은 변경');
   }
   if (event.target.closest('form[data-form="delegation"]')) {
     rememberRequest(event.target.closest('form'));

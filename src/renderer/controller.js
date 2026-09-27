@@ -1,3 +1,4 @@
+import { t as tr } from '../shared/i18n.mjs';
 import { mergeDraft } from './merge-draft.js';
 import { captureScreen, restoreScreen, saveNavigation } from './screen-state.js';
 import { pendingMessage, shellHTML } from './shell.js';
@@ -29,8 +30,8 @@ export function rememberRequest(form) {
   const status = form.querySelector('.request-save-state');
   if (status) {
     status.textContent = ui.requestSaveFailed
-      ? '초안 저장 실패 · 이 창에서 다시 시도하세요.'
-      : '초안 자동 저장됨';
+      ? tr('초안 저장 실패 · 이 창에서 다시 시도하세요.')
+      : tr('초안 자동 저장됨');
     status.classList.toggle('inline-error', !!ui.requestSaveFailed);
   }
 }
@@ -75,7 +76,7 @@ export function closeRequest() {
   const form = app.querySelector('form[data-form="delegation"]');
   if (form) rememberRequest(form);
   if (ui.requestSaveFailed) {
-    flash('요청 초안을 보관하지 못했습니다. 입력을 유지하고 다시 시도해 주세요.', true);
+    flash(tr('요청 초안을 보관하지 못했습니다. 입력을 유지하고 다시 시도해 주세요.'), true);
     render();
     return;
   }
@@ -110,7 +111,7 @@ function restoreRequestAfterSetup() {
     data.products.some((p) => p.id === ui.accountReturn)
   ) {
     returnToRequest();
-    flash('연결을 준비했습니다. 보관한 요청을 확인한 뒤 맡겨주세요.');
+    flash(tr('연결을 준비했습니다. 보관한 요청을 확인한 뒤 맡겨주세요.'));
   }
 }
 export async function call(method, args = {}) {
@@ -181,7 +182,7 @@ export async function refresh() {
 }
 export function canLeave() {
   if (!ui.dirty && !ui.formDirty) return true;
-  flash('작성 중인 내용이 있습니다. 먼저 저장하거나 수정 취소를 선택하세요.', true);
+  flash(tr('작성 중인 내용이 있습니다. 먼저 저장하거나 수정 취소를 선택하세요.'), true);
   return false;
 }
 export function go(view) {
@@ -205,11 +206,11 @@ export function render() {
 export async function saveDraft(preferLocal = false) {
   const latest = await call('snapshot');
   const remote = latest.portfolios.find((p) => p.id === ui.portfolioId);
-  if (!remote) throw new Error('대상을 찾을 수 없습니다. 현재 입력은 보존했습니다.');
+  if (!remote) throw new Error(tr('대상을 찾을 수 없습니다. 현재 입력은 보존했습니다.'));
   if (preferLocal && remote.revision !== ui.conflictRemote?.revision) {
     ui.conflictRemote = remote;
     throw new Error(
-      '저장된 초안이 다시 바뀌었습니다. 최신 내용을 확인하세요. 현재 입력은 보존했습니다.',
+      tr('저장된 초안이 다시 바뀌었습니다. 최신 내용을 확인하세요. 현재 입력은 보존했습니다.'),
     );
   }
   let d;
@@ -230,7 +231,7 @@ export async function saveDraft(preferLocal = false) {
   await refresh();
   loadDraft(saved.id);
   ui.editing = false;
-  flash('초안을 저장했습니다.');
+  flash(tr('초안을 저장했습니다.'));
 }
 export async function syncExternal() {
   if (ui.busy || ui.syncing) return;
@@ -253,7 +254,7 @@ export async function syncExternal() {
   } catch (error) {
     const notice = document.querySelector('.sync-notice');
     if (notice)
-      notice.textContent = `새 기록을 확인하지 못했습니다. 다음 확인 때 재시도합니다. ${error.message}`;
+      notice.textContent = tr`새 기록을 확인하지 못했습니다. 다음 확인 때 재시도합니다. ${error.message}`;
   } finally {
     ui.syncing = false;
   }

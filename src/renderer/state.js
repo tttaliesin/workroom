@@ -1,3 +1,4 @@
+import { t as tr, localizedLabels, rawLabels } from '../shared/i18n.mjs';
 import { agentLabels } from './runtime-ui.js';
 export const app = document.getElementById('app');
 export const ui = {
@@ -83,21 +84,28 @@ export function persistRequests() {
   }
 }
 export const hasTaskPane = () => data.products.length > 0 && (ui.view === 'ops' || portfolioArea());
-export const labels = {
+export const labels = localizedLabels({
   needs_decision: '판단 필요',
   deferred: '보류',
   decided: '결정 기록됨',
   completed: '점검 완료',
   partial: '점검 완료 · 일부 미확인',
   reported: '결과 보고 · 독립 검증 없음',
-};
-Object.assign(labels, agentLabels);
+});
+Object.assign(labels, rawLabels(agentLabels));
 export const actorLabel = (actor) =>
-  ({ mcp: 'MCP 에이전트', 'codex-hook': 'Codex 자동 수집', pi: '내장 Pi', user: '사용자' })[
-    actor
-  ] || '보고자';
-export const provenance = { observed: '앱이 관찰', reported: '보고된 내용', user: '사용자 기록' };
-export const productName = (id) => data.products.find((p) => p.id === id)?.name || '제품';
+  ({
+    mcp: tr('MCP 에이전트'),
+    'codex-hook': tr('Codex 자동 수집'),
+    pi: tr('내장 Pi'),
+    user: tr('사용자'),
+  })[actor] || tr('보고자');
+export const provenance = localizedLabels({
+  observed: '앱이 관찰',
+  reported: '보고된 내용',
+  user: '사용자 기록',
+});
+export const productName = (id) => data.products.find((p) => p.id === id)?.name || tr('제품');
 export const product = () => data.products.find((p) => p.id === ui.productId) || data.products[0];
 export const rootTasks = () => {
   const results = new Set(data.tasks.filter((t) => t.kind === 'agent').map((t) => t.resultTaskId));
@@ -106,15 +114,15 @@ export const rootTasks = () => {
 export const portfolioArea = () => ['portfolio', 'new-target'].includes(ui.view);
 export const locationKey = () =>
   `${ui.view}:${ui.productId}:${ui.taskId}:${ui.portfolioId}:${ui.recordId}:${ui.source}:${ui.editing}`;
-export const shortStatus = {
+export const shortStatus = localizedLabels({
   reported: '보고됨',
   completed: '점검 완료',
   partial: '일부 미확인',
   needs_decision: '판단 필요',
   deferred: '보류',
   decided: '결정됨',
-};
-Object.assign(shortStatus, agentLabels);
+});
+Object.assign(shortStatus, rawLabels(agentLabels));
 export function loadDraft(id) {
   const p = data.portfolios.find((x) => x.id === id);
   if (p) {
