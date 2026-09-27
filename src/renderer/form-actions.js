@@ -1,7 +1,52 @@
 import { t as tr } from '../shared/i18n.mjs';
+import { publicationCall } from './publication-ui.js';
 import { call, flash, refresh, rememberRequest, run, runtimeCall } from './controller.js';
 import { data, loadDraft, persistRequests, product, requestDraft, ui } from './state.js';
 const formActions = {
+  'job-source': async (form, values) => {
+    await call('saveJobSource', {
+      portfolioId: form.dataset.id,
+      revision: Number(form.dataset.revision),
+      ...values,
+    });
+    await refresh();
+    loadDraft(form.dataset.id);
+    flash(tr('공고 원문 버전을 저장했습니다.'));
+  },
+  'publication-credentials': async (form, values) => {
+    form.elements.token.value = '';
+    await publicationCall('credentials', { token: values.token });
+    flash(tr('Vercel 토큰을 보호 저장소에 저장했습니다.'));
+  },
+  'publication-destination': async (form, values) => {
+    await publicationCall('configure', {
+      portfolioId: form.dataset.id,
+      version: Number(form.dataset.version),
+      ...values,
+    });
+    await refresh();
+    flash(tr('공개 대상을 저장했습니다.'));
+  },
+  'verification-profile': async (form, values) => {
+    await runtimeCall('configureVerification', {
+      productId: form.dataset.id,
+      version: Number(form.dataset.version),
+      enabled: !!values.enabled,
+      scripts: values.scripts
+        .split(/\r?\n/)
+        .map((x) => x.trim())
+        .filter(Boolean),
+      timeoutSeconds: Number(values.timeoutSeconds),
+      allowExecution: !!values.allowExecution,
+    });
+    await refresh();
+    flash(tr('검사 환경을 저장했습니다. 새 수정 작업부터 적용합니다.'));
+  },
+  'background-mode': async (_form, values) => {
+    await runtimeCall('configure', { background: !!values.background });
+    await refresh();
+    flash(tr('실행 방식을 저장했습니다.'));
+  },
   delegation: async (form) => {
     rememberRequest(form);
     const draft = requestDraft();
@@ -140,13 +185,23 @@ const formActions = {
       option: Number(values.option),
     });
     await refresh();
-    flash(tr('방침과 적용 범위를 기록했습니다. 에이전트가 다음 조회에서 확인할 수 있습니다.'));
+    flash(
+      t.targetTaskId
+        ? tr('답변을 저장하고 연결된 작업의 재개를 예약했습니다.')
+        : tr('방침과 적용 범위를 기록했습니다. 에이전트가 다음 조회에서 확인할 수 있습니다.'),
+    );
   },
   'new-decision': async (form, values) => {
     const t = await call('requestDecision', {
       productId: values.productId,
       title: values.title,
       reason: values.reason,
+      ...(values.targetTaskId
+        ? {
+            targetTaskId: values.targetTaskId,
+            targetRevision: data.tasks.find((t) => t.id === values.targetTaskId).revision,
+          }
+        : {}),
       options: [
         { label: values.label1, effect: values.effect1 },
         { label: values.label2, effect: values.effect2 },

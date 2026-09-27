@@ -7,6 +7,8 @@ import {
   safeStorage,
   shell,
   utilityProcess,
+  Tray,
+  Menu,
 } from 'electron';
 import { writeFile } from 'node:fs/promises';
 import { mkdirSync, readFileSync } from 'node:fs';
@@ -16,6 +18,8 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { Workroom } from '../core/service.mjs';
 import { portfolioHTML } from '../core/export.mjs';
+import { Publications } from '../core/publication.mjs';
+import { VercelPublisher } from '../integrations/vercel.mjs';
 import { dataDirectory, databaseFile, projectRoot } from '../core/paths.mjs';
 import { prepareCodexSetup, installCodexSetup } from '../integrations/codex-setup.mjs';
 import { CredentialVault } from '../runtime/vault.mjs';
@@ -47,9 +51,16 @@ if (!app.requestSingleInstanceLock()) {
 }
 const pageURL = pathToFileURL(path.join(projectRoot, 'src/renderer/index.html')).href;
 const room = new Workroom(databaseFile, { embedding: runtimeEmbeddings(dataDirectory) });
+const publishVault = new CredentialVault(
+  path.join(dataDirectory, 'publication'),
+  safeStorage,
+  'vercel.credential',
+);
+const publications = new Publications(room, new VercelPublisher(publishVault));
 const codex = new CodexConnection({ directory: dataDirectory, root: projectRoot });
 let terminalWindow, terminalProductId;
 let window;
+let tray;
 let broker,
   engine,
   operationTimer,
@@ -84,6 +95,7 @@ const allowed = new Set([
   'reportWork',
   'createPortfolio',
   'savePortfolio',
+  'saveJobSource',
   'context',
   'setCodexCapture',
   'changeWorkLink',
@@ -119,13 +131,18 @@ handle('workroom:call', async (method, args) => {
       agentContexts: room.store.list('agent-context'),
       agentChanges: room.store.list('change-set'),
       applyJournals: room.store.list('apply-journal'),
+      publicationDestinations: room.store.list('publication-destination'),
+      publications: room.store.list('publication').map(({ html, ...p }) => p),
     };
-  return room[method](args);
+  const result = await room[method](args);
+  if (method === 'resolveDecision') engine?.recovery.tick();
+  return result;
 });
 handle('workroom:runtime', async (method, args = {}) => {
   if (!engine) throw new Error(t('내장 실행기를 준비하고 있습니다.'));
   if (method === 'configure') return engine.configure(args);
   if (method === 'configureOperations') return engine.operations.configure(args);
+  if (method === 'configureVerification') return engine.profiles.save(args);
   if (method === 'checkOperations')
     return engine.operations.observe({ productId: args.productId, manual: true });
   if (method === 'issueAction') return engine.operations.act(args);
@@ -161,6 +178,39 @@ handle('workroom:folder', async () => {
     properties: ['openDirectory'],
   });
   return result.canceled ? null : result.filePaths[0];
+});
+handle('workroom:publication', async (method, args = {}) => {
+  if (method === 'credentials') {
+    if (typeof args.token !== 'string' || args.token.length < 10 || args.token.length > 1000)
+      throw new Error(t('유효한 Vercel 토큰을 입력하세요.'));
+    publishVault.write({ type: 'oauth', access: args.token, refresh: '' });
+    return { saved: true };
+  }
+  if (method === 'disconnect') {
+    publishVault.write(null);
+    return { saved: false };
+  }
+  if (method === 'configure') return publications.configure(args);
+  if (method === 'prepare') {
+    const { html, ...p } = publications.prepare({ ...args, language: getLanguage() });
+    return p;
+  }
+  if (method === 'publish') {
+    const { html, ...p } = await publications.publish(args);
+    return p;
+  }
+  if (method === 'reconcile') {
+    const { html, ...p } = await publications.reconcile(args);
+    return p;
+  }
+  if (method === 'open') {
+    const p = room.store.get('publication', args.id);
+    if (!p.url || !/^https:\/\/[a-zA-Z0-9-]+\.vercel\.app$/.test(p.url))
+      throw new Error('Invalid public URL');
+    await shell.openExternal(p.url);
+    return;
+  }
+  throw new Error(t('지원하지 않는 작업입니다.'));
 });
 handle('workroom:export', async (id, revision) => {
   const snapshot = room.prepareExport(id, revision);
@@ -327,6 +377,21 @@ app
     if (process.platform === 'win32')
       window.setAppDetails({ appId, appIconPath: appIcon, appIconIndex: 0 });
     window.setMenuBarVisibility(false);
+    tray = new Tray(appIcon);
+    tray.setToolTip('Workroom');
+    tray.setContextMenu(
+      Menu.buildFromTemplate([
+        { label: t('작업실 열기'), click: () => window.show() },
+        { label: t('완전히 종료'), click: () => app.quit() },
+      ]),
+    );
+    tray.on('double-click', () => window.show());
+    window.on('close', (event) => {
+      if (!exiting && engine.settings.background) {
+        event.preventDefault();
+        window.hide();
+      }
+    });
     window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
     window.webContents.on('will-navigate', (event) => event.preventDefault());
     window.webContents.on('will-prevent-unload', (event) => {
@@ -361,5 +426,6 @@ app.on('before-quit', () => {
   clearInterval(operationTimer);
   if (engine) void engine.shutdown();
   broker?.close();
+  tray?.destroy();
 });
 app.on('will-quit', () => room.close());

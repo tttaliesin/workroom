@@ -1,9 +1,16 @@
 import { t as tr, localizedLabels, getLocale } from '../shared/i18n.mjs';
 import { html, e } from './html.js';
 const startedToday = (p, data) =>
-  data.tasks.filter(
-    (t) => t.productId === p.id && t.automation?.day === new Date().toLocaleDateString('sv-SE'),
-  ).length;
+  data.tasks
+    .filter((t) => t.productId === p.id && t.automation)
+    .reduce((sum, t) => {
+      const day = new Date().toLocaleDateString('sv-SE');
+      return (
+        sum +
+        Number(t.automation.day === day) +
+        (t.retryStarts || []).filter((d) => d === day).length
+      );
+    }, 0);
 function runLine(r) {
   const usage = tr`${r.turns || 0}턴 · ${Number(r.tokens || 0).toLocaleString(getLocale())} 토큰`;
   return `<p class="small gap">${e(r.role)} · ${e(r.status)} · ${usage}</p>`;
@@ -37,6 +44,8 @@ const issueLabels = localizedLabels({
   awaiting_apply: '원본 반영 검토',
   completed: '처리 완료',
   deferred: '보류',
+  retry_wait: '자동 복구 대기',
+  blocked: '조치 필요',
 });
 export function operationStatus(p, data) {
   const s = policy(p, data);
@@ -94,6 +103,7 @@ export function operationIssues(p, data) {
                   : b(tr('조사 시작'), `issue-start:${i.id}`, 'class="plain"')
               }
               ${b(tr('보류'), `issue-defer:${i.id}`, 'class="link"')}
+              ${i.status === 'blocked' && !i.changeTaskId ? b(tr('조사 다시 시작'), `issue-start:${i.id}`) : ''}
             </div>
           </article>`,
           )
@@ -103,6 +113,7 @@ export function operationIssues(p, data) {
 }
 export function operationSettings(p, data) {
   const s = policy(p, data);
+  const profile = data.verificationProfiles?.find((x) => x.productId === p.id);
   return html`<section class="section">
       <h2>지속 운영</h2>
       <p class="small muted gap">앱 실행 중 정해진 간격으로 소스와 목표의 변화를 확인합니다. 변화가 없으면 모델을 호출하지 않습니다. 놓친 일정은 다음 실행에 한
@@ -134,7 +145,7 @@ export function operationSettings(p, data) {
             value="${s.maxDailyStarts}" required>
           </div>
         </div>
-        <p class="small muted">운영 판단·후속 조사·수정안이 각각 1개로 계산됩니다. 단계별 시간·턴 한도와 전체 2개 병렬 한도도 적용합니다.</p>
+        <p class="small muted">운영 판단·후속 조사·수정안·재시도·보완이 각각 1개로 계산됩니다. 단계별 한도와 전체 2개 병렬 한도도 적용합니다.</p>
         <label class="check-option">
           <input type="checkbox" name="allowChanges" ${s.allowChanges ? 'checked' : ''}>근거 검토를 마친 구체적인 문제는
           수정안까지 자동으로 작성</label>
@@ -161,6 +172,18 @@ export function operationSettings(p, data) {
           ${e(s.lastReason || tr('아직 운영 범위를 저장하지 않았습니다.'))}
         </p>
       </form>
+    </section>
+    <section class="section"><h2>제품 검사 환경</h2>
+      <p class="small muted">npm 잠금 파일로 의존성을 설치하고 수정 전·후 복사본에서 지정한 스크립트를 실행합니다. 설정 버전을 검사 결과에 남깁니다.</p>
+      <form class="form gap" data-form="verification-profile" data-id="${p.id}" data-version="${profile?.version || 0}">
+        <label class="check-option"><input type="checkbox" name="enabled" ${profile?.enabled ? 'checked' : ''}>npm 검사 환경 사용</label>
+        <label>검사 스크립트 · 한 줄에 하나<textarea name="scripts" required>${e((profile?.scripts || ['test', 'build']).join('\n'))}</textarea></label>
+        <label>명령별 제한 시간 · 초<input name="timeoutSeconds" type="number" min="10" max="120" value="${profile?.timeoutSeconds || 60}" required></label>
+        <label class="check-option"><input type="checkbox" name="allowExecution">의존성 다운로드와 제품 스크립트 실행 허용</label>
+        <p class="small muted">설치 후크는 실행하지 않습니다. 검사 스크립트는 컴퓨터와 네트워크에 접근할 수 있으므로 신뢰하는 제품에 사용하세요.</p>
+        <button type="submit">검사 환경 저장</button>
+      </form>
+      <form class="form gap" data-form="background-mode"><label class="check-option"><input type="checkbox" name="background" ${data.runtime?.background ? 'checked' : ''}>창을 닫아도 트레이에서 계속 실행</label><button type="submit">실행 방식 저장</button></form>
     </section>`;
 }
 export function managedDetail(task, data) {
@@ -179,8 +202,9 @@ export function managedDetail(task, data) {
       </div>
     </header>
     <p>${e(task.message || task.goal)}</p>
+    ${task.retryAt ? html`<p>자동 복구 대기 · ${date(task.retryAt)}</p>` : ''}
     <div class="actions">
-      ${['running', 'queued', 'waiting_auth'].includes(task.status) ? b(tr('이 작업 중지'), `agent-stop:${task.id}`) : ''}
+      ${task.retryAt || ['running', 'queued', 'waiting_auth'].includes(task.status) ? b(tr('이 작업 중지'), `agent-stop:${task.id}`) : ''}
       ${op ? b(tr('제품 개요'), 'nav:home') : b(tr('대상 초안 보기'), `target:${task.portfolioId}`)}
     </div>
     ${

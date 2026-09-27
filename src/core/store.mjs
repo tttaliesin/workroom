@@ -17,7 +17,12 @@ export class Store {
       CREATE TABLE IF NOT EXISTS audit (
         id INTEGER PRIMARY KEY, at TEXT NOT NULL, action TEXT NOT NULL,
         subject TEXT NOT NULL, detail TEXT NOT NULL
-      );`);
+      );
+      CREATE TABLE IF NOT EXISTS wakeups (
+        operation_key TEXT PRIMARY KEY, type TEXT NOT NULL, target_id TEXT NOT NULL,
+        payload TEXT NOT NULL, not_before INTEGER NOT NULL, status TEXT NOT NULL DEFAULT 'pending'
+      );
+      CREATE INDEX IF NOT EXISTS wakeups_due ON wakeups(status, not_before);`);
     initializeKnowledgeIndex(this.db);
   }
   decode(row) {
@@ -73,6 +78,26 @@ export class Store {
   }
   history() {
     return this.db.prepare('SELECT * FROM audit ORDER BY id DESC LIMIT 80').all();
+  }
+  queueWake(key, type, targetId, payload, notBefore = Date.now()) {
+    this.db
+      .prepare(
+        'INSERT OR IGNORE INTO wakeups(operation_key,type,target_id,payload,not_before) VALUES (?,?,?,?,?)',
+      )
+      .run(key, type, targetId, JSON.stringify(payload), notBefore);
+  }
+  pendingWakes(now = Date.now()) {
+    return this.db
+      .prepare(
+        "SELECT * FROM wakeups WHERE status='pending' AND not_before<=? ORDER BY not_before, rowid LIMIT 100",
+      )
+      .all(now)
+      .map((row) => ({ ...row, payload: JSON.parse(row.payload) }));
+  }
+  finishWake(key, status = 'completed') {
+    this.db
+      .prepare("UPDATE wakeups SET status=? WHERE operation_key=? AND status='pending'")
+      .run(status, key);
   }
   changeToken() {
     return this.db.prepare('SELECT COALESCE(MAX(id), 0) AS token FROM audit').get().token;

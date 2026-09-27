@@ -29,6 +29,7 @@ const roles = localizedLabels({
 const states = localizedLabels({
   queued: '실행 대기',
   waiting_auth: '계정 연결 대기',
+  waiting_decision: '판단 답변 대기',
   running: '진행 중',
   stopping: '종료 확인 중',
   stopped: '중지됨',
@@ -147,8 +148,10 @@ export function changeDetail(task, data) {
         </p>
       </section>
     <div class="actions">
-        ${['queued', 'running', 'waiting_auth'].includes(task.status) ? button(tr('이 작업 중지'), `agent-stop:${task.id}`) : ''}
+        ${task.retryAt || ['queued', 'running', 'waiting_auth', 'waiting_decision'].includes(task.status) ? button(tr('이 작업 중지'), `agent-stop:${task.id}`) : ''}
         ${canResume ? button(resumeLabel, `agent-resume:${task.id}`) : ''}
+        ${task.status === 'waiting_decision' ? button(tr('판단 요청 보기'), `task:${task.decisionId}`) : ''}
+        ${canResume ? button(tr('판단 요청 만들기'), 'nav:new-decision', 'class="plain"') : ''}
         ${['waiting_auth', 'waiting_quota'].includes(task.status) ? button(tr('계정 연결 보기'), 'nav:account') : ''}
         ${task.status === 'apply_conflict' ? button(tr('최신 원본으로 새 수정안'), `agent-replan:${task.id}`) : ''}
         ${task.resultTaskId ? button(tr('반영 결과와 기록'), `task:${task.resultTaskId}`) : ''}

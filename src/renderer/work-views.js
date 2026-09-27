@@ -157,7 +157,7 @@ function artifact(t) {
             ${e(targets.map((p) => p.target).join(', ') || tr('이 작업을 사례로 활용'))}
           </strong>
           <p>
-            ${targets.length ? tr('로컬 초안에 포함됨 · 웹 미공개') : tr('저장한 작업에서 대상별 소개를 작성합니다.')}
+            ${targets.length ? tr('대상별 초안에 포함됨 · 공개 버전은 대상 화면에서 확인') : tr('저장한 작업에서 대상별 소개를 작성합니다.')}
           </p>
         </div>
         ${button(tr('초안 열기 →'), `task-portfolio:${t.id}`, tr('class="plain artifact-open" aria-label="포트폴리오 초안 보기"'))}
@@ -215,8 +215,8 @@ function taskDetail(t) {
             <h2>${e(t.options[t.selected].label)}</h2>
             <p>${e(t.options[t.selected].effect)}</p>
           </div>
-          <p class="muted small gap">결정이 기록되었습니다. 연결된 에이전트가 다음 조회에서 확인할 수 있습니다. 자동 실행 재개는 아직 연결되지
-          않았습니다.</p>${relatedRecords(t)}`
+          <p class="muted small gap">${t.targetTaskId ? tr('답변을 저장하고 연결된 작업의 재개를 예약했습니다.') : tr('결정이 기록되었습니다. 연결 작업이 없는 판단은 다음 조회에서 참고할 기록으로 보관합니다.')}</p>
+          ${t.targetTaskId ? button(tr('연결된 작업'), `task:${t.targetTaskId}`) : ''}${relatedRecords(t)}`
             : html`<form data-form="decision" data-id="${t.id}">
             <fieldset>
               <legend>적용할 방침</legend>

@@ -35,7 +35,14 @@ export class Operations {
   count(productId) {
     return this.store
       .list('task')
-      .filter((t) => t.productId === productId && t.automation?.day === this.day()).length;
+      .filter((t) => t.productId === productId && t.automation)
+      .reduce(
+        (sum, t) =>
+          sum +
+          Number(t.automation.day === this.day()) +
+          (t.retryStarts || []).filter((d) => d === this.day()).length,
+        0,
+      );
   }
   save(policy, patch) {
     const current = this.policy(policy.productId);
@@ -77,6 +84,7 @@ export class Operations {
       version: old.version + 1,
       nextAt: new Date(this.now()).toISOString(),
       lastFingerprint: null,
+      lastEvaluatedFingerprint: null,
       lastReason: value.enabled
         ? '다음 확인 시 현재 상태를 살핍니다.'
         : '지속 운영이 꺼져 있습니다.',
@@ -88,7 +96,12 @@ export class Operations {
     );
     for (const t of this.store
       .list('task')
-      .filter((t) => t.automation && t.productId === saved.productId && pending.includes(t.status)))
+      .filter(
+        (t) =>
+          t.automation &&
+          t.productId === saved.productId &&
+          (pending.includes(t.status) || t.retryAt),
+      ))
       await this.engine.stop({ id: t.id });
     for (const issue of this.store
       .list('operation-issue')
@@ -100,6 +113,11 @@ export class Operations {
   }
   assertTask(task) {
     if (!task.automation) return;
+    if (
+      task.automation.issueId &&
+      this.store.get('operation-issue', task.automation.issueId).status === 'deferred'
+    )
+      throw new Error('사용자가 이 문제를 보류했습니다.');
     const p = this.policy(task.productId);
     if (p.version !== task.automation.policyVersion || (!p.enabled && !task.automation.manual))
       throw new Error('이 작업을 시작한 운영 범위가 변경되었습니다.');
@@ -108,10 +126,7 @@ export class Operations {
   }
   readyReason(p) {
     if (this.engine.settings.paused) return '새 실행이 일시 정지되어 있습니다.';
-    if (
-      !this.engine.settings.modelId ||
-      !['ready', 'connected'].includes(this.engine.broker.status.state)
-    )
+    if (!this.engine.settings.modelId || !this.engine.canRun())
       return '계정과 모델 연결을 기다립니다.';
     if (this.count(p.productId) >= p.maxDailyStarts)
       return `오늘의 새 작업 한도 ${p.maxDailyStarts}개를 사용했습니다.`;
@@ -157,7 +172,32 @@ export class Operations {
       ]
         .filter((f) => tree.manifest[f] !== previous?.manifest?.[f])
         .slice(0, 80);
-      const unchanged = !manual && p.lastFingerprint === fingerprint;
+      const evaluated =
+        p.lastEvaluatedFingerprint ||
+        this.store
+          .list('operation-observation')
+          .find(
+            (o) =>
+              o.productId === productId &&
+              o.fingerprint === fingerprint &&
+              o.status === 'completed' &&
+              this.store.find('task', o.taskId)?.status === 'accepted',
+          )?.fingerprint;
+      const unchanged = !manual && evaluated === fingerprint;
+      const existing = this.store
+        .list('operation-observation')
+        .find(
+          (o) =>
+            o.productId === productId &&
+            o.fingerprint === fingerprint &&
+            o.taskId &&
+            o.status !== 'completed',
+        );
+      if (!manual && !unchanged && existing) {
+        this.note(p, '이전 평가의 복구 또는 사용자 조치를 기다립니다.');
+        this.save(p, { nextAt: new Date(this.now() + p.intervalMinutes * 60000).toISOString() });
+        return this.store.get('task', existing.taskId);
+      }
       const observation = this.store.create('operation-observation', {
         productId,
         fingerprint,
@@ -174,6 +214,7 @@ export class Operations {
         lastAt: observation.at,
         nextAt: new Date(this.now() + p.intervalMinutes * 60000).toISOString(),
         lastFingerprint: fingerprint,
+        lastObservedFingerprint: fingerprint,
         lastObservationId: observation.id,
         lastReason: unchanged
           ? '파일과 목표 변화 없음 · 모델 호출 생략'
@@ -243,12 +284,43 @@ export class Operations {
     if (!task.outputs?.coordinate || task.status !== 'accepted') return;
     this.assertTask(task);
     const observation = this.store.get('operation-observation', task.automation.observationId);
+    if (observation.status === 'completed') return;
     this.store.transaction(() => {
       for (const issue of task.outputs.coordinate.result.issues) {
         const old = this.store
           .list('operation-issue')
           .find((i) => i.productId === task.productId && i.key === issue.key);
-        if (old) continue;
+        if (old) {
+          if (old.observationId === observation.id || old.status !== 'completed') continue;
+          const prior = this.store.find('operation-observation', old.observationId);
+          if (
+            prior &&
+            (prior.at >= observation.at || prior.fingerprint === observation.fingerprint)
+          )
+            continue;
+          const history = [
+            ...(old.occurrences || []),
+            {
+              observationId: old.observationId,
+              investigationId: old.investigationId,
+              changeTaskId: old.changeTaskId,
+              resolvedAt: old.resolvedAt || old.updated,
+            },
+          ];
+          this.link(old, {
+            ...issue,
+            status: 'proposed',
+            occurrences: history,
+            occurrence: (old.occurrence || 1) + 1,
+            observationId: observation.id,
+            operationTaskId: task.id,
+            policyVersion: task.automation.policyVersion,
+            investigationId: null,
+            changeTaskId: null,
+            resolvedAt: null,
+          });
+          continue;
+        }
         this.store.create('operation-issue', {
           ...issue,
           productId: task.productId,
@@ -256,6 +328,7 @@ export class Operations {
           observationId: observation.id,
           status: 'proposed',
           policyVersion: task.automation.policyVersion,
+          occurrence: 1,
         });
       }
       if (observation.status !== 'completed')
@@ -265,6 +338,7 @@ export class Operations {
           taskId: task.id,
         });
       this.store.log('운영 판단 결과 저장', task.id, task.outputs.coordinate.result.summary);
+      this.save(this.policy(task.productId), { lastEvaluatedFingerprint: observation.fingerprint });
     });
   }
   async act({ id, action }) {
@@ -275,7 +349,7 @@ export class Operations {
     if (action === 'defer') {
       for (const t of this.store
         .list('task')
-        .filter((t) => t.automation?.issueId === id && pending.includes(t.status)))
+        .filter((t) => t.automation?.issueId === id && (pending.includes(t.status) || t.retryAt)))
         await this.engine.stop({ id: t.id });
       this.store.update('operation-issue', id, issue.revision, { ...issue, status: 'deferred' });
       this.store.log('운영 문제 보류', id);
@@ -295,8 +369,30 @@ export class Operations {
     if (['deferred', 'completed'].includes(issue.status) && !manual) return;
     const existing = this.store
       .list('task')
-      .find((t) => t.automation?.issueId === issue.id && t.mode === 'investigation');
+      .find(
+        (t) =>
+          t.automation?.issueId === issue.id &&
+          t.mode === 'investigation' &&
+          (t.automation.occurrence || 1) === (issue.occurrence || 1),
+      );
     if (existing) {
+      if (
+        manual &&
+        ['failed', 'interrupted', 'stopped', 'waiting_quota', 'needs_review'].includes(
+          existing.status,
+        )
+      ) {
+        const current = this.engine.updateTask(existing, {
+          automation: { ...existing.automation, policyVersion: p.version, manual: true },
+        });
+        const resumed = this.engine.resume({ id: current.id, revision: current.revision });
+        this.link(issue, {
+          investigationId: resumed.id,
+          status: 'investigating',
+          policyVersion: p.version,
+        });
+        return resumed;
+      }
       if (!issue.investigationId)
         this.link(issue, { investigationId: existing.id, status: 'investigating' });
       return existing;
@@ -306,7 +402,13 @@ export class Operations {
       {
         title: issue.title,
         reason: `운영 판단: ${issue.reason}`,
-        automation: { policyVersion: p.version, manual, day: this.day(), issueId: issue.id },
+        automation: {
+          policyVersion: p.version,
+          manual,
+          day: this.day(),
+          issueId: issue.id,
+          occurrence: issue.occurrence || 1,
+        },
       },
     );
     this.link(issue, {
@@ -338,9 +440,19 @@ export class Operations {
       const p = this.policy(issue.productId);
       if (issue.investigationId && !issue.changeTaskId) {
         const t = this.store.get('task', issue.investigationId);
-        if (t.status !== 'accepted') continue;
+        if (t.status !== 'accepted') {
+          const status = pending.includes(t.status)
+            ? t.status === 'waiting_auth'
+              ? 'blocked'
+              : 'investigating'
+            : t.retryAt
+              ? 'retry_wait'
+              : 'blocked';
+          if (issue.status !== status) this.link(issue, { status });
+          continue;
+        }
         if (issue.action !== 'prepare_change' || !t.outputs.investigate?.result.findings.length) {
-          this.link(issue, { status: 'completed' });
+          this.link(issue, { status: 'completed', resolvedAt: new Date(this.now()).toISOString() });
           continue;
         }
         if (!p.enabled || !p.allowChanges) {
@@ -362,7 +474,12 @@ export class Operations {
           continue;
         let next = this.store
           .list('task')
-          .find((t) => t.automation?.issueId === issue.id && t.mode === 'change');
+          .find(
+            (t) =>
+              t.automation?.issueId === issue.id &&
+              t.mode === 'change' &&
+              (t.automation.occurrence || 1) === (issue.occurrence || 1),
+          );
         if (!next)
           next = this.engine.start(
             {
@@ -384,6 +501,7 @@ export class Operations {
                 policyVersion: p.version,
                 day: this.day(),
                 issueId: issue.id,
+                occurrence: issue.occurrence || 1,
                 manual: false,
                 repairs: 0,
               },
@@ -394,22 +512,32 @@ export class Operations {
       if (issue.changeTaskId) {
         const t = this.store.get('task', issue.changeTaskId);
         if (t.status === 'accepted') {
-          this.link(issue, { status: 'completed' });
+          this.link(issue, { status: 'completed', resolvedAt: new Date(this.now()).toISOString() });
           continue;
         }
         if (t.status === 'awaiting_apply' && issue.status !== 'awaiting_apply')
           this.link(issue, { status: 'awaiting_apply' });
+        else if (t.status !== 'awaiting_apply') {
+          const status = pending.includes(t.status)
+            ? 'preparing_change'
+            : t.retryAt
+              ? 'retry_wait'
+              : 'blocked';
+          if (status !== issue.status) this.link(issue, { status });
+        }
         if (
           p.enabled &&
           p.version === issue.policyVersion &&
           ['check_failed', 'changes_requested'].includes(t.status) &&
           (t.automation.repairs || 0) < p.maxRepairs &&
           !this.engine.active.has(t.id) &&
-          !this.engine.settings.paused
+          !this.readyReason(p)
         ) {
           const updated = this.engine.updateTask(
             t,
-            { automation: { ...t.automation, repairs: (t.automation.repairs || 0) + 1 } },
+            {
+              automation: { ...t.automation, repairs: (t.automation.repairs || 0) + 1 },
+            },
             '운영 보완 한도 사용',
           );
           this.engine.resume({ id: updated.id, revision: updated.revision });
@@ -422,6 +550,7 @@ export class Operations {
     this.busy = true;
     try {
       if (this.engine.settings.paused) return;
+      this.engine.recovery.tick();
       for (const task of this.store
         .list('task')
         .filter((t) => t.mode === 'operation' && t.status === 'accepted')) {

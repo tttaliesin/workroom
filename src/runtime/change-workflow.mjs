@@ -32,13 +32,23 @@ export class ChangeWorkflow {
         '앱의 수정 복사본 경로가 제품 소스 안에 있습니다. 앱 데이터를 제품 밖으로 옮겨주세요.',
       );
     const source = await sourceTree(product.folder);
+    let repair,
+      candidateSource = source;
+    if (task.repairFrom) {
+      repair = this.store.get('change-set', task.repairFrom);
+      if (repair.baselineHash !== source.hash || repair.productId !== task.productId)
+        throw new Error('보완 도중 원본이 바뀌었습니다. 새 수정 작업을 시작하세요.');
+      candidateSource = await sourceTree(repair.candidate);
+      if (candidateSource.hash !== treeHash(repair.candidateManifest))
+        throw new Error('이전 수정본이 바뀌어 보완을 이어갈 수 없습니다.');
+    }
     this.engine.owned(run.id);
     for (const test of task.testFiles)
       if (!source.manifest[test]) throw new Error(`선택한 테스트를 복사할 수 없습니다: ${test}`);
     const baseline = path.join(directory, 'baseline'),
       candidate = path.join(directory, 'candidate');
     await copyTree(source, baseline);
-    await copyTree(source, candidate);
+    await copyTree(candidateSource, candidate);
     this.engine.owned(run.id);
     const change = this.store.create('change-set', {
       taskId: task.id,
@@ -49,11 +59,13 @@ export class ChangeWorkflow {
       baseline,
       candidate,
       baselineManifest: source.manifest,
-      candidateManifest: source.manifest,
+      candidateManifest: candidateSource.manifest,
       baselineHash: source.hash,
       omitted: source.omitted,
-      changes: [],
+      changes: repair?.changes || [],
+      repairFrom: repair?.id || null,
       testFiles: task.testFiles,
+      verificationProfile: task.verificationProfile,
       status: 'draft',
       artifactHash: null,
     });
@@ -89,7 +101,12 @@ export class ChangeWorkflow {
         let change = this.get(this.store.get('task', task.id));
         if (change.runId !== runId || change.status !== 'draft')
           throw new Error('이 수정본은 더 이상 편집할 수 없습니다.');
-        if (change.testFiles.some((p) => p.toLowerCase() === relative.toLowerCase()))
+        if (
+          change.testFiles.some((p) => p.toLowerCase() === relative.toLowerCase()) ||
+          (change.verificationProfile &&
+            (['package.json', 'package-lock.json', '.npmrc'].includes(relative.toLowerCase()) ||
+              /(^|\/)(tests?|__tests__|scripts)\/|\.(test|spec)\.[^/]+$/i.test(relative)))
+        )
           throw new Error('선택한 검증 테스트는 수정할 수 없습니다. 구현 파일을 수정하세요.');
         const alias = Object.keys(change.candidateManifest).find(
           (p) => p.toLowerCase() === relative.toLowerCase(),
@@ -202,6 +219,15 @@ export class ChangeWorkflow {
           output: '검사 단계의 4분 한도에 도달했습니다.',
         });
       }
+      this.store.create('verification-observation', {
+        taskId: task.id,
+        productId: task.productId,
+        profileVersion: change.verificationProfile?.version || null,
+        artifactHash: change.artifactHash,
+        baselineHash: change.baselineHash,
+        at: new Date().toISOString(),
+        ...result,
+      });
       return {
         result: { ...result, artifactHash: change.artifactHash, baselineHash: change.baselineHash },
       };
@@ -299,6 +325,7 @@ export class ChangeWorkflow {
       .strict()
       .parse(input);
     let task = this.store.get('task', id);
+    this.engine.profiles.assert(task);
     const change = this.get(task);
     if (
       task.revision !== revision ||

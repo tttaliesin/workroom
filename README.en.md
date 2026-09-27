@@ -124,10 +124,10 @@ The built-in agent sends investigation and change requests to the connected mode
 **Local alpha · 0.1** — The product name is provisional, and the workflow is being refined through use.
 
 - **Available:** Product and goal management, agent investigation and proposed changes, independent review, decision records, reusable knowledge retrieval, target-specific portfolios, HTML export, MCP connection and Korean/English interface switching.
-- **Optional:** Periodic investigations and permitted change preparation while the app is open. Model calls are skipped when nothing changes.
-- **Not yet available:** Background or remote execution while the app is closed, arbitrary build scripts or dependency installation, web deployment, an installer or automatic updates.
+- **Optional:** Periodic investigations, bounded retries, linked decision resume, npm dependency installation and verification profiles, tray execution, versioned job sources, and reviewed Vercel portfolio publication, verification and restoration.
+- **Not yet available:** Execution after the app process exits, remote execution, an installer or automatic updates. Live Vercel deployment still needs validation with your account.
 
-Closing the app also ends its runner. After recording a decision, you resume work explicitly.
+Closing the window exits by default. Enable tray execution in project settings to keep running, then use **Quit Workroom** in the tray to stop. See the [workflow guide](docs/quality-workflows.md) and [implementation plan and validation](docs/quality-implementation-plan.md).
 
 ## Help improve Workroom
 

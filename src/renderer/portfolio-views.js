@@ -2,6 +2,7 @@ import { portfolioMarkup, normalizeTemplate, portfolioTemplates } from '../share
 import { t as tr, getLanguage } from '../shared/i18n.mjs';
 import { html, button, date, e, empty, field, header } from './html.js';
 import { portfolioAgentPanel } from './operations-ui.js';
+import { publicationPanel } from './publication-ui.js';
 import { data, loadDraft, product, productName, ui } from './state.js';
 export function newTarget() {
   return (
@@ -106,7 +107,7 @@ export function portfolioPage() {
     : tr('새 결과 자동 반영이 꺼져 있습니다.');
   return (
     back +
-    header(tr('포트폴리오 초안'), tr('대상별 저장 · 웹 배포 미연결')) +
+    header(tr('포트폴리오 초안'), tr('대상별 초안과 검토한 공개 버전')) +
     html`<div class="targetbar row between">
         <strong>${e(d.target)}</strong>
         <span id="save-state" class="small muted">${ui.dirty ? tr('저장하지 않은 변경') : tr('로컬 초안 저장됨')}</span>
@@ -122,6 +123,7 @@ export function portfolioPage() {
           : ''
       }
       ${!ui.editing && !ui.review ? portfolioAgentPanel(d, data) : ''}
+      ${!ui.editing && !ui.review ? publicationPanel(d, data) : ''}
       ${!ui.review ? templatePicker(d) : ''}
       ${portfolioSourceNotices(d)}
       ${d.pendingTaskIds?.length ? tr`<p class="notice">사례 20개 한도로 ${d.pendingTaskIds.length}개 작업이 대기 중입니다. 사례를 제외하고 저장하면 빈자리에 반영합니다.</p>` : ''}

@@ -412,11 +412,10 @@ export function delegationPage(product, runtime = {}, draft = {}) {
           <label class="check-option">
             <input type="checkbox" name="allowTests" ${draft.allowTests ? 'checked' : ''}>지정한 테스트에서 제품 코드를
             실행하도록 허용</label>
-          <p class="small muted">수정 전후에 같은 테스트를 실행하며 에이전트가 해당 테스트 파일을 바꾸지 못합니다. Node.js 24 이상이 필요하고 의존성은 설치하지
-          않습니다. 파일·프로세스를 제한하지만 완전한 OS·네트워크 격리는 아닙니다.</p>
+          <p class="small muted">기본 Node 검사는 의존성을 설치하지 않습니다. 제품 설정에서 허용한 npm 검사 환경이 있으면 함께 실행합니다. 지정 테스트는 수정하지 않으며 Node.js 24 이상이 필요합니다.</p>
         </div>
       </details>
-      <p class="small muted">테스트를 지정하지 않으면 JavaScript·JSON 구문 검사와 소스 검토를 진행하고, 기능 테스트는 미확인으로 남깁니다.</p>`
+      <p class="small muted">선택 테스트와 npm 검사 환경이 모두 없으면 기능 테스트는 미확인으로 남깁니다.</p>`
         : ''
     }
     </div>

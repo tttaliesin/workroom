@@ -1,4 +1,5 @@
 import { t as tr } from '../shared/i18n.mjs';
+import { publicationCall } from './publication-ui.js';
 import {
   call,
   canLeave,
@@ -134,6 +135,35 @@ async function savePortfolioAction(id, action) {
 }
 // Every data-action handled inside run(); actions without an entry still re-render.
 const clickActions = {
+  'publication-prepare': async (id) => {
+    if (!canLeave()) return;
+    const p = data.portfolios.find((p) => p.id === id);
+    await publicationCall('prepare', { portfolioId: id, revision: p.revision });
+    await refresh();
+  },
+  'publication-publish': async (id) => {
+    const p = data.publications.find((p) => p.id === id);
+    await publicationCall('publish', { id, artifactHash: p.artifactHash });
+    await refresh();
+  },
+  'publication-reconcile': async (id) => {
+    await publicationCall('reconcile', { id });
+    await refresh();
+  },
+  'publication-open': async (id) => {
+    await publicationCall('open', { id });
+  },
+  'publication-disconnect': async () => {
+    await publicationCall('disconnect');
+    flash(tr('Vercel 토큰을 삭제했습니다.'));
+  },
+  'publication-restore': async (id) => {
+    if (!canLeave()) return;
+    const v = data.publications.find((p) => p.id === id),
+      p = data.portfolios.find((p) => p.id === v.portfolioId);
+    await publicationCall('prepare', { portfolioId: p.id, revision: p.revision, restoreId: id });
+    await refresh();
+  },
   'operation-check': operationAction,
   'issue-start': operationAction,
   'issue-defer': operationAction,

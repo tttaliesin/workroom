@@ -12,7 +12,14 @@ export class PortfolioEditor {
     const tasks = this.store.list('task');
     const sources = [];
     let remaining = 32000;
-    for (const t of tasks
+    const terms = [
+      ...new Set(
+        `${portfolio.target} ${portfolio.requirements}`
+          .toLowerCase()
+          .match(/[\p{L}\p{N}+#.-]{2,}/gu) || [],
+      ),
+    ];
+    const candidates = tasks
       .filter(
         (t) =>
           t.kind === 'work' &&
@@ -21,19 +28,35 @@ export class PortfolioEditor {
           (portfolio.autoProductIds?.includes(t.productId) ||
             portfolio.entries.some((e) => e.taskId === t.id)),
       )
-      .slice(0, 30)) {
-      const p = projectWork(t, tasks),
-        source = {
-          id: t.id,
-          revision: t.revision,
-          productId: t.productId,
-          title: p.title,
-          summary: redact(p.summary).slice(0, 2000),
-          contribution: redact(p.contribution).slice(0, 1000),
-          limitations: redact(p.limitations).slice(0, 1200),
+      .map((t) => {
+        const projected = projectWork(t, tasks);
+        const haystack =
+          `${projected.title} ${projected.summary} ${projected.contribution}`.toLowerCase();
+        return {
+          t,
+          projected,
+          score: terms.reduce((sum, term) => sum + Number(haystack.includes(term)), 0),
         };
+      })
+      .sort(
+        (a, b) =>
+          b.score - a.score ||
+          b.t.updated.localeCompare(a.t.updated) ||
+          a.t.id.localeCompare(b.t.id),
+      );
+    for (const { t, projected: p } of candidates) {
+      if (sources.length >= 30) break;
+      const source = {
+        id: t.id,
+        revision: t.revision,
+        productId: t.productId,
+        title: p.title,
+        summary: redact(p.summary).slice(0, 2000),
+        contribution: redact(p.contribution).slice(0, 1000),
+        limitations: redact(p.limitations).slice(0, 1200),
+      };
       const length = JSON.stringify(source).length;
-      if (length > remaining) break;
+      if (length > remaining) continue;
       sources.push(source);
       remaining -= length;
     }
@@ -44,6 +67,7 @@ export class PortfolioEditor {
       JSON.stringify([
         p.target,
         p.requirements,
+        p.jobSourceId,
         [...(p.autoProductIds || [])].sort(),
         [...(p.excludedTaskIds || [])].sort(),
         sources,
@@ -65,20 +89,28 @@ export class PortfolioEditor {
             t.mode === 'portfolio' &&
             t.portfolioId === id &&
             t.automatic &&
-            ['running', 'queued', 'waiting_auth'].includes(t.status),
+            (['running', 'queued', 'waiting_auth'].includes(t.status) || t.retryAt),
         ))
         void this.engine.stop({ id: t.id });
     return next;
+  }
+  startsToday(portfolioId) {
+    const day = this.engine.operations.day();
+    return (
+      this.store
+        .list('portfolio-edit')
+        .filter((e) => e.portfolioId === portfolioId && e.day === day).length +
+      this.store
+        .list('task')
+        .filter((t) => t.portfolioId === portfolioId)
+        .reduce((sum, t) => sum + (t.retryStarts || []).filter((d) => d === day).length, 0)
+    );
   }
   request({ portfolioId, automatic = false }) {
     z.string().uuid().parse(portfolioId);
     const p = this.store.get('portfolio', portfolioId);
     if (automatic && !p.autoEdit) return null;
-    if (
-      this.engine.settings.paused ||
-      !this.engine.settings.modelId ||
-      !['connected', 'ready'].includes(this.engine.broker.status.state)
-    ) {
+    if (this.engine.settings.paused || !this.engine.settings.modelId || !this.engine.canRun()) {
       if (automatic) return null;
       throw new Error('계정과 모델 연결, 새 실행 상태를 확인하세요.');
     }
@@ -100,8 +132,7 @@ export class PortfolioEditor {
     const edits = this.store.list('portfolio-edit').filter((e) => e.portfolioId === portfolioId);
     if (
       automatic &&
-      (edits.some((e) => e.signature === signature) ||
-        edits.filter((e) => e.day === this.engine.operations.day()).length >= 2)
+      (edits.some((e) => e.signature === signature) || this.startsToday(portfolioId) >= 2)
     )
       return null;
     const edit = this.store.create('portfolio-edit', {

@@ -95,7 +95,7 @@ tool(
 );
 tool(
   'workroom_list_decisions',
-  '사용자의 판단 요청과 결정 상태를 조회합니다. 결정만으로 실행이 재개되거나 코드가 바뀐 것은 아닙니다.',
+  '사용자의 판단 요청과 결정 상태를 조회합니다. targetTaskId가 있으면 답변 뒤 해당 내장 작업의 재개를 예약합니다. 실제 실행 상태와 코드 반영 여부는 작업에서 확인하세요.',
   z.object({ productId: z.string().uuid() }),
   true,
   ({ productId }) => {

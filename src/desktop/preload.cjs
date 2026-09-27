@@ -4,6 +4,7 @@ contextBridge.exposeInMainWorld(
   Object.freeze({
     call: (method, args = {}) => ipcRenderer.invoke('workroom:call', method, args),
     runtime: (method, args = {}) => ipcRenderer.invoke('workroom:runtime', method, args),
+    publication: (method, args = {}) => ipcRenderer.invoke('workroom:publication', method, args),
     chooseFolder: () => ipcRenderer.invoke('workroom:folder'),
     exportPortfolio: (id, revision) => ipcRenderer.invoke('workroom:export', id, revision),
     connectionInfo: () => ipcRenderer.invoke('workroom:connection'),

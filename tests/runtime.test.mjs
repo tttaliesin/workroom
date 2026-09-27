@@ -10,6 +10,102 @@ import { readProductFile, listProductFiles } from '../src/runtime/files.mjs';
 import { publicFailure } from '../src/runtime/errors.mjs';
 
 const tick = () => new Promise((resolve) => setTimeout(resolve, 10));
+test('changed scope and cancelled decision waits cannot execute an old answer', async (t) => {
+  const f = await fixture(t, () => {
+    throw new Error('unexpected model request');
+  });
+  f.engine.configure({ paused: true });
+  const make = async () => {
+    let task = f.engine.start({ productId: f.product.id, goal: 'Scope choice' });
+    await f.engine.stop({ id: task.id });
+    task = f.room.store.get('task', task.id);
+    const decision = f.room.requestDecision({
+      productId: f.product.id,
+      targetTaskId: task.id,
+      targetRevision: task.revision,
+      title: 'Direction',
+      reason: 'Scope',
+      options: [
+        { label: 'A', effect: 'Inspect A' },
+        { label: 'B', effect: 'Inspect B' },
+      ],
+    });
+    return { task, decision };
+  };
+  const first = await make();
+  f.room.resolveDecision({ id: first.decision.id, revision: first.decision.revision, option: 0 });
+  f.room.updateProduct({ id: f.product.id, revision: f.product.revision, goal: 'New scope' });
+  f.engine.configure({ paused: false });
+  f.engine.recovery.tick();
+  assert.equal(f.room.store.get('task', first.task.id).status, 'needs_review');
+  f.engine.configure({ paused: true });
+  const second = await make();
+  await f.engine.stop({ id: second.task.id });
+  assert.throws(() =>
+    f.room.resolveDecision({
+      id: second.decision.id,
+      revision: second.decision.revision,
+      option: 0,
+    }),
+  );
+  assert.equal(f.room.store.get('task', second.task.id).status, 'stopped');
+  assert.equal(f.room.store.list('agent-run').length, 0);
+});
+test('linked decision commits with wakeup, rejects stale answers and resumes once after restart', async (t) => {
+  let f,
+    calls = 0;
+  f = await fixture(t, async (_method, input) => {
+    calls++;
+    assert.equal(input.handoff.decision.label, 'Proceed');
+    return answer(f.engine, input);
+  });
+  f.engine.configure({ paused: true });
+  let task = f.engine.start({ productId: f.product.id, goal: 'Investigate after choice' });
+  await f.engine.stop({ id: task.id });
+  task = f.room.store.get('task', task.id);
+  const decision = f.room.requestDecision({
+    productId: f.product.id,
+    targetTaskId: task.id,
+    targetRevision: task.revision,
+    title: 'Direction',
+    reason: 'Choose scope',
+    options: [
+      { label: 'Proceed', effect: 'Read sources' },
+      { label: 'Alternative', effect: 'Investigate alternative' },
+    ],
+  });
+  const queue = f.room.store.queueWake.bind(f.room.store);
+  f.room.store.queueWake = () => {
+    throw new Error('simulated storage failure');
+  };
+  assert.throws(
+    () => f.room.resolveDecision({ id: decision.id, revision: decision.revision, option: 0 }),
+    /storage/,
+  );
+  assert.equal(f.room.store.get('task', decision.id).status, 'needs_decision');
+  assert.equal(f.room.store.list('record').length, 0);
+  f.room.store.queueWake = queue;
+  f.room.resolveDecision({ id: decision.id, revision: decision.revision, option: 0 });
+  assert.throws(() =>
+    f.room.resolveDecision({ id: decision.id, revision: decision.revision, option: 1 }),
+  );
+  f.engine.closed = true;
+  f.engine = new AgentEngine(f.room, f.broker, { agentDirectory: f.directory });
+  t.after(() => {
+    f.engine.closed = true;
+  });
+  f.engine.configure({ paused: false });
+  f.engine.recovery.tick();
+  f.engine.recovery.tick();
+  await until(
+    () =>
+      f.room.store.get('task', task.id).status === 'accepted' &&
+      !f.engine.active.size &&
+      !f.engine.operations.busy,
+  );
+  assert.equal(calls, 3);
+  assert.equal(f.room.store.pendingWakes().length, 0);
+});
 async function until(fn) {
   for (let i = 0; i < 300; i++) {
     if (fn()) return;

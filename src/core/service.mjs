@@ -34,6 +34,8 @@ export const schemas = {
   requestDecision: z
     .object({
       productId: id,
+      targetTaskId: id.optional(),
+      targetRevision: z.number().int().positive().optional(),
       title: text(200),
       reason: text(4000),
       options: z
@@ -183,6 +185,9 @@ export class Workroom {
         .map(({ manifest, ...o }) => o),
       operationIssues: this.store.list('operation-issue'),
       portfolioEdits: this.store.list('portfolio-edit'),
+      verificationProfiles: this.store.list('verification-profile'),
+      jobSources: this.store.list('job-source'),
+      verificationObservations: this.store.list('verification-observation').slice(0, 100),
       changeToken: this.changes(),
       products: this.store.list('product'),
       tasks: this.store.list('task'),
@@ -318,12 +323,43 @@ export class Workroom {
     const data = schemas.requestDecision.parse(input);
     this.store.get('product', data.productId);
     return this.store.transaction(() => {
+      let target;
+      if (data.targetTaskId) {
+        target = this.store.get('task', data.targetTaskId);
+        if (
+          target.kind !== 'agent' ||
+          !['investigation', 'change'].includes(target.mode) ||
+          target.productId !== data.productId ||
+          target.revision !== data.targetRevision ||
+          ![
+            'stopped',
+            'interrupted',
+            'failed',
+            'needs_review',
+            'check_failed',
+            'changes_requested',
+          ].includes(target.status) ||
+          target.activeRunId
+        )
+          throw new Error('연결할 작업을 중지하고 최신 상태를 확인하세요.');
+      }
       const task = this.store.create('task', {
         ...data,
         kind: 'decision',
         status: 'needs_decision',
         actor,
+        ...(target
+          ? { targetProductRevision: target.productRevision, targetStage: target.stage }
+          : {}),
       });
+      if (target)
+        this.store.update('task', target.id, target.revision, {
+          ...target,
+          status: 'waiting_decision',
+          resumeStatus: target.status,
+          decisionId: task.id,
+          retryAt: null,
+        });
       this.store.log('판단 요청', task.id, actor);
       return task;
     });
@@ -336,6 +372,16 @@ export class Workroom {
         throw new Error('현재 상태에서는 결정할 수 없습니다.');
       const choice = old.options[data.option];
       if (!choice) throw new Error('유효한 선택지를 선택하세요.');
+      if (old.targetTaskId) {
+        const target = this.store.get('task', old.targetTaskId);
+        if (
+          target.status !== 'waiting_decision' ||
+          target.decisionId !== old.id ||
+          target.stage !== old.targetStage ||
+          this.store.get('product', old.productId).revision !== old.targetProductRevision
+        )
+          throw new Error('판단 대상이나 제품 범위가 바뀌었습니다. 현재 기준으로 다시 요청하세요.');
+      }
       const task = this.store.update('task', old.id, data.revision, {
         ...old,
         status: 'decided',
@@ -353,6 +399,11 @@ export class Workroom {
         active: true,
       });
       this.store.log('방침 결정', old.id, choice.label);
+      if (old.targetTaskId)
+        this.store.queueWake(`decision:${old.id}`, 'decision', old.targetTaskId, {
+          decisionId: old.id,
+          productRevision: old.targetProductRevision,
+        });
       return task;
     });
   }
@@ -508,6 +559,39 @@ export class Workroom {
       });
       this.store.log('포트폴리오 대상 추가', portfolio.id, portfolio.target);
       return portfolio;
+    });
+  }
+  saveJobSource(input) {
+    const value = z
+      .object({
+        portfolioId: id,
+        revision: z.number().int().positive(),
+        url: z.string().url().max(2000),
+        description: text(12000),
+      })
+      .strict()
+      .parse(input);
+    if (new URL(value.url).protocol !== 'https:') throw new Error('HTTPS 공고 주소를 입력하세요.');
+    return this.store.transaction(() => {
+      const p = this.store.get('portfolio', value.portfolioId);
+      const previous = p.jobSourceId ? this.store.get('job-source', p.jobSourceId) : null;
+      const source = this.store.create('job-source', {
+        portfolioId: p.id,
+        url: value.url,
+        description: value.description,
+        version: (previous?.version || 0) + 1,
+        previousId: previous?.id || null,
+        capturedAt: new Date().toISOString(),
+        provenance: 'user-pasted',
+        hash: createHash('sha256').update(value.description).digest('hex'),
+      });
+      this.store.update('portfolio', p.id, value.revision, {
+        ...p,
+        jobSourceId: source.id,
+        requirements: value.description.slice(0, 5000),
+      });
+      this.store.log('공고 원문 버전 저장', p.id, `v${source.version}`);
+      return source;
     });
   }
   savePortfolio(input) {

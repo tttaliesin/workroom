@@ -121,6 +121,27 @@ export function newDecision() {
   return (
     header(tr('판단 요청 만들기'), tr('자동으로 정할 수 없는 방침과 선택별 영향을 기록합니다.')) +
     html`<form data-form="new-decision" class="form">${productSelect()}
+        <label>답변 후 재개할 작업
+          <select name="targetTaskId"><option value="">기록만 저장</option>
+          ${data.tasks
+            .filter(
+              (t) =>
+                t.kind === 'agent' &&
+                ['investigation', 'change'].includes(t.mode) &&
+                !t.activeRunId &&
+                [
+                  'stopped',
+                  'interrupted',
+                  'failed',
+                  'needs_review',
+                  'check_failed',
+                  'changes_requested',
+                ].includes(t.status),
+            )
+            .map((t) => `<option value="${t.id}">${e(t.title)}</option>`)
+            .join('')}
+          </select>
+        </label>
         ${field('title', tr('요청 제목'), '', 'input', 'required maxlength="200"')}
         ${field('reason', tr('왜 이 결정이 필요한가요?'), '', 'textarea', 'required maxlength="4000"')}
         <div class="formgrid">

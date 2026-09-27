@@ -33,6 +33,7 @@ export const agentLabels = localizedLabels({
   interrupted: '중단 후 복원',
   waiting_auth: '계정 연결 대기',
   waiting_quota: '사용 한도 대기',
+  waiting_decision: '판단 답변 대기',
   failed: '재개 필요',
   needs_review: '최신 근거 확인 필요',
   accepted: '결과 정리 완료',
@@ -209,8 +210,10 @@ export function agentDetail(task, data) {
         </p>
       </section>
     <div class="actions">
-        ${['running', 'queued', 'waiting_auth'].includes(task.status) ? button(tr('이 작업 중지'), `agent-stop:${task.id}`) : ''}
+        ${task.retryAt || ['running', 'queued', 'waiting_auth', 'waiting_decision'].includes(task.status) ? button(tr('이 작업 중지'), `agent-stop:${task.id}`) : ''}
         ${canResume ? button(task.status === 'needs_review' ? tr('최신 상태로 다시 조사') : tr('이 단계부터 재개'), `agent-resume:${task.id}`) : ''}
+        ${task.status === 'waiting_decision' ? button(tr('판단 요청 보기'), `task:${task.decisionId}`) : ''}
+        ${canResume ? button(tr('판단 요청 만들기'), 'nav:new-decision', 'class="plain"') : ''}
         ${['waiting_auth', 'waiting_quota', 'failed'].includes(task.status) ? button(tr('계정 연결 보기'), 'nav:account', 'class="plain"') : ''}
         ${task.resultTaskId ? button(tr('저장된 결과와 기록'), `task:${task.resultTaskId}`) : ''}
       </div>

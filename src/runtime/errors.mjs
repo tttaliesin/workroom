@@ -24,6 +24,8 @@ export function publicFailure(error) {
       code: 'network',
       message: '연결이 완료되지 않았습니다. 네트워크 상태를 확인한 뒤 재시도하세요.',
     };
+  if (/\b50[0234]\b|overloaded|service unavailable/.test(raw))
+    return { code: 'transient', message: '서비스가 일시적으로 응답하지 않았습니다.' };
   return {
     code: 'runtime',
     message:

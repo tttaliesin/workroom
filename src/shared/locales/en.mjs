@@ -1,5 +1,116 @@
 // UI source strings only; user-authored content is never translated.
 export default {
+  '결정이 기록되었습니다. 연결 작업이 없는 판단은 다음 조회에서 참고할 기록으로 보관합니다.':
+    'Decision recorded. Unlinked decisions are retained as context for future requests.',
+  '기본 Node 검사는 의존성을 설치하지 않습니다. 제품 설정에서 허용한 npm 검사 환경이 있으면 함께 실행합니다. 지정 테스트는 수정하지 않으며 Node.js 24 이상이 필요합니다.':
+    'Basic Node checks do not install dependencies. An authorized npm profile also runs when configured in project settings. Selected tests remain unchanged; Node.js 24 or later is required.',
+  '선택 테스트와 npm 검사 환경이 모두 없으면 기능 테스트는 미확인으로 남깁니다.':
+    'Without selected tests or an npm profile, functional tests remain unconfirmed.',
+  '운영 판단·후속 조사·수정안·재시도·보완이 각각 1개로 계산됩니다. 단계별 한도와 전체 2개 병렬 한도도 적용합니다.':
+    'Coordination, investigations, changes, retries and repairs each count as one start. Stage limits and a global concurrency of two also apply.',
+  '대상별 초안에 포함됨 · 공개 버전은 대상 화면에서 확인':
+    'Included in target drafts · Check published versions on the target page',
+  '자동 복구 대기': 'Waiting for automatic recovery',
+  '자동 복구 대기 ·': 'Automatic recovery ·',
+  '조치 필요': 'Action needed',
+  '조사 다시 시작': 'Retry investigation',
+  '답변 후 재개할 작업': 'Task to resume after answering',
+  '기록만 저장': 'Save a record only',
+  '답변을 저장하고 연결된 작업의 재개를 예약했습니다.':
+    'Answer saved and linked work scheduled to resume.',
+  '판단 답변 대기': 'Waiting for a decision',
+  '판단 요청 보기': 'View decision request',
+  '제품 검사 환경': 'Project verification environment',
+  'npm 잠금 파일로 의존성을 설치하고 수정 전·후 복사본에서 지정한 스크립트를 실행합니다. 설정 버전을 검사 결과에 남깁니다.':
+    'Install locked npm dependencies and run selected scripts on before and after copies. Results retain the profile version.',
+  'npm 검사 환경 사용': 'Use npm verification',
+  '검사 스크립트 · 한 줄에 하나': 'Verification scripts · One per line',
+  '명령별 제한 시간 · 초': 'Timeout per command · Seconds',
+  '의존성 다운로드와 제품 스크립트 실행 허용':
+    'Allow dependency downloads and project script execution',
+  '설치 후크는 실행하지 않습니다. 검사 스크립트는 컴퓨터와 네트워크에 접근할 수 있으므로 신뢰하는 제품에 사용하세요.':
+    'Install hooks are disabled. Verification scripts can access your computer and network; use trusted projects.',
+  '검사 환경 저장': 'Save verification environment',
+  '검사 환경을 저장했습니다. 새 수정 작업부터 적용합니다.':
+    'Verification environment saved for new change tasks.',
+  '창을 닫아도 트레이에서 계속 실행': 'Keep running in the tray when the window closes',
+  '실행 방식 저장': 'Save background settings',
+  '실행 방식을 저장했습니다.': 'Background settings saved.',
+  '작업실 열기': 'Open Workroom',
+  '완전히 종료': 'Quit Workroom',
+  '공고 원문과 공개 버전': 'Job source and published versions',
+  '공고 원문 보관': 'Save job source',
+  '공고 주소와 읽은 원문을 붙여 넣으면 버전별로 보관하고 대상 요구에 반영합니다.':
+    'Paste the job URL and source text to preserve each version and update target requirements.',
+  '공고 주소': 'Job URL',
+  '공고 원문': 'Job source text',
+  '공고 버전 저장': 'Save job version',
+  '공고 원문 버전을 저장했습니다.': 'Job source version saved.',
+  'Vercel 계정': 'Vercel account',
+  'Vercel 접근 토큰': 'Vercel access token',
+  '토큰은 운영체제 보호 저장소에 저장합니다. 공개 전용 프로젝트를 사용하세요.':
+    'Tokens are protected by the operating system. Use a dedicated publishing project.',
+  '토큰 저장': 'Save token',
+  '토큰 삭제': 'Remove token',
+  'Vercel 토큰을 보호 저장소에 저장했습니다.': 'Vercel token saved in protected storage.',
+  'Vercel 토큰을 삭제했습니다.': 'Vercel token removed.',
+  '공개 전용 프로젝트 이름': 'Dedicated publishing project name',
+  'Vercel 팀 ID · 선택': 'Vercel team ID · Optional',
+  '검토 후 공개하면 이 프로젝트의 프로덕션 배포를 바꿉니다. 별도 프로젝트를 사용해 다른 사이트와 구분하세요.':
+    'Publishing replaces this project’s production deployment. Use a separate project for this portfolio.',
+  '공개 대상 저장': 'Save publishing destination',
+  '공개 대상을 저장했습니다.': 'Publishing destination saved.',
+  '저장한 초안으로 공개 버전 준비': 'Prepare saved draft for publication',
+  '공개 전 검토': 'Review before publishing',
+  '전송 중': 'Submitting',
+  '전송 결과 확인 필요': 'Submission outcome uncertain',
+  '배포 준비 중': 'Deployment building',
+  '공개 내용 확인됨': 'Public content verified',
+  '공개 내용 미확인': 'Public content unverified',
+  '공개 실패': 'Publication failed',
+  '이전 공개 내용으로 복원하는 버전입니다. 최신 근거를 반영한 초안과 다를 수 있습니다.':
+    'This restores an earlier publication. It may differ from the draft based on current evidence.',
+  '전송할 공개 내용': 'Public content to send',
+  '이 내용과 대상으로 공개': 'Publish this content to this destination',
+  '공개 상태 조회': 'Check publication status',
+  '공개 주소 열기': 'Open public URL',
+  '이 버전 복원 준비': 'Prepare to restore this version',
+  '대상별 초안과 검토한 공개 버전': 'Target-specific drafts and reviewed publications',
+  '유효한 Vercel 토큰을 입력하세요.': 'Enter a valid Vercel token.',
+  '공개 대상을 먼저 저장하세요.': 'Save a publishing destination first.',
+  '초안이 바뀌었습니다. 다시 확인하세요.': 'The draft changed. Review it again.',
+  '초안 또는 공개 대상이 바뀌었습니다. 다시 검토하세요.':
+    'The draft or destination changed. Review it again.',
+  '공개 요청이 거절되었습니다. 계정과 프로젝트 설정을 확인하세요.':
+    'Publication was rejected. Check the account and project settings.',
+  '응답이 확인되지 않았습니다. 상태 조회로 기존 요청을 확인하세요.':
+    'No response was confirmed. Check the existing request status.',
+  '공개 주소의 내용이 검토한 HTML과 일치하는지 확인하지 못했습니다.':
+    'The public page could not be verified against the reviewed HTML.',
+  '공개 상태를 조회하지 못했습니다. 계정과 네트워크를 확인하세요.':
+    'Could not check publication status. Check your account and network.',
+  '기존 공개 요청을 찾지 못했습니다. 전송을 반복하지 않고 확인을 기다립니다.':
+    'The existing publication was not found. Await confirmation before another submission.',
+  'Vercel 토큰을 먼저 저장하세요.': 'Save a Vercel token first.',
+  '검토한 공개 버전과 일치하지 않습니다.': 'This does not match the reviewed publication.',
+  '공개할 사례의 근거가 바뀌었습니다. 다시 검토하세요.':
+    'Evidence for the public cases changed. Review again.',
+  '이 공개 대상의 이전 요청 상태를 먼저 확인하세요.':
+    'Resolve the previous request for this destination first.',
+  '공개 대상 설정이 바뀌었습니다.': 'The publishing destination changed.',
+  '검사 설정이 바뀌었습니다.': 'The verification profile changed.',
+  '의존성 다운로드와 제품 스크립트 실행을 허용하세요.':
+    'Allow dependency downloads and project script execution.',
+  '검사 환경이 바뀌었습니다. 새 작업에서 검증하세요.':
+    'The verification environment changed. Verify in a new task.',
+  '연결할 작업을 중지하고 최신 상태를 확인하세요.': 'Stop the linked task and refresh its state.',
+  '판단 대상이나 제품 범위가 바뀌었습니다. 현재 기준으로 다시 요청하세요.':
+    'The decision target or project scope changed. Request a decision for the current state.',
+  '오늘의 자동 작업 실행 한도를 사용했습니다.':
+    'Today’s automated execution limit has been reached.',
+  'HTTPS 공고 주소를 입력하세요.': 'Enter an HTTPS job URL.',
+  '같은 대상의 공개 확인된 버전만 복원할 수 있습니다.':
+    'Only a verified publication for the same target can be restored.',
   '포트폴리오 템플릿': 'Portfolio template',
   '다크 카드 · 작업을 선명하게': 'Dark cards · Put work in focus',
   '편집지 · 문장과 여백을 크게': 'Editorial · Room for your story',

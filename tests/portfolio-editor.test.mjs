@@ -12,7 +12,10 @@ async function until(fn) {
   }
   throw new Error('editor wait timed out');
 }
-async function fixture(t, { badQuote = false, hold = false, limitQuote = false } = {}) {
+async function fixture(
+  t,
+  { badQuote = false, hold = false, limitQuote = false, failures = 0 } = {},
+) {
   const dir = await mkdtemp(path.join(os.tmpdir(), 'workroom-editor-')),
     folder = path.join(dir, 'p');
   await mkdir(folder);
@@ -38,6 +41,7 @@ async function fixture(t, { badQuote = false, hold = false, limitQuote = false }
     request: async (method, input) => {
       if (method === 'abort') return {};
       calls.push(input.role);
+      if (failures-- > 0) return { failure: { code: 'network', message: 'fixture' } };
       if (hold && input.role === 'curate') await new Promise((r) => (broker.release = r));
       const source = input.handoff.portfolio.sources[0];
       assert.equal(source.evidence, undefined);
@@ -93,6 +97,63 @@ async function fixture(t, { badQuote = false, hold = false, limitQuote = false }
   });
   return { room, product, p, report, engine, broker, calls };
 }
+test('automatic failed edit recovers the same signature and keeps a single proposal', async (t) => {
+  const f = await fixture(t, { failures: 1 });
+  const p = f.room.store.get('portfolio', f.p.id);
+  f.engine.editor.configure({ id: p.id, revision: p.revision, enabled: true });
+  const task = f.engine.editor.request({ portfolioId: p.id, automatic: true });
+  await until(
+    () =>
+      f.room.store.get('task', task.id).retryAt &&
+      !f.engine.active.size &&
+      !f.engine.operations.busy,
+  );
+  f.engine.recovery.now = () => Date.now() + 31000;
+  f.engine.recovery.tick();
+  await until(
+    () =>
+      f.room.store.list('portfolio-edit')[0].status === 'applied' &&
+      !f.engine.active.size &&
+      !f.engine.operations.busy,
+  );
+  assert.equal(f.room.store.list('portfolio-edit').length, 1);
+  assert.equal(f.room.store.get('task', task.id).recoveryRetries, 1);
+});
+test('relevance selection includes old experience beyond the recent 30 and versions pasted job sources', async (t) => {
+  const f = await fixture(t);
+  for (let n = 0; n < 35; n++)
+    f.room.reportWork({
+      productId: f.product.id,
+      title: `Unrelated layout ${n}`,
+      summary: 'Spacing colors.',
+      evidence: 'Fixture',
+      limitations: 'Fixture',
+      contribution: 'Layout',
+    });
+  let p = f.room.store.get('portfolio', f.p.id);
+  f.room.saveJobSource({
+    portfolioId: p.id,
+    revision: p.revision,
+    url: 'https://example.com/job',
+    description: 'Input reliability and developer workflows',
+  });
+  p = f.room.store.get('portfolio', p.id);
+  assert(f.engine.editor.sources(p).some((s) => s.id === f.report.id));
+  const first = p.jobSourceId;
+  f.room.saveJobSource({
+    portfolioId: p.id,
+    revision: p.revision,
+    url: 'https://example.com/job',
+    description: 'Updated input reliability',
+  });
+  const latest = f.room.store.list('job-source')[0];
+  assert.equal(latest.previousId, first);
+  assert.equal(latest.version, 2);
+  assert.equal(
+    f.room.store.get('job-source', first).description,
+    'Input reliability and developer workflows',
+  );
+});
 test('target editing and independent review auto-apply once, preserving human fields and order', async (t) => {
   const f = await fixture(t);
   let p = f.room.store.get('portfolio', f.p.id);

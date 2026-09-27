@@ -2,8 +2,8 @@ import { mkdirSync, readFileSync, writeFileSync, renameSync, rmSync } from 'node
 import path from 'node:path';
 
 export class CredentialVault {
-  constructor(directory, protector) {
-    this.filename = path.join(directory, 'openai.credential');
+  constructor(directory, protector, filename = 'openai.credential') {
+    this.filename = path.join(directory, filename);
     this.protector = protector;
   }
   assertAvailable() {

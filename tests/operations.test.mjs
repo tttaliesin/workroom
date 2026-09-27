@@ -23,6 +23,8 @@ async function fixture(
     hold = false,
     broken = false,
     multiple = false,
+    failures = {},
+    failureCode = 'network',
   } = {},
 ) {
   const dir = await mkdtemp(path.join(os.tmpdir(), 'workroom-ops-')),
@@ -43,6 +45,14 @@ async function fixture(
     request: async (method, input) => {
       if (method === 'abort') return {};
       calls.push(input.role);
+      if (failures[input.role] > 0) {
+        failures[input.role]--;
+        if (failureCode === 'network') {
+          broker.status.state = 'network_error';
+          broker.status.connected = true;
+        }
+        return { failure: { code: failureCode, message: 'fixture failure' } };
+      }
       if (hold && input.role === 'coordinate') await new Promise((r) => (broker.release = r));
       if (input.role === 'knowledge') return { result: { records: [] } };
       const file = await engine.tool({
@@ -93,6 +103,8 @@ async function fixture(
           },
         };
       if (input.role === 'develop') {
+        if (broken && calls.filter((r) => r === 'develop').length > 1)
+          assert.match(file.content, /a-b\+0/, 'repair must read the previous candidate');
         const write = await engine.tool({
           runId: input.runId,
           name: 'write',
@@ -184,6 +196,104 @@ test('unchanged source skips model calls and missed schedules coalesce after res
   await until(() => f.calls.length === 2 && !f.engine.active.size && !f.engine.operations.busy);
   assert.equal(f.room.store.list('task').filter((t) => t.mode === 'operation').length, 2);
 });
+
+test('failed evaluation retries after restart and only success marks the fingerprint evaluated', async (t) => {
+  const f = await fixture(t, { empty: true, failures: { coordinate: 1 } });
+  await f.engine.operations.tick();
+  await until(() => !f.engine.active.size && !f.engine.operations.busy);
+  const task = f.room.store.list('task')[0];
+  assert.equal(task.status, 'failed');
+  assert(task.retryAt);
+  assert(!f.engine.operations.policy(f.product.id).lastEvaluatedFingerprint);
+  f.restart();
+  f.advance(31000);
+  await f.engine.operations.tick();
+  await until(
+    () => f.room.store.get('task', task.id).status === 'accepted' && !f.engine.operations.busy,
+  );
+  assert.equal(f.calls.length, 2);
+  assert.equal(f.room.store.list('task').length, 1);
+  assert(f.engine.operations.policy(f.product.id).lastEvaluatedFingerprint);
+  f.engine.recovery.tick();
+  assert.equal(f.calls.length, 2);
+});
+
+test('failed investigation shows action needed and a manual retry reuses its task', async (t) => {
+  const f = await fixture(t, { failures: { investigate: 1 }, failureCode: 'runtime' });
+  await f.engine.operations.tick();
+  await until(
+    () =>
+      f.room.store.list('operation-issue')[0]?.status === 'blocked' &&
+      !f.engine.active.size &&
+      !f.engine.operations.busy,
+  );
+  const issue = f.room.store.list('operation-issue')[0];
+  const resumed = await f.engine.operations.act({ id: issue.id, action: 'investigate' });
+  assert.equal(resumed.id, issue.investigationId);
+  await until(
+    () =>
+      f.room.store.get('operation-issue', issue.id).status === 'awaiting_scope' &&
+      !f.engine.active.size &&
+      !f.engine.operations.busy,
+  );
+  assert.equal(f.calls.filter((r) => r === 'investigate').length, 2);
+  assert.equal(f.engine.operations.count(f.product.id), 3);
+});
+
+test('recovery observes daily quota, bounded retries, stop and issue deferral', async (t) => {
+  const f = await fixture(t, { empty: true, failures: { coordinate: 10 }, maxDailyStarts: 1 });
+  await f.engine.operations.tick();
+  await until(() => !f.engine.active.size && !f.engine.operations.busy);
+  f.advance(31000);
+  await f.engine.operations.tick();
+  assert.equal(f.calls.length, 1);
+  for (let n = 0; n < 2; n++) {
+    f.advance(86400000);
+    await f.engine.operations.tick();
+    await until(() => !f.engine.active.size && !f.engine.operations.busy);
+  }
+  const task = f.room.store.list('task')[0];
+  assert.equal(task.recoveryRetries, 2);
+  assert.equal(task.retryAt, null);
+  assert.equal(f.calls.length, 3);
+  const g = await fixture(t, { failures: { investigate: 1 } });
+  await g.engine.operations.tick();
+  await until(
+    () =>
+      g.room.store.list('operation-issue')[0]?.status === 'retry_wait' && !g.engine.operations.busy,
+  );
+  const issue = g.room.store.list('operation-issue')[0];
+  await g.engine.operations.act({ id: issue.id, action: 'defer' });
+  g.advance(60000);
+  await g.engine.operations.tick();
+  assert.equal(g.room.store.get('task', issue.investigationId).status, 'stopped');
+  assert.equal(g.calls.filter((r) => r === 'investigate').length, 1);
+});
+
+test('a completed issue recurs on a new source version with separate occurrence history', async (t) => {
+  const f = await fixture(t, { maxDailyStarts: 8 });
+  await f.engine.operations.tick();
+  await until(
+    () =>
+      f.room.store.list('operation-issue')[0]?.status === 'awaiting_scope' &&
+      !f.engine.operations.busy,
+  );
+  const old = f.room.store.list('operation-issue')[0];
+  f.engine.operations.link(old, { status: 'completed' });
+  await writeFile(path.join(f.folder, 'math.mjs'), 'export const add=(a,b)=>a-b+0;\n');
+  f.advance(16 * 60000);
+  await f.engine.operations.tick();
+  await until(
+    () =>
+      f.room.store.get('operation-issue', old.id).occurrence === 2 &&
+      !f.engine.active.size &&
+      !f.engine.operations.busy,
+  );
+  const issue = f.room.store.get('operation-issue', old.id);
+  assert.equal(issue.occurrences[0].investigationId, old.investigationId);
+  assert.notEqual(issue.investigationId, old.investigationId);
+  assert.equal(f.room.store.list('operation-issue').length, 1);
+});
 test('reviewed findings automatically reach an isolated checked change; original still waits for user', async (t) => {
   const f = await fixture(t, { changes: true });
   await f.engine.operations.tick();
@@ -273,7 +383,7 @@ test('priority controls bounded starts and deferral prevents automatic redispatc
   assert.equal(f.room.store.get('operation-issue', low.id).status, 'deferred');
 });
 test('automatic repair stops after the configured single attempt even when tests still fail', async (t) => {
-  const f = await fixture(t, { changes: true, broken: true, maxRepairs: 1, maxDailyStarts: 3 });
+  const f = await fixture(t, { changes: true, broken: true, maxRepairs: 1, maxDailyStarts: 4 });
   await f.engine.operations.tick();
   await until(
     () =>

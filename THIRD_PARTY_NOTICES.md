@@ -22,6 +22,8 @@ No upstream source code, personal content, photographs, logos, fonts, or framewo
 
 npm dependencies (listed in `package.json`, installed from the registry, not included in this repository) retain their own licenses. Pi, the MCP SDK, Zod, Electron, Prettier, ESLint and globals use MIT; Transformers.js and playwright-core use Apache-2.0. Transitive packages retain the licenses distributed in their packages.
 
+The npm CLI 11.20.0 used by opt-in verification profiles is Artistic-2.0 licensed. It is installed as a dependency with its upstream license and bundled dependency notices; its license is separate from Workroom's MIT license.
+
 The optional-at-runtime [multilingual MiniLM ONNX weights](https://huggingface.co/Xenova/paraphrase-multilingual-MiniLM-L12-v2) are downloaded into the local model cache, not bundled in this source repository. Their upstream model license applies separately from this project's MIT license. The model repository and exact revision are pinned in `src/runtime/local-embeddings.mjs`.
 
 The optional-at-runtime [mMARCO multilingual cross-encoder](https://huggingface.co/cross-encoder/mmarco-mMiniLMv2-L12-H384-v1) is Apache-2.0 licensed upstream. Its official quantized ONNX export (`model_quint8_avx2.onnx`) and tokenizer are downloaded to the model cache, not bundled here. The exact repository revision is pinned in `src/runtime/reranking-model.mjs`.

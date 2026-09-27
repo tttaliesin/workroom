@@ -3,6 +3,7 @@ import { mkdtemp } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { redact } from './errors.mjs';
+import { verifyProfile } from './verification-profile.mjs';
 
 export function runNode(node, args, cwd, signal, { timeoutMs = 30000, limit = 16000 } = {}) {
   if (signal?.aborted)
@@ -22,6 +23,7 @@ export function runNode(node, args, cwd, signal, { timeoutMs = 30000, limit = 16
       env,
       windowsHide: true,
       shell: false,
+      detached: process.platform !== 'win32',
       stdio: ['ignore', 'pipe', 'pipe'],
     });
     let output = '',
@@ -35,8 +37,25 @@ export function runNode(node, args, cwd, signal, { timeoutMs = 30000, limit = 16
       resolve(result);
     };
     const stop = (why) => {
+      if (reason || settled) return;
       reason = why;
-      child.kill();
+      if (process.platform === 'win32' && child.pid) {
+        const killer = spawn(
+          path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'taskkill.exe'),
+          ['/pid', String(child.pid), '/T', '/F'],
+          { windowsHide: true, stdio: 'ignore' },
+        );
+        killer.on('error', () => child.kill());
+        killer.on('exit', (code) => {
+          if (code) child.kill();
+        });
+        return;
+      }
+      try {
+        process.kill(-child.pid, 'SIGKILL');
+      } catch {
+        child.kill();
+      }
     };
     const abort = () => stop('cancelled');
     const timer = setTimeout(() => stop('timeout'), timeoutMs);
@@ -162,7 +181,8 @@ export async function verifyChange({ change, node, signal }) {
       });
       if (signal?.aborted) break;
     }
-  if (!change.testFiles.length)
+  checks.push(...(await verifyProfile({ change, node, signal })));
+  if (!change.testFiles.length && !change.verificationProfile?.enabled)
     checks.push({
       name: '기능 테스트',
       target: 'candidate',

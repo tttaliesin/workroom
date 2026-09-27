@@ -6,6 +6,8 @@ import { redact } from './errors.mjs';
 import { ChangeWorkflow } from './change-workflow.mjs';
 import { Operations } from './operations.mjs';
 import { PortfolioEditor } from './portfolio-editor.mjs';
+import { Recovery } from './recovery.mjs';
+import { VerificationProfiles } from './verification-profile.mjs';
 
 const waitingStates = ['queued', 'waiting_auth'];
 const resumable = [
@@ -33,8 +35,10 @@ export class AgentEngine {
     this.active = new Map();
     this.closed = false;
     this.changes = new ChangeWorkflow(this, { node: nodeExecutable });
+    this.profiles = new VerificationProfiles(this.store);
     this.operations = new Operations(this, { now });
     this.editor = new PortfolioEditor(this);
+    this.recovery = new Recovery(this, now);
     this.settings =
       this.store.list('runtime-settings')[0] ||
       this.store.create('runtime-settings', { paused: false, modelId: null });
@@ -88,14 +92,25 @@ export class AgentEngine {
     return {
       ...this.broker.status,
       paused: this.settings.paused,
+      background: !!this.settings.background,
       modelId: this.settings.modelId,
       active: this.active.size,
       maxConcurrent: this.maxConcurrent,
     };
   }
+  canRun() {
+    return (
+      ['ready', 'connected'].includes(this.broker.status.state) ||
+      (this.broker.status.state === 'network_error' && this.broker.status.connected === true)
+    );
+  }
   configure(input) {
     const value = z
-      .object({ paused: z.boolean().optional(), modelId: z.string().max(100).optional() })
+      .object({
+        paused: z.boolean().optional(),
+        modelId: z.string().max(100).optional(),
+        background: z.boolean().optional(),
+      })
       .strict()
       .parse(input);
     if (value.modelId && !this.broker.status.models?.some((m) => m.id === value.modelId))
@@ -115,6 +130,7 @@ export class AgentEngine {
     if (!this.settings.modelId) throw new Error('작업 모델을 먼저 저장하세요.');
     const task = this.store.create('task', {
       ...input,
+      recoveryVersion: 1,
       kind: 'agent',
       status: 'queued',
       productRevision: product.revision,
@@ -188,8 +204,13 @@ export class AgentEngine {
       if (duplicate) return duplicate;
       const created = this.store.create('task', {
         kind: 'agent',
+        recoveryVersion: 1,
         mode,
         testFiles: selectedTests,
+        verificationProfile:
+          mode === 'change' && this.profiles.current(productId)?.enabled
+            ? this.profiles.current(productId)
+            : null,
         productId,
         title: goal.slice(0, 100),
         goal,
@@ -226,13 +247,13 @@ export class AgentEngine {
     this.store.log(action, task.id);
     return next;
   }
-  resume(input) {
+  resume(input, { recovery = false, decision = false } = {}) {
     const { id, revision } = z
       .object({ id: z.string().uuid(), revision: z.number().int() })
       .strict()
       .parse(input);
     const task = this.store.get('task', id);
-    if (['operation', 'portfolio'].includes(task.mode))
+    if (['operation', 'portfolio'].includes(task.mode) && !recovery && !decision)
       throw new Error('제품의 지금 확인 또는 대상에 맞게 정리에서 새 기준으로 요청하세요.');
     if (
       task.revision !== revision ||
@@ -247,6 +268,11 @@ export class AgentEngine {
       (product.revision !== task.productRevision ||
         ['needs_review', 'check_failed', 'changes_requested'].includes(task.status) ||
         (task.mode === 'change' && task.stage === 'develop'));
+    if (
+      task.automation &&
+      this.operations.count(task.productId) >= this.operations.policy(task.productId).maxDailyStarts
+    )
+      throw new Error('오늘의 자동 작업 실행 한도를 사용했습니다.');
     const next = this.updateTask(
       task,
       {
@@ -254,12 +280,28 @@ export class AgentEngine {
         activeRunId: null,
         message: null,
         authFailedAt: null,
+        failure: null,
+        retryAt: null,
+        ...(task.automation || task.automatic
+          ? { retryStarts: [...(task.retryStarts || []), this.operations.day()] }
+          : {}),
+        ...(recovery
+          ? {
+              recoveryRetries: (task.recoveryRetries || 0) + 1,
+            }
+          : {}),
         modelId: this.settings.modelId,
         productRevision: product.revision,
         ...(restart
           ? {
               stage: task.mode === 'change' ? 'develop' : 'investigate',
               previousOutputs: task.outputs,
+              repairFrom:
+                task.mode === 'change' &&
+                task.changeSetId &&
+                product.revision === task.productRevision
+                  ? task.changeSetId
+                  : null,
               outputs: {},
               changeSetId: null,
               resultTaskId: null,
@@ -269,6 +311,14 @@ export class AgentEngine {
       },
       '실행 재개 요청',
     );
+    if (recovery && task.mode === 'portfolio') {
+      const edit = this.store.get('portfolio-edit', task.editId);
+      this.store.update('portfolio-edit', edit.id, edit.revision, {
+        ...edit,
+        status: task.outputs.curate ? 'reviewing' : 'writing',
+        message: null,
+      });
+    }
     queueMicrotask(() => this.pump());
     return next;
   }
@@ -277,10 +327,10 @@ export class AgentEngine {
     if (task.kind !== 'agent') throw new Error('내장 실행 작업이 아닙니다.');
     const live = this.active.get(id);
     if (!live) {
-      if (waitingStates.includes(task.status))
+      if (waitingStates.includes(task.status) || task.retryAt || task.status === 'waiting_decision')
         this.updateTask(
           task,
-          { status: 'stopped', message: '대기 작업을 중지했습니다.' },
+          { status: 'stopped', retryAt: null, message: '대기 작업을 중지했습니다.' },
           '조사 중지',
         );
       return;
@@ -304,7 +354,7 @@ export class AgentEngine {
   }
   pump() {
     if (this.closed || this.settings.paused) return;
-    const ready = ['connected', 'ready'].includes(this.broker.status.state);
+    const ready = this.canRun();
     const tasks = this.store
       .list('task')
       .filter((t) => t.kind === 'agent' && waitingStates.includes(t.status))
@@ -340,6 +390,7 @@ export class AgentEngine {
         continue;
       try {
         this.operations.assertTask(task);
+        this.profiles.assert(task);
         if (task.mode === 'portfolio') this.editor.assertTask(task);
       } catch (error) {
         this.updateTask(task, { status: 'needs_review', message: error.message });
@@ -429,6 +480,7 @@ export class AgentEngine {
     )
       throw new Error('더 이상 이 작업을 실행할 권한이 없습니다.');
     this.operations.assertTask(task);
+    this.profiles.assert(task);
     if (task.mode === 'portfolio') this.editor.assertTask(task);
     const product = this.store.get('product', task.productId);
     if (product.revision !== run.productRevision)
@@ -560,6 +612,7 @@ export class AgentEngine {
         '같은 제품의 목표 관련 검색 후보 중 현재 근거를 확인한 기록. 제공 사실이며 활용 확인은 아님.',
     });
     const handoff = {
+      decision: task.decisionAnswer,
       outputs: task.outputs,
       previousAttempt: task.previousOutputs,
       change: change
@@ -695,6 +748,7 @@ export class AgentEngine {
       });
       if (response.failure) {
         this.updateTask(current, {
+          ...this.recovery.failure(current, response.failure, run.id),
           status: statusFor[response.failure.code] || 'failed',
           activeRunId: null,
           message: response.failure.message,
