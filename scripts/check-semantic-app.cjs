@@ -1,3 +1,4 @@
+const { createFixture } = require('./checks/lib/fixture.cjs');
 // Opt-in check using the real cached model, Electron and a separate MCP process.
 const { _electron } = require('./checks/lib/playwright.cjs');
 const fs = require('node:fs/promises');
@@ -8,7 +9,7 @@ const root = path.resolve(__dirname, '..');
   const { Workroom } = await import('../src/core/service.mjs');
   const { Client } = await import('@modelcontextprotocol/sdk/client/index.js');
   const { StdioClientTransport } = await import('@modelcontextprotocol/sdk/client/stdio.js');
-  const directory = await fs.mkdtemp(path.join(root, 'work/semantic-app-'));
+  const directory = createFixture(path.join(root, 'work/semantic-app-'));
   const room = new Workroom(path.join(directory, 'workroom.sqlite'));
   const product = await room.createProduct({ name: '로컬 의미 검색 검증', folder: directory });
   const record = room.addRecord({
@@ -93,7 +94,7 @@ const root = path.resolve(__dirname, '..');
       ],
       errors,
     };
-    await fs.writeFile(path.join(directory, 'result.json'), JSON.stringify(result, null, 2));
+    await fs.writeFile(path.join(root, 'work/semantic-app-result.json'), JSON.stringify(result, null, 2));
     console.log(JSON.stringify(result, null, 2));
   } finally {
     await client.close();

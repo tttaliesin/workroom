@@ -1,10 +1,11 @@
+const { createFixture } = require('./lib/fixture.cjs');
 const workDir=require('node:path').resolve(__dirname,'../../work');require('node:fs').mkdirSync(workDir,{recursive:true});require('node:fs').mkdirSync(require('node:path').resolve(__dirname,'../../outputs'),{recursive:true});
 const {_electron}=require('./lib/playwright.cjs');
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const {pathToFileURL}=require('node:url'),root=path.resolve(__dirname,'../..');
 const wait=async fn=>{for(let i=0;i<800;i++){if(await fn())return;await new Promise(r=>setTimeout(r,20));}throw Error('timeout');};
 (async()=>{
- const directory=fs.mkdtempSync(path.join(workDir,'operation-ui-')),folder=path.join(directory,'product');fs.mkdirSync(folder);
+ const directory=createFixture(path.join(workDir,'operation-ui-')),folder=path.join(directory,'product');fs.mkdirSync(folder);
  fs.writeFileSync(path.join(folder,'sum.mjs'),'export const sum=(a,b)=>a-b;\n');fs.writeFileSync(path.join(folder,'sum.test.mjs'),"import {test} from 'node:test';import assert from 'node:assert/strict';import {sum} from './sum.mjs';test('sum',()=>assert.equal(sum(2,3),5));");
  const {Workroom}=await import(pathToFileURL(path.join(root,'src/core/service.mjs'))),{AgentEngine}=await import(pathToFileURL(path.join(root,'src/runtime/engine.mjs')));
  const room=new Workroom(path.join(directory,'workroom.sqlite')),product=await room.createProduct({name:'운영 흐름 검증',folder,goal:'합계 계산의 잘못된 동작을 찾고 근거를 확인한 뒤 수정안까지 준비합니다.'});

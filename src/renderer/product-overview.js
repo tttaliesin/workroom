@@ -39,7 +39,7 @@ const actions = localizedLabels({
   interrupted: '재개 검토',
   waiting_quota: '사용 한도 확인',
 });
-export function productOverviewData(product, data) {
+function productOverviewData(product, data) {
   const resultIds = new Set(
     data.tasks.filter((t) => t.kind === 'agent').map((t) => t.resultTaskId),
   );
@@ -64,7 +64,7 @@ export function productOverviewData(product, data) {
     ),
   };
 }
-export function taskConnections(task, data) {
+function taskConnections(task, data) {
   const sourceId = task.resultTaskId || task.id;
   return {
     records: data.records.filter((r) => r.sourceTaskId === sourceId || r.runtimeTaskId === task.id),

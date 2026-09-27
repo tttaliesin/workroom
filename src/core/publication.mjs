@@ -100,26 +100,17 @@ export class Publications {
     )
       throw new Error('이 공개 대상의 이전 요청 상태를 먼저 확인하세요.');
     this.busy.add(id);
-    let attempt;
+    let submitting = false;
     try {
       this.provider.assertReady();
       this.store.transaction(() => {
-        attempt = this.store.create('publication-attempt', {
-          publicationId: p.id,
-          operationKey: p.id,
-          status: 'submitting',
-        });
-        this.save(p, { status: 'submitting', attemptId: attempt.id });
+        this.save(p, { status: 'submitting' });
       });
+      submitting = true;
       const deployment = await this.provider.deploy(p);
-      this.store.update('publication-attempt', attempt.id, attempt.revision, {
-        ...attempt,
-        status: 'submitted',
-        deploymentId: deployment.id,
-      });
       return this.save(p, { status: 'building', deploymentId: deployment.id });
     } catch (error) {
-      if (!attempt) throw error;
+      if (!submitting) throw error;
       return this.save(p, {
         status: error.definitive ? 'failed' : 'uncertain',
         message: error.definitive
@@ -131,10 +122,18 @@ export class Publications {
     }
   }
   async reconcile({ id }) {
-    const p = this.store.get('publication', z.string().uuid().parse(id));
+    let p = this.store.get('publication', z.string().uuid().parse(id));
     if (this.busy.has(id) || ['prepared', 'failed'].includes(p.status)) return p;
     this.busy.add(id);
     try {
+      // Older versions could persist the deployment ID only on a separate attempt.
+      if (!p.deploymentId && p.attemptId) {
+        const legacy = this.store
+          .list('publication-attempt')
+          .find((a) => a.id === p.attemptId && a.publicationId === p.id);
+        if (typeof legacy?.deploymentId === 'string' && legacy.deploymentId)
+          p = this.save(p, { deploymentId: legacy.deploymentId });
+      }
       const deployment = await this.provider.find(p);
       if (!deployment)
         return this.save(p, {

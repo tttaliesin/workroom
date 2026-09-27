@@ -1,10 +1,11 @@
+const { createFixture } = require('./lib/fixture.cjs');
 const workDir=require('node:path').resolve(__dirname,'../../work');require('node:fs').mkdirSync(workDir,{recursive:true});
 const { _electron: electron } = require('./lib/playwright.cjs');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const root = path.resolve(__dirname,'../..');
-const dir = fs.mkdtempSync(path.join(workDir, 'task-desktop-'));
+const dir = createFixture(path.join(workDir, 'task-desktop-'));
 const repo = path.join(dir, 'repo'); fs.mkdirSync(repo);
 fs.writeFileSync(path.join(repo, 'README.md'), '# Test fixture');
 fs.writeFileSync(path.join(repo, 'package.json'), JSON.stringify({ scripts: { test: 'echo not-executed' } }));

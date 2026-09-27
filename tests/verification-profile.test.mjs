@@ -5,7 +5,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { verifyProfile, VerificationProfiles } from '../src/runtime/verification-profile.mjs';
 import { Store } from '../src/core/store.mjs';
-import { runNode } from '../src/runtime/change-checks.mjs';
+import { runNode } from '../src/runtime/node-process.mjs';
 
 test('cancellation stops a verification process and its script child', async (t) => {
   const dir = await mkdtemp(path.join(os.tmpdir(), 'workroom-process-tree-'));

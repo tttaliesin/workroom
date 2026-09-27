@@ -6,7 +6,7 @@ import os from 'node:os';
 import { Workroom } from '../src/core/service.mjs';
 import { AgentEngine } from '../src/runtime/engine.mjs';
 import { applyOne, sourceTree } from '../src/runtime/change-files.mjs';
-import { runNode } from '../src/runtime/change-checks.mjs';
+import { runNode } from '../src/runtime/node-process.mjs';
 
 const pause = () => new Promise((r) => setTimeout(r, 15));
 async function until(fn) {

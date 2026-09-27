@@ -1,9 +1,10 @@
+const { createFixture } = require('./lib/fixture.cjs');
 const workDir=require('node:path').resolve(__dirname,'../../work');require('node:fs').mkdirSync(workDir,{recursive:true});require('node:fs').mkdirSync(require('node:path').resolve(__dirname,'../../outputs'),{recursive:true});
 const {_electron}=require('./lib/playwright.cjs');
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const {pathToFileURL}=require('node:url');const root=path.resolve(__dirname,'../..');
 (async()=>{
- const directory=fs.mkdtempSync(path.join(workDir,'change-ui-')),folder=path.join(directory,'product');fs.mkdirSync(folder);
+ const directory=createFixture(path.join(workDir,'change-ui-')),folder=path.join(directory,'product');fs.mkdirSync(folder);
  fs.writeFileSync(path.join(folder,'sum.mjs'),'export function sum(a, b) {\n  return a - b;\n}\n');
  fs.writeFileSync(path.join(folder,'sum.test.mjs'),"import test from 'node:test';import assert from 'node:assert/strict';import {sum} from './sum.mjs';test('합계 계산',()=>assert.equal(sum(2,3),5));");
  const {Workroom}=await import(pathToFileURL(path.join(root,'src/core/service.mjs'))),{AgentEngine}=await import(pathToFileURL(path.join(root,'src/runtime/engine.mjs')));

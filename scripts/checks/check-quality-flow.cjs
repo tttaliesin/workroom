@@ -1,10 +1,11 @@
+const { createFixture } = require('./lib/fixture.cjs');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { _electron } = require('./lib/playwright.cjs');
 (async () => {
   const root = path.resolve(__dirname, '../..');
-  const directory = fs.mkdtempSync(path.join(root, 'work/quality-ui-'));
+  const directory = createFixture(path.join(root, 'work/quality-ui-'));
   const folder = path.join(directory, 'product');
   fs.mkdirSync(folder);
   const { Workroom } = await import('../../src/core/service.mjs');

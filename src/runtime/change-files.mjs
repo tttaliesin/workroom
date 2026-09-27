@@ -84,7 +84,7 @@ export async function copyTree(tree, directory) {
     await writeFile(filename, file.content, { flag: 'wx' });
   }
 }
-export async function checkedDestination(root, relative, { createParents = false } = {}) {
+async function checkedDestination(root, relative, { createParents = false } = {}) {
   const normalized = relativeFile(relative),
     base = await realpath(root),
     parts = normalized.split('/');

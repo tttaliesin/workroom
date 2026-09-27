@@ -1,5 +1,6 @@
+import { createFixture } from './checks/lib/fixture.cjs';
 // Opt-in real-model check. Only synthetic records are used; the model is cached in work/.
-import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import { Workroom } from '../src/core/service.mjs';
@@ -8,7 +9,7 @@ import { projectRoot } from '../src/core/paths.mjs';
 
 const parent = path.join(projectRoot, 'work');
 await mkdir(parent, { recursive: true });
-const directory = await mkdtemp(path.join(parent, 'semantic-check-'));
+const directory = createFixture(path.join(parent, 'semantic-check-'));
 const filename = path.join(directory, 'test.sqlite');
 const cache = path.join(parent, 'semantic-models');
 const embedding = new LocalEmbeddings(cache);
@@ -86,7 +87,7 @@ try {
     offlineReopen: true,
     batchDifference,
   };
-  await writeFile(path.join(directory, 'result.json'), JSON.stringify(result, null, 2));
+  await writeFile(path.join(parent, 'semantic-check-result.json'), JSON.stringify(result, null, 2));
   console.log(JSON.stringify(result, null, 2));
 } finally {
   room.close();

@@ -1,9 +1,10 @@
+const { createFixture } = require('./lib/fixture.cjs');
 const workDir=require('node:path').resolve(__dirname,'../../work');require('node:fs').mkdirSync(workDir,{recursive:true});require('node:fs').mkdirSync(require('node:path').resolve(__dirname,'../../outputs'),{recursive:true});
 const {_electron}=require('./lib/playwright.cjs');
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'../..');
 (async()=>{
- const directory=fs.mkdtempSync(path.join(workDir,'runtime-app-'));
+ const directory=createFixture(path.join(workDir,'runtime-app-'));
  const productDirectory=path.join(directory,'example');fs.mkdirSync(productDirectory);fs.writeFileSync(path.join(productDirectory,'README.md'),'# Example\nImport validation is documented.');
  const env={...process.env,WORKROOM_DATA_DIR:directory,WORKROOM_HEADLESS:'1'};delete env.ELECTRON_RUN_AS_NODE;
  let app;

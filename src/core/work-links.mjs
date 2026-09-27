@@ -4,7 +4,7 @@ import { projectWork, sourceReports } from './work-projection.mjs';
 
 const id = z.string().uuid();
 const revision = z.number().int().positive();
-export const linkSchema = z
+const linkSchema = z
   .object({
     id,
     revision,
@@ -13,7 +13,7 @@ export const linkSchema = z
     reason: z.string().trim().min(1).max(1000),
   })
   .strict();
-export const recordReviewSchema = z
+const recordReviewSchema = z
   .object({
     id,
     revision,
@@ -23,7 +23,7 @@ export const recordReviewSchema = z
     reason: z.string().trim().min(1).max(1000),
   })
   .strict();
-export const sourceReviewSchema = z
+const sourceReviewSchema = z
   .object({ id, revision, taskId: id, mode: z.enum(['keep', 'regenerate']) })
   .strict();
 

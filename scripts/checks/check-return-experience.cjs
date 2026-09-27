@@ -1,11 +1,12 @@
+const { createFixture } = require('./lib/fixture.cjs');
 const workDir=require('node:path').resolve(__dirname,'../../work');require('node:fs').mkdirSync(workDir,{recursive:true});require('node:fs').mkdirSync(require('node:path').resolve(__dirname,'../../outputs'),{recursive:true});
 const {_electron}=require('./lib/playwright.cjs');
-const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const path=require('node:path'),assert=require('node:assert/strict');
 const {pathToFileURL}=require('node:url');
 const root=path.resolve(__dirname,'../..');
 (async()=>{
  const {Workroom}=await import(pathToFileURL(path.join(root,'src/core/service.mjs')));
- const dir=fs.mkdtempSync(path.join(workDir,'return-experience-'));
+ const dir=createFixture(path.join(workDir,'return-experience-'));
  const room=new Workroom(path.join(dir,'workroom.sqlite'));
  const p=await room.createProduct({name:'작업실',folder:dir,goal:'입력과 저장 문제를 줄이고, 개발 경험을 다음 작업에 활용합니다.'});
  const env={...process.env,WORKROOM_DATA_DIR:dir,WORKROOM_HEADLESS:'1'};delete env.ELECTRON_RUN_AS_NODE;

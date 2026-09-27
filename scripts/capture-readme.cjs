@@ -1,3 +1,4 @@
+const { createFixture } = require('./checks/lib/fixture.cjs');
 // Capture the real Electron renderer with isolated, illustrative data.
 // No account connection, model calls, user data or renderer modifications.
 /* global window, document, requestAnimationFrame, innerWidth -- Playwright renderer callbacks */
@@ -61,7 +62,7 @@ const demo = (text) => (language === 'en' ? englishDemo[text] || text : text);
   const output = path.join(root, 'docs/images', language === 'en' ? 'en' : '');
   fs.mkdirSync(work, { recursive: true });
   fs.mkdirSync(output, { recursive: true });
-  const directory = fs.mkdtempSync(path.join(work, 'readme-capture-'));
+  const directory = createFixture(path.join(work, 'readme-capture-'));
   fs.mkdirSync(path.join(directory, 'desktop'));
   fs.writeFileSync(path.join(directory, 'desktop/language.json'), JSON.stringify(language));
   const room = new Workroom(path.join(directory, 'workroom.sqlite'));
@@ -274,7 +275,7 @@ const demo = (text) => (language === 'en' ? englishDemo[text] || text : text);
     await capture('portfolio');
     assert.deepEqual(errors, []);
     fs.writeFileSync(
-      path.join(directory, 'capture.json'),
+      path.join(work, `readme-capture-${language}.json`),
       JSON.stringify(
         {
           captures,

@@ -83,7 +83,6 @@ export class Operations {
       testFiles: [...new Set(value.testFiles.map(relativeFile))],
       version: old.version + 1,
       nextAt: new Date(this.now()).toISOString(),
-      lastFingerprint: null,
       lastEvaluatedFingerprint: null,
       lastReason: value.enabled
         ? '다음 확인 시 현재 상태를 살핍니다.'
@@ -213,8 +212,6 @@ export class Operations {
       p = this.save(p, {
         lastAt: observation.at,
         nextAt: new Date(this.now() + p.intervalMinutes * 60000).toISOString(),
-        lastFingerprint: fingerprint,
-        lastObservedFingerprint: fingerprint,
         lastObservationId: observation.id,
         lastReason: unchanged
           ? '파일과 목표 변화 없음 · 모델 호출 생략'

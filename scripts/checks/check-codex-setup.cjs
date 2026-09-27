@@ -1,3 +1,4 @@
+const { createFixture } = require('./lib/fixture.cjs');
 const workDir=require('node:path').resolve(__dirname,'../../work');require('node:fs').mkdirSync(workDir,{recursive:true});require('node:fs').mkdirSync(require('node:path').resolve(__dirname,'../../outputs'),{recursive:true});
 const {_electron:electron}=require('./lib/playwright.cjs');
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
@@ -5,7 +6,7 @@ const {pathToFileURL}=require('node:url'),{execFileSync}=require('node:child_pro
 const root=path.resolve(__dirname,'../..');
 (async()=>{
  const {Workroom}=await import(pathToFileURL(path.join(root,'src/core/service.mjs')));
- const dir=fs.mkdtempSync(path.join(workDir,'codex-setup-')),folder=path.join(dir,'제품');fs.mkdirSync(folder);
+ const dir=createFixture(path.join(workDir,'codex-setup-')),folder=path.join(dir,'제품');fs.mkdirSync(folder);
  const room=new Workroom(path.join(dir,'workroom.sqlite'));
  const product=await room.createProduct({name:'자동 수집 검증',folder});
  room.createPortfolio({target:'자동 수집 초안',autoProductIds:[product.id]});

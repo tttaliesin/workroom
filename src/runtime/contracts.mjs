@@ -1,7 +1,7 @@
 import { z } from 'zod';
 const text = (n) => z.string().trim().min(1).max(n);
 const refs = z.array(z.string().uuid()).min(1).max(20);
-export const investigationSchema = z
+const investigationSchema = z
   .object({
     summary: text(6000),
     findings: z
@@ -11,7 +11,7 @@ export const investigationSchema = z
     nextStep: text(1500),
   })
   .strict();
-export const reviewSchema = z
+const reviewSchema = z
   .object({
     verdict: z.enum(['supported', 'needs_work']),
     assessment: text(5000),
@@ -19,7 +19,7 @@ export const reviewSchema = z
     limitations: text(2500),
   })
   .strict();
-export const knowledgeSchema = z
+const knowledgeSchema = z
   .object({
     records: z
       .array(
@@ -30,10 +30,10 @@ export const knowledgeSchema = z
       .max(5),
   })
   .strict();
-export const developmentSchema = z
+const developmentSchema = z
   .object({ summary: text(6000), evidenceIds: refs, limitations: text(3000) })
   .strict();
-export const checkSchema = z
+const checkSchema = z
   .object({
     status: z.enum(['passed', 'failed', 'unconfirmed', 'cancelled']),
     artifactHash: text(64),
@@ -60,7 +60,7 @@ export const checkSchema = z
       .max(30),
   })
   .strict();
-export const operationSchema = z
+const operationSchema = z
   .object({
     summary: text(3000),
     issues: z
@@ -84,7 +84,7 @@ export const operationSchema = z
 const citation = z
   .object({ taskId: z.string().uuid(), revision: z.number().int().positive(), quote: text(1200) })
   .strict();
-export const portfolioSchema = z
+const portfolioSchema = z
   .object({
     intro: text(2000),
     introCitations: z.array(citation).min(1).max(8),
@@ -106,7 +106,7 @@ export const portfolioSchema = z
     limitations: text(2000),
   })
   .strict();
-export const portfolioReviewSchema = z
+const portfolioReviewSchema = z
   .object({
     verdict: z.enum(['supported', 'needs_work']),
     assessment: text(4000),

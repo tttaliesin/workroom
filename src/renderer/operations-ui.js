@@ -47,7 +47,7 @@ const issueLabels = localizedLabels({
   retry_wait: '자동 복구 대기',
   blocked: '조치 필요',
 });
-export function operationStatus(p, data) {
+function operationStatus(p, data) {
   const s = policy(p, data);
   return s.enabled
     ? tr`지속 운영 켜짐 · 다음 확인 ${date(s.nextAt)}`

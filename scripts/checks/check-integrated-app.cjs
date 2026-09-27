@@ -1,11 +1,12 @@
+const { createFixture } = require('./lib/fixture.cjs');
 const workDir=require('node:path').resolve(__dirname,'../../work');require('node:fs').mkdirSync(workDir,{recursive:true});require('node:fs').mkdirSync(require('node:path').resolve(__dirname,'../../outputs'),{recursive:true});
 const {_electron}=require('./lib/playwright.cjs');
-const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const path=require('node:path'),assert=require('node:assert/strict');
 const {pathToFileURL}=require('node:url');
 const root=path.resolve(__dirname,'../..');
 (async()=>{
  const {Workroom}=await import(pathToFileURL(path.join(root,'src/core/service.mjs')));
- const dir=fs.mkdtempSync(path.join(workDir,'integrated-app-'));
+ const dir=createFixture(path.join(workDir,'integrated-app-'));
  const room=new Workroom(path.join(dir,'workroom.sqlite'));
  const p=await room.createProduct({name:'작업실 · 흐름 확인',folder:dir,goal:'입력과 저장 문제를 조사하고 개발 경험을 정리합니다.'});
  const f=room.createPortfolio({target:'프런트엔드 지원용',requirements:'입력 흐름과 문제 해결 경험',autoProductIds:[p.id]});

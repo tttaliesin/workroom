@@ -2,7 +2,7 @@ import { Worker } from 'node:worker_threads';
 import path from 'node:path';
 import { knowledgeChunkVersion } from '../core/knowledge-index.mjs';
 
-export const embeddingModel = {
+const embeddingModel = {
   name: 'Xenova/paraphrase-multilingual-MiniLM-L12-v2',
   revision: '2c4055b12046f11709e9df2c122e59ffbdc2f900',
   dimensions: 384,

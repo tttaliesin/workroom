@@ -1,3 +1,4 @@
+const { createFixture } = require('./lib/fixture.cjs');
 const workDir=require('node:path').resolve(__dirname,'../../work');require('node:fs').mkdirSync(workDir,{recursive:true});require('node:fs').mkdirSync(require('node:path').resolve(__dirname,'../../outputs'),{recursive:true});
 const { _electron: electron } = require('./lib/playwright.cjs');
 const fs = require('node:fs'), path = require('node:path'), assert = require('node:assert/strict');
@@ -7,7 +8,7 @@ const root = path.resolve(__dirname,'../..');
  const { Workroom } = await import(pathToFileURL(path.join(root, 'src/core/service.mjs')));
  const { Client } = await import('@modelcontextprotocol/sdk/client/index.js');
  const { StdioClientTransport } = await import('@modelcontextprotocol/sdk/client/stdio.js');
- const dir = fs.mkdtempSync(path.join(workDir, 'live-report-'));
+ const dir = createFixture(path.join(workDir, 'live-report-'));
  const room = new Workroom(path.join(dir, 'workroom.sqlite'));
  const p = await room.createProduct({ name: '작업실', folder: root, goal: '보고에서 초안까지 자동 연결' });
  const env = { ...process.env, WORKROOM_DATA_DIR: dir, WORKROOM_HEADLESS: process.env.WORKROOM_HEADLESS || '1' }; delete env.ELECTRON_RUN_AS_NODE;

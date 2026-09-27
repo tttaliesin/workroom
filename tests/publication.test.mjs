@@ -120,3 +120,60 @@ test('changed drafts reject publication and READY alone is not public verificati
     /바뀌었습니다/,
   );
 });
+
+test('submission is durable before network activity without separate attempt records', async (t) => {
+  const f = fixture(t);
+  const deploy = f.publications.provider.deploy.bind(f.publications.provider);
+  f.publications.provider.deploy = async (p) => {
+    assert.equal(f.room.store.get('publication', p.id).status, 'submitting');
+    assert.deepEqual(f.room.store.list('publication-attempt'), []);
+    return deploy(p);
+  };
+  const result = await f.publications.publish({
+    id: f.version.id,
+    artifactHash: f.version.artifactHash,
+  });
+  assert.equal(result.status, 'building');
+  assert.equal(result.deploymentId, 'dpl_fixture');
+  assert.deepEqual(f.room.store.list('publication-attempt'), []);
+});
+
+test('failed persistence before submission never sends a deployment', async (t) => {
+  const f = fixture(t);
+  const log = f.room.store.log.bind(f.room.store);
+  f.room.store.log = () => {
+    throw new Error('disk full');
+  };
+  await assert.rejects(
+    () => f.publications.publish({ id: f.version.id, artifactHash: f.version.artifactHash }),
+    /disk full/,
+  );
+  f.room.store.log = log;
+  assert.equal(f.calls.length, 0);
+  assert.equal(f.room.store.get('publication', f.version.id).status, 'prepared');
+});
+
+test('legacy attempt deployment ID is recovered without resubmitting', async (t) => {
+  const f = fixture(t);
+  const attempt = f.room.store.create('publication-attempt', {
+    publicationId: f.version.id,
+    operationKey: f.version.id,
+    deploymentId: 'dpl_legacy',
+    status: 'submitted',
+  });
+  f.publications.save(f.version, { status: 'submitting', attemptId: attempt.id });
+  const recovered = new Publications(f.room, {
+    find: async (p) => {
+      assert.equal(p.deploymentId, 'dpl_legacy');
+      return { id: 'dpl_legacy', readyState: 'BUILDING' };
+    },
+  });
+  const result = await recovered.publish({
+    id: f.version.id,
+    artifactHash: f.version.artifactHash,
+  });
+  assert.equal(result.status, 'building');
+  assert.equal(result.deploymentId, 'dpl_legacy');
+  assert.equal(f.calls.length, 0);
+  assert.equal(f.room.store.list('publication-attempt').length, 1);
+});

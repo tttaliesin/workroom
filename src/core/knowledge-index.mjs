@@ -5,7 +5,7 @@ const contextStride = 290;
 function contextChunkCount(record) {
   return Math.ceil((record.content || record.title).length / contextStride);
 }
-export function recordChunks(record) {
+function recordChunks(record) {
   const prefix = `${record.title.slice(0, 80)}\n${record.scope.slice(0, 80)}\n`;
   const content = record.content || record.title;
   const chunks = [];
@@ -27,7 +27,7 @@ export function recordChunks(record) {
   }
   return chunks;
 }
-export function unitVector(vector, dimensions) {
+function unitVector(vector, dimensions) {
   if (!Array.isArray(vector) || vector.length !== dimensions || !vector.every(Number.isFinite))
     throw new Error('invalid embedding');
   const norm = Math.hypot(...vector);

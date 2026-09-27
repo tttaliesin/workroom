@@ -3,7 +3,7 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { access, mkdtemp } from 'node:fs/promises';
 import { sourceTree, copyTree } from './change-files.mjs';
-import { runNode } from './change-checks.mjs';
+import { runNode } from './node-process.mjs';
 
 export class VerificationProfiles {
   constructor(store) {
