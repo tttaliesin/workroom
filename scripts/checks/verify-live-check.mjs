@@ -37,6 +37,7 @@ try {
   const records=list('record').filter(r=>r.productId===manifest.productId);
   assert(records.some(r=>r.sourceRunId===task.outputs.knowledge.runId && r.runtimeTaskId===task.id));
   const report={checkedAt:new Date().toISOString(),modelId:task.modelId,productId:manifest.productId,taskId:task.id,status:task.status,resultTaskId:task.resultTaskId,knowledgeRecords:records.filter(r=>r.sourceRunId===task.outputs.knowledge.runId).map(r=>({id:r.id,title:r.title,scope:r.scope})),runs:runs.map(r=>({id:r.id,role:r.role,status:r.status,turns:r.turns,tokens:r.tokens,toolCalls:r.toolCalls})),evidenceCount:evidence.length,checks:['live OAuth model response observed in app','three separate live role executions','independent file reads and exact source hashes','linked work report and one conditional knowledge record','fixture source unchanged'],limits:'Read-only investigation on a small synthetic product; no production change, functional test, or deployment was performed.'};
+  fs.mkdirSync(path.join(root,'outputs'),{recursive:true});
   fs.writeFileSync(path.join(root,'outputs/live-model-verification.json'),JSON.stringify(report,null,2));
   console.log(JSON.stringify(report,null,2));
 } finally {db.close();}

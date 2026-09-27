@@ -2,7 +2,6 @@
  * Clay accent: https://www.typeui.sh/design-skills/terracotta (#C56A3C).
  * Unmodified Sand scale: https://github.com/radix-ui/colors (MIT; see assets/RADIX-COLORS-LICENSE.txt).
  * Derived clay tones are Workroom's sRGB mixes, not official Radix colors.
- * Mix amounts and adoption decisions: ../../outputs/terracotta-palette-research.md.
  */
 :root {
   --brand: #c56a3c;

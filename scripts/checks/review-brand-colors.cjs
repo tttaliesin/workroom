@@ -1,4 +1,4 @@
-const workDir=require('node:path').resolve(__dirname,'../../work');require('node:fs').mkdirSync(workDir,{recursive:true});
+const workDir=require('node:path').resolve(__dirname,'../../work');require('node:fs').mkdirSync(workDir,{recursive:true});require('node:fs').mkdirSync(require('node:path').resolve(__dirname,'../../outputs'),{recursive:true});
 // Visual review with isolated example data; never opens the user's desktop profile.
 const { _electron } = require('./lib/playwright.cjs');
 const fs = require('node:fs');

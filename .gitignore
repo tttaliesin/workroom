@@ -4,3 +4,18 @@ node_modules/
 work/
 *.sqlite*
 *.log
+
+# Private planning, design and verification notes (kept locally, not published)
+/PRODUCT.md
+/DESIGN.md
+/MIGRATION.md
+/outputs/
+
+# Agent instruction and session files
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+.claude/
+.codex/
+.agents/
+.pi/

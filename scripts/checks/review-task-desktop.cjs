@@ -1,4 +1,4 @@
-const workDir=require('node:path').resolve(__dirname,'../../work');require('node:fs').mkdirSync(workDir,{recursive:true});
+const workDir=require('node:path').resolve(__dirname,'../../work');require('node:fs').mkdirSync(workDir,{recursive:true});require('node:fs').mkdirSync(require('node:path').resolve(__dirname,'../../outputs'),{recursive:true});
 const { _electron: electron } = require('./lib/playwright.cjs');
 const fs=require('node:fs');const path=require('node:path');const {pathToFileURL}=require('node:url');const {spawn}=require('node:child_process');const assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'../..');
