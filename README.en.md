@@ -107,6 +107,12 @@ You do not need to edit configuration files or open a separate terminal. Initial
 
 Generic stdio settings for other MCP clients are available under **Other MCP clients · Recent record changes → View connection settings**. Workroom and the MCP server use the same local SQLite data.
 
+### Optional Jev Context connection
+
+Workroom and [Jev Context](https://github.com/tttaliesin/jev-context) remain independent products with separate repositories, databases and releases. Both apps work on their own. In **Jev memory connection**, select a connection JSON exported by Jev, review the command and product folder, then choose **Verify and save connection**. Review each result before sending it and search the memories sent for that product.
+
+The connection is off by default. Version 1 uses model-free word matching over explicitly transferred memories; it does not replace Workroom search or automatically update tasks or portfolios. See the [independence policy](docs/independent-products.md), [implementation plan](docs/jev-integration-plan.md) and [usage and verification](docs/jev-integration-results.md).
+
 ## Where does the data stay?
 
 Records and settings are stored locally in `.workroom/` by default. The built-in agent's credentials are encrypted using OS-protected storage. Semantic retrieval and reranking run on the local CPU; public model files are downloaded on first use.

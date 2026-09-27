@@ -96,6 +96,12 @@ Windows에서는 설치 후 `start-workroom.cmd`로도 열 수 있습니다.
 
 앱 왼쪽 아래 **Codex 연결**에서 실행 환경 확인 → MCP 등록 → 자동 수집 설정 → Codex 승인을 순서대로 진행하세요. 설정 파일을 직접 편집하거나 별도 터미널을 열 필요 없이, 앱 안의 Codex 화면에서 훅을 검토·승인할 수 있습니다. **실제 연결 검사**로 서버와 제품 데이터도 확인합니다. [연결 방법 →](docs/guide.md#mcp)
 
+### Jev Context와 선택적으로 연결
+
+Workroom과 [Jev Context](https://github.com/tttaliesin/jev-context)는 저장소·DB·배포를 분리한 독립 제품입니다. Jev 없이도 Workroom을 사용할 수 있습니다. **Jev 기억 연결**에서 Jev가 내보낸 연결 JSON을 선택하고, 명령과 제품 폴더를 확인한 뒤 **연결 검사 후 저장**을 누르세요. 작업 결과를 검토해 명시적으로 보내고, 해당 제품으로 보낸 기억을 검색할 수 있습니다.
+
+기본은 꺼짐이며 자동 전송·기존 검색 교체·포트폴리오 자동 반영은 하지 않습니다. 첫 버전의 Jev 검색은 전송한 기억에 대한 모델 없는 단어 검색입니다. [독립 제품 원칙](docs/independent-products.md) · [사용 방법과 검증 결과](docs/jev-integration-results.md) · [적용 계획](docs/jev-integration-plan.md)
+
 ## 데이터는 어디에 남나요?
 
 기록과 설정은 기본적으로 내 컴퓨터의 `.workroom/`에 저장합니다. 로그인 정보는 운영체제 보호 저장소로 암호화합니다. 기록의 의미 검색과 재정렬은 로컬 CPU에서 실행하며, 첫 사용 때 공개 모델 파일을 다운로드합니다.

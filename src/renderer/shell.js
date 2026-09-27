@@ -16,6 +16,7 @@ import {
 } from './setup-views.js';
 import { data, hasTaskPane, portfolioArea, product, requestDraft, ui } from './state.js';
 import { linkPage, operations, taskNav, taskPane } from './work-views.js';
+import { jevPage } from './jev-views.js';
 const shellClass = () =>
   [
     'shell',
@@ -24,9 +25,9 @@ const shellClass = () =>
     data.products.length ? '' : 'no-products',
   ].join(' ');
 function workspaceNavigation() {
-  if (['account', 'connection', 'new-product'].includes(ui.view))
+  if (['account', 'connection', 'jev', 'new-product'].includes(ui.view))
     return html`<span class="view-label">
-        ${{ account: tr('계정과 실행'), connection: tr('외부 도구 연결'), 'new-product': tr('제품 연결') }[ui.view]}
+        ${{ account: tr('계정과 실행'), connection: tr('외부 도구 연결'), jev: tr('Jev 기억 연결'), 'new-product': tr('제품 연결') }[ui.view]}
       </span>`;
   if (portfolioArea()) return tr('<span class="view-label">포트폴리오 · 대상별 소개</span>');
   const routes = {
@@ -112,6 +113,8 @@ function view() {
       return portfolioPage();
     case 'connection':
       return connectionPage();
+    case 'jev':
+      return jevPage();
     default:
       return operations();
   }
@@ -140,6 +143,7 @@ export function shellHTML() {
         <nav class="bottom" aria-label="앱 설정">
           ${button(tr('<span aria-hidden="true">＋</span><span>제품 등록</span>'), 'nav:new-product', tr('aria-label="+ 제품 등록"'))}
           ${button(tr`${icon('connection')}<span>Codex 연결</span>`, 'nav:connection', ui.view === 'connection' ? 'aria-current="page"' : '')}
+          ${button(tr('Jev 기억 연결'), 'nav:jev', ui.view === 'jev' ? 'aria-current="page"' : '')}
         </nav>
       </aside>
       <div class="workspace">${workspaceToolbar()}<div

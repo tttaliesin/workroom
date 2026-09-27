@@ -1,6 +1,7 @@
 import { t as tr } from '../shared/i18n.mjs';
 import { call, flash, refresh, rememberRequest, run, runtimeCall } from './controller.js';
 import { data, loadDraft, persistRequests, product, requestDraft, ui } from './state.js';
+import { jevForm } from './jev-actions.js';
 const formActions = {
   delegation: async (form) => {
     rememberRequest(form);
@@ -233,6 +234,7 @@ export function handleSubmit(event) {
   run(async () => {
     ui.message = '';
     const submitForm = form.dataset.form;
+    if (submitForm.startsWith('jev-')) await jevForm(form, values);
     if (Object.hasOwn(formActions, submitForm)) await formActions[submitForm](form, values);
     ui.formDirty = false;
   });

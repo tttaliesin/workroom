@@ -1,5 +1,75 @@
 // UI source strings only; user-authored content is never translated.
 export default {
+  'Jev 기억 연결': 'Jev memory connection',
+  '먼저 제품 폴더를 등록하세요.': 'Register a product folder first.',
+  '독립 앱 · 선택적 연결 · 자동 전송 없음':
+    'Independent apps · Optional connection · No automatic sending',
+  '확인한 작업 결과를 Jev에 보관하고 다음 작업에 참고할 기억을 찾아보세요. 기존 Workroom 검색과 에이전트 문맥은 그대로 유지됩니다.':
+    'Store reviewed results in Jev and find memories for your next task. Existing Workroom search and agent context stay unchanged.',
+  '1. 연결 설정': '1. Connection settings',
+  '연결 사용 중': 'Connection enabled',
+  '연결 꺼짐': 'Connection disabled',
+  'Jev 앱에서 내보낸 연결 JSON 파일을 선택하세요. 아래 명령은 연결 검사 후 저장을 누를 때 실행됩니다.':
+    'Choose a connection JSON exported by Jev. The command below runs when you click Verify and save connection.',
+  '연결 파일 선택': 'Choose connection file',
+  '연결 해제': 'Disconnect',
+  인수: 'Arguments',
+  '프로젝트 폴더': 'Project folder',
+  '연결 검사 후 저장': 'Verify and save connection',
+  '마지막 연결 확인:': 'Last connection check:',
+  '2. 결과 검토 후 보내기': '2. Review and send a result',
+  '제목·요약·기여·한계만 전송합니다. 내부 근거 원문, 파일 목록, 검사 로그와 비공개 포트폴리오 강조점은 제외합니다.':
+    'Only the title, summary, contribution and limitations are sent. Internal evidence, file lists, check logs and private portfolio requirements are excluded.',
+  '보낼 작업 결과': 'Work result to send',
+  '전송 내용 검토': 'Review before sending',
+  '아직 보낼 작업 결과가 없습니다.': 'There are no work results to send yet.',
+  '보고 버전': 'Report revision',
+  '· 보고된 내용, 독립 검증 없음': '· Reported content, not independently verified',
+  요약: 'Summary',
+  한계: 'Limitations',
+  '이 내용 Jev에 보내기': 'Send this content to Jev',
+  '최근 전송 이력': 'Recent transfers',
+  '이력은 전송 당시의 확인 결과입니다. Jev에서 이후 삭제한 상태는 반영하지 않습니다.':
+    'History records the acknowledgement at transfer time. It does not reflect later deletions in Jev.',
+  '3. Jev 기억 검색': '3. Search Jev memories',
+  '이 Workroom에서 현재 제품으로 보낸 기억만 검색합니다. 결과는 자동으로 작업이나 포트폴리오에 반영되지 않습니다.':
+    'Search only memories sent from this Workroom for the selected product. Results are not automatically applied to tasks or portfolios.',
+  '다음 작업에 참고할 내용': 'What do you need for the next task?',
+  'Jev에서 검색': 'Search in Jev',
+  '검색 결과가 없습니다.': 'No results found.',
+  '일부 결과만 표시했습니다. 검색어를 구체적으로 입력하세요.':
+    'Only some results are shown. Try a more specific query.',
+  '연결을 해제해도 양쪽 기록은 삭제되지 않습니다. Jev가 없어도 Workroom의 작업·검색·포트폴리오는 사용할 수 있습니다.':
+    'Disconnecting does not delete records in either app. Workroom tasks, search and portfolios remain available without Jev.',
+  'Jev 연결을 확인하고 저장했습니다. 자동 전송은 하지 않습니다.':
+    'Jev connection verified and saved. Nothing is sent automatically.',
+  'Jev 연결을 해제했습니다. 양쪽 기록은 유지됩니다.':
+    'Jev disconnected. Records in both apps are retained.',
+  '검토한 결과를 Jev에 보냈습니다. 같은 버전은 중복 저장하지 않습니다.':
+    'Reviewed result sent to Jev. The same revision is not stored twice.',
+  'Jev 연결 설명 파일': 'Jev connection descriptor',
+  'Jev 요청이 거부되었습니다. 연결과 보고 버전을 확인하세요.':
+    'Jev rejected the request. Check the connection and report revision.',
+  'Jev 응답 형식 또는 크기가 올바르지 않습니다.': 'Jev returned an invalid or oversized response.',
+  'Jev 연결 시간이 초과되었습니다. 기존 작업은 유지됩니다.':
+    'Jev connection timed out. Existing work is preserved.',
+  'Jev 연결 파일이 너무 큽니다.': 'The Jev connection file is too large.',
+  'Jev 프로젝트 폴더가 선택한 제품과 다릅니다.':
+    'The Jev project folder does not match the selected product.',
+  'Jev 실행 파일을 확인하세요.': 'Check the Jev executable.',
+  'Jev 프로젝트가 연결 당시와 다릅니다. 다시 연결하세요.':
+    'The Jev project differs from the saved connection. Reconnect first.',
+  'Jev 연동 계약을 지원하지 않는 버전입니다.':
+    'This version does not support the Jev bridge contract.',
+  'Jev 연결 설정이 변경되었습니다. 다시 확인하세요.':
+    'Jev connection settings have changed. Review them again.',
+  '이 제품의 Jev 연결을 먼저 설정하세요.': 'Set up the Jev connection for this product first.',
+  '선택한 제품의 작업 결과만 보낼 수 있습니다.':
+    'Only work results from the selected product can be sent.',
+  '보낼 내용을 다시 검토하세요.': 'Review the content to send again.',
+  '검토 후 작업 또는 연결이 변경되었습니다. 보낼 내용을 다시 검토하세요.':
+    'The report or connection changed after review. Review the content again.',
+  'Jev가 다른 보고 버전을 반환했습니다.': 'Jev returned a different report revision.',
   '포트폴리오 템플릿': 'Portfolio template',
   '다크 카드 · 작업을 선명하게': 'Dark cards · Put work in focus',
   '편집지 · 문장과 여백을 크게': 'Editorial · Room for your story',

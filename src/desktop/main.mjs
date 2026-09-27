@@ -25,6 +25,7 @@ import { runtimeEmbeddings } from '../runtime/local-embeddings.mjs';
 import { CodexConnection } from '../integrations/codex-connection.mjs';
 import { codexTerminal } from './codex-terminal.mjs';
 import { t, getLanguage, setLanguage } from '../shared/i18n.mjs';
+import { JevBridge } from '../integrations/jev-bridge.mjs';
 
 const appId = 'workroom.local.desktop';
 const appIcon = path.join(
@@ -47,6 +48,7 @@ if (!app.requestSingleInstanceLock()) {
 }
 const pageURL = pathToFileURL(path.join(projectRoot, 'src/renderer/index.html')).href;
 const room = new Workroom(databaseFile, { embedding: runtimeEmbeddings(dataDirectory) });
+const jev = new JevBridge(room);
 const codex = new CodexConnection({ directory: dataDirectory, root: projectRoot });
 let terminalWindow, terminalProductId;
 let window;
@@ -113,6 +115,7 @@ handle('workroom:call', async (method, args) => {
   if (method === 'snapshot')
     return {
       ...room.snapshot(),
+      jev: jev.summary(),
       runtime: engine?.info() || { state: 'starting' },
       agentRuns: room.store.list('agent-run'),
       agentEvidence: room.store.list('agent-evidence'),
@@ -161,6 +164,19 @@ handle('workroom:folder', async () => {
     properties: ['openDirectory'],
   });
   return result.canceled ? null : result.filePaths[0];
+});
+handle('workroom:jev', async (action, args = {}) => {
+  if (action === 'select') {
+    const result = await dialog.showOpenDialog(window, {
+      title: t('Jev 연결 설명 파일'),
+      properties: ['openFile'],
+      filters: [{ name: 'JSON', extensions: ['json'] }],
+    });
+    return result.canceled ? null : jev.readDescriptor(result.filePaths[0]);
+  }
+  if (!['configure', 'disable', 'prepare', 'publish', 'search'].includes(action))
+    throw new Error(t('지원하지 않는 작업입니다.'));
+  return jev[action](args);
 });
 handle('workroom:export', async (id, revision) => {
   const snapshot = room.prepareExport(id, revision);
