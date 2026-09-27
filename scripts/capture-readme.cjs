@@ -165,8 +165,8 @@ const root = path.resolve(__dirname, '..');
       .waitFor({ state: 'hidden' });
     await click('nav:home');
     await page.evaluate(() => document.fonts.ready);
-    const capture = async (name, theme = 'light') => {
-      await page.emulateMedia({ colorScheme: theme });
+    const capture = async (name) => {
+      await page.emulateMedia({ colorScheme: 'dark' });
       await page.mouse.move(0, 0);
       await page.evaluate(
         () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
@@ -178,8 +178,7 @@ const root = path.resolve(__dirname, '..');
       await page.screenshot({ path: path.join(output, `${name}.png`), scale: 'css' });
       captures.push(name);
     };
-    await capture('overview-light');
-    await capture('overview-dark', 'dark');
+    await capture('overview-dark');
     await click(`task:${decision.id}`);
     await page.locator('form[data-form="decision"]').waitFor();
     await capture('decision');
@@ -200,6 +199,7 @@ const root = path.resolve(__dirname, '..');
         {
           captures,
           viewport: '1280×900; portfolio 1280×1080',
+          colorScheme: 'dark',
           source: 'Actual Electron renderer; illustrative data only; no UI modification.',
           errors,
         },

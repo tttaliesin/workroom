@@ -24,13 +24,9 @@
   <a href="https://github.com/tttaliesin/workroom/issues">문제 제보</a>
 </p>
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/images/overview-dark.png">
-  <source media="(prefers-color-scheme: light)" srcset="docs/images/overview-light.png">
-  <img src="docs/images/overview-light.png" alt="작업실 개요: 확인할 일, 대기 중인 작업, 최근 결과와 쌓인 기록을 한 화면에서 확인" width="1280">
-</picture>
+<img src="docs/images/overview-dark.png" alt="작업실 개요: 확인할 일, 대기 중인 작업, 최근 결과와 쌓인 기록을 한 화면에서 확인" width="1280">
 
-<p align="center"><sub>실제 Electron 앱에서 촬영한 화면입니다. 제품·작업·포트폴리오 내용은 소개용 예제입니다.</sub></p>
+<p align="center"><sub>모든 스크린샷은 실제 Electron 앱의 다크 모드에서 촬영했습니다. 제품·작업·포트폴리오 내용은 소개용 예제입니다.</sub></p>
 
 ## 개발의 다음 단계가 한곳에
 
