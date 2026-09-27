@@ -9,5 +9,7 @@ contextBridge.exposeInMainWorld(
     connectionInfo: () => ipcRenderer.invoke('workroom:connection'),
     codexSetup: (productId, revision) =>
       ipcRenderer.invoke('workroom:codex-setup', productId, revision),
+    codexConnection: (action, productId, value) =>
+      ipcRenderer.invoke('workroom:codex-connection', action, productId, value),
   }),
 );

@@ -40,7 +40,7 @@ const env={...process.env,WORKROOM_DATA_DIR:dir,WORKROOM_HEADLESS:'0',WORKROOM_N
   await page.getByRole('button',{name:'작업 결과 기록',exact:true}).click();
   await page.getByLabel('나와 에이전트의 기여 범위').scrollIntoViewIfNeeded();
   observations.scrollBeforeNavigation=await page.evaluate(()=>window.scrollY);
-  await page.getByRole('button',{name:'MCP 연결',exact:true}).click();
+  await page.getByRole('button',{name:'Codex 연결',exact:true}).click();
   observations.scrollAfterNavigation=await page.evaluate(()=>window.scrollY);
   fs.writeFileSync(path.join(workDir,'review-observations.json'),JSON.stringify({dir,...observations},null,2));
   console.log(JSON.stringify(observations,null,2));

@@ -22,6 +22,8 @@ import { CredentialVault } from '../runtime/vault.mjs';
 import { RuntimeBroker } from '../runtime/broker.mjs';
 import { AgentEngine } from '../runtime/engine.mjs';
 import { runtimeEmbeddings } from '../runtime/local-embeddings.mjs';
+import { CodexConnection } from '../integrations/codex-connection.mjs';
+import { codexTerminal } from './codex-terminal.mjs';
 
 const appId = 'workroom.local.desktop';
 const appIcon = path.join(
@@ -38,6 +40,8 @@ if (!app.requestSingleInstanceLock()) {
 }
 const pageURL = pathToFileURL(path.join(projectRoot, 'src/renderer/index.html')).href;
 const room = new Workroom(databaseFile, { embedding: runtimeEmbeddings(dataDirectory) });
+const codex = new CodexConnection({ directory: dataDirectory, root: projectRoot });
+let terminalWindow, terminalProductId;
 let window;
 let broker,
   engine,
@@ -175,6 +179,8 @@ const hookRuntime = {
   script: path.join(projectRoot, 'src/integrations/codex-hook.mjs'),
 };
 handle('workroom:codex-setup', async (productId, revision) => {
+  const detected = await codex.detect();
+  hookRuntime.node = detected.node?.path || hookRuntime.node;
   try {
     const { stdout } = await promisify(execFile)(hookRuntime.node, ['--version'], {
       timeout: 5000,
@@ -185,12 +191,54 @@ handle('workroom:codex-setup', async (productId, revision) => {
       throw new Error('version');
   } catch {
     throw new Error(
-      '자동 수집에는 Node.js 24 이상이 필요합니다. WORKROOM_NODE에 Node 실행 파일 경로를 지정한 뒤 앱을 다시 열어주세요.',
+      '자동 수집에는 Node.js 24 이상이 필요합니다. Codex 연결 화면에서 Node.js 실행 파일을 선택하세요.',
     );
   }
   return revision === undefined
     ? prepareCodexSetup(room, productId, hookRuntime)
     : installCodexSetup(room, productId, revision, hookRuntime);
+});
+handle('workroom:codex-connection', async (action, productId, value) => {
+  const product = productId ? room.store.get('product', productId) : null;
+  if (action === 'status') return codex.status(product);
+  if (action === 'prepare') return codex.prepare(product?.folder || projectRoot);
+  if (action === 'install') return codex.install(value);
+  if (action === 'probe') return codex.probe(product);
+  if (action === 'select') {
+    if (!['node', 'codex'].includes(value)) throw new Error('실행 파일 종류를 확인하세요.');
+    const result = await dialog.showOpenDialog(window, {
+      title: value === 'node' ? 'Node.js 24 이상 실행 파일 선택' : 'Codex 실행 파일 선택',
+      properties: ['openFile'],
+      ...(process.platform === 'win32'
+        ? { filters: [{ name: '실행 파일', extensions: ['exe'] }] }
+        : {}),
+    });
+    if (!result.canceled) await codex.select(value, result.filePaths[0]);
+    return codex.status(product);
+  }
+  if (action === 'terminal') {
+    if (!product) throw new Error('제품을 먼저 등록하세요.');
+    if (terminalWindow && !terminalWindow.isDestroyed()) {
+      if (terminalProductId !== product.id)
+        throw new Error(
+          '다른 제품의 Codex 창이 열려 있습니다. 해당 창을 닫은 뒤 이 제품의 승인 화면을 여세요.',
+        );
+      terminalWindow.focus();
+      return;
+    }
+    terminalProductId = product.id;
+    terminalWindow = codexTerminal({
+      connection: codex,
+      root: projectRoot,
+      parent: window,
+      product,
+    });
+    terminalWindow.on('closed', () => {
+      terminalWindow = null;
+    });
+    return;
+  }
+  throw new Error('지원하지 않는 Codex 연결 요청입니다.');
 });
 
 app

@@ -134,7 +134,7 @@ export function shellHTML() {
         </nav>
         <nav class="bottom" aria-label="앱 설정">
           ${button('<span aria-hidden="true">＋</span><span>제품 등록</span>', 'nav:new-product', 'aria-label="+ 제품 등록"')}
-          ${button(`${icon('connection')}<span>MCP 연결</span>`, 'nav:connection', ui.view === 'connection' ? 'aria-current="page"' : '')}
+          ${button(`${icon('connection')}<span>Codex 연결</span>`, 'nav:connection', ui.view === 'connection' ? 'aria-current="page"' : '')}
         </nav>
       </aside>
       <div class="workspace">${workspaceToolbar()}<div

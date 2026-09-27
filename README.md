@@ -90,7 +90,7 @@ Windows에서는 설치 후 `start-workroom.cmd`로도 열 수 있습니다.
 
 내장 실행기는 [Pi](https://www.npmjs.com/package/@earendil-works/pi-coding-agent)를 사용합니다. 외부 MCP 클라이언트도 같은 제품과 기록을 조회하고 작업 결과를 보고할 수 있습니다. Codex 훅을 연결하면 파일 변경·검사가 있었던 응답을 작업 기록으로 수집할 수 있습니다.
 
-앱의 **MCP 연결 → 연결 설정 보기**에서 현재 경로에 맞는 설정을 확인하세요. Electron 앱과 MCP 서버는 같은 로컬 SQLite 데이터를 사용합니다. [연결 방법 →](docs/guide.md#mcp)
+앱 왼쪽 아래 **Codex 연결**에서 실행 환경 확인 → MCP 등록 → 자동 수집 설정 → Codex 승인을 순서대로 진행하세요. 설정 파일을 직접 편집하거나 별도 터미널을 열 필요 없이, 앱 안의 Codex 화면에서 훅을 검토·승인할 수 있습니다. **실제 연결 검사**로 서버와 제품 데이터도 확인합니다. [연결 방법 →](docs/guide.md#mcp)
 
 ## 데이터는 어디에 남나요?
 

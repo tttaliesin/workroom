@@ -38,7 +38,7 @@ const launch = () => electron.launch({ executablePath: require('electron'), args
   await page.getByText('결정이 기록되었습니다.',{exact:false}).waitFor();
   await productPage();await summary('직접 기록');await click('작업 결과 기록');
   await page.getByLabel('작업 제목').fill('검색 누락 수정');await page.getByLabel('무엇이 달라졌나요?').fill('자모 분리 입력의 검색 결과를 복구했습니다.');
-  await click('MCP 연결');assert.equal(await page.getByLabel('작업 제목').inputValue(),'검색 누락 수정');
+  await click('Codex 연결');assert.equal(await page.getByLabel('작업 제목').inputValue(),'검색 누락 수정');
   await click('새로고침');assert.equal(await page.getByLabel('무엇이 달라졌나요?').inputValue(),'자모 분리 입력의 검색 결과를 복구했습니다.');
   await app.evaluate(({dialog,BrowserWindow})=>{globalThis.closePromptCount=0;dialog.showMessageBoxSync=()=>{globalThis.closePromptCount++;return 0;};BrowserWindow.getAllWindows()[0].close();});
   await page.waitForFunction(()=>!!window.workroom);assert.equal(await app.evaluate(()=>globalThis.closePromptCount),1);
@@ -81,7 +81,7 @@ const launch = () => electron.launch({ executablePath: require('electron'), args
   await page.getByRole('heading',{name:'검증 제품',exact:true,level:1}).waitFor();
   await page.getByRole('navigation',{name:'제품 화면'}).getByRole('button',{name:'작업',exact:true}).click();
   await page.getByRole('heading',{name:'구조화된 근거 확인',exact:true,level:1}).waitFor();await task('검색 누락 수정');await click('포트폴리오 초안 보기');assert.match(await page.locator('.paper').innerText(),/개발 도구를 만드는/);
-  await click('MCP 연결');await click('연결 설정 보기');await page.getByRole('heading',{name:'stdio 연결 설정'}).waitFor();
+  await click('Codex 연결');await page.getByText('다른 MCP 클라이언트 연결 · 최근 기록 변경', { exact: true }).click();await click('연결 설정 보기');await page.getByRole('heading',{name:'stdio 연결 설정'}).waitFor();
   await click('+ 제품 등록');await app.evaluate(({dialog},folder)=>{dialog.showOpenDialog=async()=>({canceled:false,filePaths:[folder]});},repo);
   await page.getByLabel('제품 이름',{exact:true}).fill('추가 제품');await click('폴더 선택');await page.getByLabel('지금 이 제품에서 이루고 싶은 것').fill('다른 목표');await click('제품 등록');
   await page.getByText('이미 등록한 폴더입니다.',{exact:false}).waitFor();assert.equal(await page.getByLabel('제품 이름',{exact:true}).inputValue(),'추가 제품');

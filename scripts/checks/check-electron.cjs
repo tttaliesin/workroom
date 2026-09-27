@@ -105,7 +105,9 @@ const launch = () => electron.launch({ executablePath:require('electron'), args:
   await page.getByRole('navigation', { name: '포트폴리오 탐색' }).getByRole('button', { name: '포트폴리오', exact: true }).click();
   await page.locator('#folio-preview').waitFor();
   assert.match(await page.locator('#folio-preview').innerText(), /개발 도구를 만드는 개발자입니다\./);
-  await page.getByRole('button', { name: 'MCP 연결', exact: true }).click(); await page.getByRole('button', { name: '연결 설정 보기' }).click();
+  await page.getByRole('button', { name: 'Codex 연결', exact: true }).click();
+  await page.getByText('다른 MCP 클라이언트 연결 · 최근 기록 변경', { exact: true }).click();
+  await page.getByRole('button', { name: '연결 설정 보기' }).click();
   await page.getByRole('heading', { name: 'stdio 연결 설정' }).waitFor();
   // Failed registration preserves the form; switching products must not copy a previous goal.
   await page.getByRole('button', { name: '+ 제품 등록', exact: true }).click();

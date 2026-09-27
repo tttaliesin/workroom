@@ -16,6 +16,16 @@ import {
   startRequest,
 } from './controller.js';
 import { app, data, loadDraft, persistRequests, requestDraft, rootTasks, ui } from './state.js';
+async function codexConnection(action, value) {
+  const response = await window.workroom.codexConnection(action, ui.productId, value);
+  if (!response.ok) throw new Error(response.error);
+  return response.value;
+}
+async function connectionStatus(action = 'status', value) {
+  ui.codexStatus = null;
+  const result = await codexConnection(action, value);
+  ui.codexStatus = { ...result, productId: ui.productId };
+}
 async function operationAction(id, action) {
   if (!canLeave()) return;
   let task;
@@ -387,10 +397,9 @@ const clickActions = {
     const result = await window.workroom.codexSetup(id, ui.hookPlan.revision);
     if (!result.ok) throw new Error(result.error);
     ui.hookPlan = null;
+    if (ui.codexStatus) ui.codexStatus = { ...ui.codexStatus, hooks: [], warnings: [] };
     await refresh();
-    flash(
-      '설정을 저장했습니다. Codex에서 프로젝트를 다시 열고 /hooks에서 작업실 훅을 검토·신뢰하세요.',
-    );
+    flash('수집 설정을 저장했습니다. Codex 연결의 승인 화면을 열어 작업실 훅을 검토·승인하세요.');
   },
   'codex-toggle': async (id) => {
     if (!canLeave()) return;
@@ -407,6 +416,42 @@ const clickActions = {
     const response = await window.workroom.connectionInfo();
     if (!response.ok) throw new Error(response.error);
     ui.connection = response.value;
+  },
+  'connection-product': async (id) => {
+    if (!canLeave()) return;
+    ui.productId = id;
+    ui.codexStatus = null;
+    ui.mcpPlan = null;
+  },
+  'connection-status': async () => {
+    await connectionStatus();
+    await refresh();
+  },
+  'connection-select': async (kind) => {
+    await connectionStatus('select', kind);
+    ui.mcpPlan = null;
+  },
+  'connection-prepare': async () => {
+    ui.mcpPlan = await codexConnection('prepare');
+  },
+  'connection-cancel': async () => {
+    ui.mcpPlan = null;
+  },
+  'connection-install': async () => {
+    if (!ui.mcpPlan) return;
+    const result = await codexConnection('install', ui.mcpPlan.id);
+    ui.mcpPlan = null;
+    ui.mcpBackup = result.backup;
+    ui.codexStatus = null;
+    flash('Codex에 MCP 설정을 저장했습니다. 실제 연결 검사로 서버 응답을 확인하세요.');
+    await connectionStatus();
+  },
+  'connection-probe': async () => {
+    await connectionStatus('probe');
+    flash('MCP 서버의 도구 목록과 제품 데이터 조회를 확인했습니다.');
+  },
+  'connection-terminal': async () => {
+    await codexConnection('terminal');
   },
   'save-portfolio': savePortfolioAction,
   'save-portfolio-overwrite': savePortfolioAction,

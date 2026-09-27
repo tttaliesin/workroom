@@ -2,8 +2,9 @@ import { html, button, date, e, empty, field, header } from './html.js';
 import { operationSettings } from './operations-ui.js';
 import { data, product, ui } from './state.js';
 import { observation } from './work-views.js';
+import { codexConnectionView } from './codex-connection-view.js';
 const unconfirmedCapture = html`<p class="small muted gap">설정 저장만으로 실행이 확인된 것은 아닙니다.
-  Codex에서 이 프로젝트를 다시 열고 /hooks에서 작업실 훅을 검토·신뢰하면 다음 작업부터 수집합니다.</p>`;
+  Codex 연결 화면의 승인 화면에서 작업실 훅을 검토·신뢰하면 다음 작업부터 수집합니다.</p>`;
 export function accountReturnNotice() {
   const pending = ui.accountReturn && data.products.find((p) => p.id === ui.accountReturn),
     draft = pending && ui.requests[pending.id];
@@ -68,7 +69,7 @@ function captureSetup(p) {
   const plan = ui.hookPlan?.productId === p.id ? ui.hookPlan : null;
   return html`<section class="capture-setup section">
       <div class="row between">
-        <h2>Codex 작업 자동 수집</h2>
+        <h2>${ui.view === 'connection' ? '3. ' : ''}Codex 작업 자동 수집</h2>
         <span class="small muted">
           ${!p.codexCaptureEnabled ? '꺼짐' : connection ? `최근 수집 ${date(connection.lastReceivedAt)}` : '첫 이벤트 수신 대기'}
         </span>
@@ -76,6 +77,7 @@ function captureSetup(p) {
       <p class="small muted gap">이 제품에서 파일 변경·검사 명령이 있었던 응답을 기록합니다. 일반 대화, 사용자 프롬프트와 전체 대화 로그는 수집하지 않습니다.</p>
       <div class="actions">
         ${button('연결 설정 확인', `codex-prepare:${p.id}`)}
+        ${ui.view !== 'connection' ? button('Codex 연결·승인', 'nav:connection', 'class="plain"') : ''}
         ${
           typeof p.codexCaptureEnabled === 'boolean'
             ? button(
@@ -149,7 +151,8 @@ export function newWork() {
 }
 export function connectionPage() {
   return (
-    header('MCP 연결', '외부 에이전트가 이 앱과 같은 기록을 읽고 쓸 수 있습니다.') +
+    codexConnectionView(captureSetup) +
+    '<details class="section"><summary>다른 MCP 클라이언트 연결 · 최근 기록 변경</summary>' +
     html`<div class="form">
         <div class="note">
           <h3>연결하면 가능한 것</h3>
@@ -176,7 +179,7 @@ export function connectionPage() {
             )
             .join('')}
         </details>
-      </div>`
+      </div></details>`
   );
 }
 export function scopePage() {

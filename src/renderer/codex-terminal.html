@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"
+    />
+    <title>Codex 연결</title>
+    <link rel="stylesheet" href="../../node_modules/@xterm/xterm/css/xterm.css" />
+    <link rel="stylesheet" href="./codex-terminal.css" />
+  </head>
+  <body>
+    <header>
+      <strong>Codex 연결 승인</strong>
+      <p>
+        아래는 실제 Codex 화면입니다. 로그인·프로젝트 신뢰 안내를 마친 뒤, 입력창이 보이면
+        <b>훅 승인 화면</b>을 누르세요. 작업실 수집 항목을 선택해 내용을 검토하고 승인합니다.
+        방향키와 Enter를 사용하세요.
+      </p>
+      <div>
+        <button id="hooks" disabled>훅 승인 화면 (/hooks)</button>
+        <button id="mcp" disabled>MCP 상태 (/mcp)</button> <button id="close">닫고 작업실로</button>
+      </div>
+      <p id="status" role="status">Codex를 시작하고 있습니다…</p>
+      <p>창을 닫으면 이 Codex 실행도 종료됩니다. 작업 중이라면 완료 후 닫으세요.</p>
+    </header>
+    <div id="terminal" aria-label="Codex 터미널"></div>
+    <script src="../../node_modules/@xterm/xterm/lib/xterm.js"></script>
+    <script src="../../node_modules/@xterm/addon-fit/lib/addon-fit.js"></script>
+    <script src="./codex-terminal.js"></script>
+  </body>
+</html>
