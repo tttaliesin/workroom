@@ -778,6 +778,11 @@ button.file-row:hover {
   font-size: 12px;
   color: var(--muted);
 }
+#app-language {
+  width: 180px;
+  max-width: 100%;
+}
+
 .form,
 .editor {
   display: grid;
