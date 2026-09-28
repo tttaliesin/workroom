@@ -1,6 +1,6 @@
 const { createFixture } = require('./checks/lib/fixture.cjs');
 // Capture the real Electron renderer with isolated, illustrative data.
-// No account connection, model calls, user data or renderer modifications.
+// No account connection, model calls, user data or renderer code changes.
 /* global window, document, requestAnimationFrame, innerWidth -- Playwright renderer callbacks */
 const fs = require('node:fs');
 const path = require('node:path');
@@ -241,6 +241,11 @@ const demo = (text) => (language === 'en' ? englishDemo[text] || text : text);
       .getByRole('button', { name: demo('실행기 준비 중'), exact: true })
       .waitFor({ state: 'hidden' });
     await click('nav:home');
+    // Runs stay paused only so the example task can never start; the banner that state shows
+    // on every screen is not part of what the screenshots introduce.
+    await page.evaluate(() =>
+      document.styleSheets[0].insertRule('.paused-banner { display: none !important; }'),
+    );
     await page.evaluate(() => document.fonts.ready);
     const capture = async (name) => {
       await page.emulateMedia({ colorScheme: 'dark' });
