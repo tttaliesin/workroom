@@ -959,9 +959,3 @@ legend {
 .break-id {
   overflow-wrap: anywhere;
 }
-.language-select {
-  width: auto;
-  min-width: 92px;
-  padding: 5px 8px;
-  font-size: 12px;
-}

@@ -54,7 +54,7 @@ pnpm start
 
 On Windows, you can also launch `start-workroom.cmd` after installation.
 
-Choose **English** or **한국어** at the top right of the app. Your choice persists across launches. Switching languages preserves unsaved input and the original text of your records. This changes Workroom's interface; existing reports, model responses and the external Codex terminal are not automatically translated.
+Open **App settings → Interface language** at the bottom left and choose **English** or **한국어**. Changes apply immediately and persist across launches. Your records keep their original text. Save or discard unsaved form changes before opening settings. This changes Workroom's interface; existing reports, model responses and the external Codex terminal are not automatically translated.
 
 1. **Connect a product folder** — Select a development folder and describe your goal.
 2. **Assign a task** — Describe the result you want, then choose **Investigate first** or **Prepare changes too**.
@@ -127,7 +127,7 @@ The built-in agent sends investigation and change requests to the connected mode
 - **Optional:** Periodic investigations, bounded retries, linked decision resume, npm dependency installation and verification profiles, tray execution, versioned job sources, and reviewed Vercel portfolio publication, verification and restoration.
 - **Not yet available:** Execution after the app process exits, remote execution, an installer or automatic updates. Live Vercel deployment still needs validation with your account.
 
-Closing the window exits by default. Enable tray execution in project settings to keep running, then use **Quit Workroom** in the tray to stop. See the [workflow guide](docs/quality-workflows.md) and [implementation plan and validation](docs/quality-implementation-plan.md).
+Closing the window exits by default. Enable tray execution in App settings to keep running, then use **Quit Workroom** in the tray to stop. See the [workflow guide](docs/quality-workflows.md) and [implementation plan and validation](docs/quality-implementation-plan.md).
 
 **Latest local validation · 2026-09-27:** **110 unit/integration tests** and **15 actual Electron app checks** passed, along with lint and formatting checks. Publication interruption and recovery were tested with simulated provider responses; these results do not establish live Vercel account deployment.
 

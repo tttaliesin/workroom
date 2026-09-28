@@ -1,5 +1,15 @@
 // UI source strings only; user-authored content is never translated.
 export default {
+  '모든 제품에 공통으로 적용되는 환경을 설정합니다.':
+    'Set preferences that apply to every product.',
+  '화면 언어': 'Interface language',
+  '메뉴와 안내의 언어를 바꿉니다. 작성한 기록과 모델 응답의 원문은 유지합니다.':
+    'Change the language of menus and guidance. Your records and model responses keep their original text.',
+  '선택하면 바로 적용되며 다음 실행에도 유지됩니다.':
+    'Changes apply immediately and persist across launches.',
+  '백그라운드 실행': 'Background execution',
+  '창을 닫은 뒤의 실행 방식을 정합니다. 컴퓨터와 앱이 실행 중일 때만 작업을 진행합니다.':
+    'Choose what happens when you close the window. Work continues only while your computer and the app are running.',
   '결정이 기록되었습니다. 연결 작업이 없는 판단은 다음 조회에서 참고할 기록으로 보관합니다.':
     'Decision recorded. Unlinked decisions are retained as context for future requests.',
   '기본 Node 검사는 의존성을 설치하지 않습니다. 제품 설정에서 허용한 npm 검사 환경이 있으면 함께 실행합니다. 지정 테스트는 수정하지 않으며 Node.js 24 이상이 필요합니다.':

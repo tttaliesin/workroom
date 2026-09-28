@@ -1,4 +1,4 @@
-import { t as tr } from '../shared/i18n.mjs';
+import { t as tr, getLanguage } from '../shared/i18n.mjs';
 import { html, button, date, e, empty, field, header } from './html.js';
 import { operationSettings } from './operations-ui.js';
 import { data, product, ui } from './state.js';
@@ -224,5 +224,31 @@ export function scopePage() {
           </div>
         </form>
       </section>${operationSettings(p, data)}`
+  );
+}
+
+export function appSettingsPage() {
+  return (
+    header(tr('앱 설정'), tr('모든 제품에 공통으로 적용되는 환경을 설정합니다.')) +
+    html`<section class="section">
+      <h2>화면 언어</h2>
+      <p id="language-description" class="small muted">메뉴와 안내의 언어를 바꿉니다. 작성한 기록과 모델 응답의 원문은 유지합니다.</p>
+      <div class="form gap">
+        <label for="app-language">Language / 언어</label>
+        <select id="app-language" aria-describedby="language-description" ${ui.busy ? 'disabled' : ''}>
+          <option value="ko" ${getLanguage() === 'ko' ? 'selected' : ''}>한국어</option>
+          <option value="en" ${getLanguage() === 'en' ? 'selected' : ''}>English</option>
+        </select>
+        <p class="small muted">선택하면 바로 적용되며 다음 실행에도 유지됩니다.</p>
+      </div>
+    </section>
+    <section class="section">
+      <h2>백그라운드 실행</h2>
+      <p class="small muted">창을 닫은 뒤의 실행 방식을 정합니다. 컴퓨터와 앱이 실행 중일 때만 작업을 진행합니다.</p>
+      <form class="form gap" data-form="background-mode">
+        <label class="check-option"><input type="checkbox" name="background" ${data.runtime?.background ? 'checked' : ''}>창을 닫아도 트레이에서 계속 실행</label>
+        <div><button type="submit">실행 방식 저장</button></div>
+      </form>
+    </section>`
   );
 }

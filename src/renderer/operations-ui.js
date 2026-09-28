@@ -183,7 +183,6 @@ export function operationSettings(p, data) {
         <p class="small muted">설치 후크는 실행하지 않습니다. 검사 스크립트는 컴퓨터와 네트워크에 접근할 수 있으므로 신뢰하는 제품에 사용하세요.</p>
         <button type="submit">검사 환경 저장</button>
       </form>
-      <form class="form gap" data-form="background-mode"><label class="check-option"><input type="checkbox" name="background" ${data.runtime?.background ? 'checked' : ''}>창을 닫아도 트레이에서 계속 실행</label><button type="submit">실행 방식 저장</button></form>
     </section>`;
 }
 export function managedDetail(task, data) {

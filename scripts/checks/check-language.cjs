@@ -67,9 +67,13 @@ const { _electron } = require('./lib/playwright.cjs');
     page.setDefaultTimeout(15000);
     page.on('pageerror', (e) => errors.push(e.message));
     const click = (action) => page.locator(`[data-action="${action}"]`).first().click();
-    const language = async (value) => {
+    const language = async (value, route = 'home') => {
+      await click('nav:settings');
+      assert.equal(await page.locator('.product-tabs').count(), 0);
+      assert.equal(await page.locator('.appbar #app-language').count(), 0);
       await page.locator('#app-language').selectOption(value);
       await page.waitForFunction((v) => document.documentElement.lang === v, value);
+      await click(route === 'home' ? 'product:' + product.id : 'nav:' + route);
     };
     await page.getByRole('heading', { name: '기록', exact: true }).waitFor();
     const checkIndependent = async () => {
@@ -104,9 +108,9 @@ const { _electron } = require('./lib/playwright.cjs');
     await click('nav:new-record');
     await page.locator('#title').fill('계정 연결');
     await page.locator('#content').fill('입력 중인 내용 & <b>그대로</b>');
-    await language('ko');
+    await click('nav:settings');
+    assert.equal(await page.locator('#app-language').count(), 0);
     assert.equal(await page.locator('#content').inputValue(), '입력 중인 내용 & <b>그대로</b>');
-    await language('en');
     assert.equal(await page.locator('#title').inputValue(), '계정 연결');
     await click('discard-form');
     for (const [route, heading] of [
@@ -119,8 +123,8 @@ const { _electron } = require('./lib/playwright.cjs');
       await page.getByRole('heading', { name: heading, exact: true }).waitFor();
     }
     await page.getByText('Other MCP clients · Recent record changes', { exact: true }).click();
-    await language('ko');
-    await language('en');
+    await click('nav:settings');
+    await click('nav:connection');
     assert.equal(
       await page
         .getByText('Other MCP clients · Recent record changes', { exact: true })
@@ -139,6 +143,16 @@ const { _electron } = require('./lib/playwright.cjs');
       await page.evaluate(() => document.documentElement.scrollWidth > innerWidth),
       false,
     );
+    await click('nav:settings');
+    await page.getByRole('heading', { name: 'App settings', exact: true }).waitFor();
+    assert.equal(
+      await page
+        .locator('main')
+        .evaluate((el) => /[가-힣]/.test(el.innerText.replace('언어', '').replace('한국어', ''))),
+      false,
+    );
+    fs.mkdirSync(path.join(root, 'outputs'), { recursive: true });
+    await page.screenshot({ path: path.join(root, 'outputs/app-settings-dark.png') });
     await click('product:' + product.id);
     fs.mkdirSync(path.join(root, 'outputs'), { recursive: true });
     await page.screenshot({ path: path.join(root, 'outputs/language-en.png') });
@@ -162,7 +176,7 @@ const { _electron } = require('./lib/playwright.cjs');
     await page.getByRole('button', { name: '일 맡기기', exact: true }).waitFor();
     assert.deepEqual(errors, []);
     console.log(
-      'Language switch, content preservation, dirty forms, expanded sections and restart passed.',
+      'Language switch, content preservation, settings navigation, dirty form protection, expanded sections and restart passed.',
     );
   } finally {
     await app.close();

@@ -107,6 +107,8 @@ const { _electron } = require('./lib/playwright.cjs');
       async () =>
         (await window.workroom.call('snapshot')).value.verificationProfiles[0]?.version === 1,
     );
+    assert.equal(await page.locator('form[data-form="background-mode"]').count(), 0);
+    await click('nav:settings');
     const background = page.locator('form[data-form="background-mode"]');
     await background.locator('[name="background"]').check();
     await background.locator('button').click();
@@ -139,7 +141,11 @@ const { _electron } = require('./lib/playwright.cjs');
     await click(`publication-prepare:${p.id}`);
     await page.getByText('공개 전 검토', { exact: true }).waitFor();
     assert(!(await page.getByText('PRIVATE note', { exact: true }).count()));
+    await click('nav:settings');
     await page.locator('#app-language').selectOption('en');
+    await page.waitForFunction(() => document.documentElement.lang === 'en');
+    await click('open-portfolio');
+    await page.getByText('Job source and published versions', { exact: true }).click();
     await page.getByText('Review before publishing', { exact: true }).waitFor();
     assert.equal(
       await page.locator('form[data-form="publication-credentials"] input').getAttribute('type'),

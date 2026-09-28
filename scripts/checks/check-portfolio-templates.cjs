@@ -103,7 +103,10 @@ const { _electron } = require('./lib/playwright.cjs');
     assert.equal(await page.locator('#template-studio').isChecked(), true);
     await click('save-portfolio-overwrite');
     await page.locator('#save-state').filter({ hasText: '로컬 초안 저장됨' }).waitFor();
+    await click('nav:settings');
     await page.locator('#app-language').selectOption('en');
+    await page.waitForFunction(() => document.documentElement.lang === 'en');
+    await click('open-portfolio');
     await page.getByText('Portfolio template', { exact: true }).waitFor();
     const snapshots = {};
     for (const template of ['studio', 'editorial', 'resume']) {

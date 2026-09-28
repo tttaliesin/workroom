@@ -1,4 +1,4 @@
-import { t as tr, getLanguage } from '../shared/i18n.mjs';
+import { t as tr } from '../shared/i18n.mjs';
 // Builds the whole screen as HTML from state; no DOM access or side effects.
 import { html, button, e, icon } from './html.js';
 import { newTarget, portfolioPage } from './portfolio-views.js';
@@ -7,6 +7,7 @@ import { newRecord, recordDetailPage, recordsPage } from './record-views.js';
 import { accountLabel, accountPage } from './runtime-ui.js';
 import {
   accountReturnNotice,
+  appSettingsPage,
   connectionPage,
   newDecision,
   newProduct,
@@ -24,9 +25,9 @@ const shellClass = () =>
     data.products.length ? '' : 'no-products',
   ].join(' ');
 function workspaceNavigation() {
-  if (['account', 'connection', 'new-product'].includes(ui.view))
+  if (['account', 'connection', 'new-product', 'settings'].includes(ui.view))
     return html`<span class="view-label">
-        ${{ account: tr('계정과 실행'), connection: tr('외부 도구 연결'), 'new-product': tr('제품 연결') }[ui.view]}
+        ${{ account: tr('계정과 실행'), connection: tr('외부 도구 연결'), 'new-product': tr('제품 연결'), settings: tr('앱 설정') }[ui.view]}
       </span>`;
   if (portfolioArea()) return tr('<span class="view-label">포트폴리오 · 대상별 소개</span>');
   const routes = {
@@ -90,6 +91,8 @@ function view() {
       return accountReturnNotice() + accountPage(data.runtime);
     case 'scope':
       return scopePage();
+    case 'settings':
+      return appSettingsPage();
     case 'record-detail':
       return recordDetailPage();
     case 'work-link':
@@ -122,10 +125,6 @@ export function shellHTML() {
         <img class="app-mark" src="../desktop/assets/workroom.svg" width="18" height="18" alt=""
         aria-hidden="true">작업실</strong>
       <div class="row">
-        <select id="app-language" class="language-select" aria-label="Language / 언어" ${ui.busy ? 'disabled' : ''}>
-          <option value="ko" ${getLanguage() === 'ko' ? 'selected' : ''}>한국어</option>
-          <option value="en" ${getLanguage() === 'en' ? 'selected' : ''}>English</option>
-        </select>
         ${button(e(accountLabel(data.runtime)), 'nav:account', 'class="plain"')}
         ${button(tr('새로고침'), 'refresh', `class="plain" ${ui.busy ? 'disabled' : ''}`)}
       </div>
@@ -140,6 +139,7 @@ export function shellHTML() {
         <nav class="bottom" aria-label="앱 설정">
           ${button(tr('<span aria-hidden="true">＋</span><span>제품 등록</span>'), 'nav:new-product', tr('aria-label="+ 제품 등록"'))}
           ${button(tr`${icon('connection')}<span>Codex 연결</span>`, 'nav:connection', ui.view === 'connection' ? 'aria-current="page"' : '')}
+          ${button(tr`${icon('settings')}<span>앱 설정</span>`, 'nav:settings', ui.view === 'settings' ? 'aria-current="page"' : '')}
         </nav>
       </aside>
       <div class="workspace">${workspaceToolbar()}<div
