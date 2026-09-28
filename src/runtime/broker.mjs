@@ -22,28 +22,36 @@ export class RuntimeBroker {
     } catch (error) {
       this.publish({
         state: 'storage_error',
-        failure: { code: 'storage', message: error.message },
+        failure: {
+          code: 'storage',
+          message: error.message,
+          unreadable: error.code === 'unreadable',
+        },
       });
       return;
     }
     this.publish({ state: 'starting', failure: null });
     const child = this.fork();
     this.child = child;
+    let settle;
+    this.ready = new Promise((resolve) => (settle = resolve));
     child.on('message', (message) => {
       if (this.child !== child) return;
       if (message.event === 'booted')
-        void this.request('init', { credential }).catch(() =>
+        void this.request('init', { credential }).then(settle, () => {
           this.publish({
             state: 'error',
             failure: {
               code: 'runtime',
               message: 'Pi 초기화에 실패했습니다. 실행기를 다시 연결하세요.',
             },
-          }),
-        );
+          });
+          settle();
+        });
       else void this.receive(message);
     });
     child.on('exit', () => {
+      settle();
       if (this.child !== child) return;
       this.child = null;
       for (const pending of this.pending.values()) {
@@ -61,8 +69,18 @@ export class RuntimeBroker {
       });
     });
   }
+  // Starts the runner when it is not running and waits until it has finished initializing.
+  async ensure() {
+    if (!this.child) await this.start();
+    await this.ready;
+    if (!this.child)
+      throw new Error(this.status.failure?.message || 'Pi 실행기를 시작하지 못했습니다.');
+  }
   request(method, payload = {}) {
-    if (!this.child) return Promise.reject(new Error('Pi 실행기를 먼저 연결하세요.'));
+    if (!this.child)
+      return Promise.reject(
+        new Error('Pi 실행기가 꺼져 있습니다. 설정 → AI 실행에서 실행기를 다시 연결하세요.'),
+      );
     const child = this.child,
       id = randomUUID();
     return new Promise((resolve, reject) => {

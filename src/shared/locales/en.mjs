@@ -1289,4 +1289,12 @@ export default {
     'Existing Codex chats may not pick up new settings right away, so check in a new task. After a task with file changes or checks finishes, the collection status above shows when it was last received.',
   '설정 저장만으로 실행이 확인된 것은 아닙니다. 아래 Codex 승인 화면에서 작업실 훅을 검토·신뢰하면 다음 작업부터 수집합니다.':
     'Saving the settings does not confirm that collection runs. Review and trust the Workroom hooks on the Codex approval screen below, and collection starts with the next task.',
+  // Runner start-up failures
+  '저장된 계정 정보를 읽을 수 없습니다. 다시 로그인하면 새 정보로 바꿉니다.':
+    'The saved sign-in can no longer be read. Sign in again to replace it.',
+  'Pi 실행기가 꺼져 있습니다. 설정 → AI 실행에서 실행기를 다시 연결하세요.':
+    'The Pi runner is not running. Reconnect it in Settings → AI runs.',
+  'Pi 실행기를 시작하지 못했습니다.': 'The Pi runner could not be started.',
+  '운영체제의 보호 저장소를 사용할 수 없습니다. 로그인 정보를 저장하지 않았습니다.':
+    'The operating system’s protected storage is unavailable. The sign-in was not saved.',
 };

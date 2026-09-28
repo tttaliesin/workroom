@@ -178,6 +178,12 @@ handle('workroom:runtime', async (method, args = {}) => {
     throw new Error(t('진행 중인 작업을 먼저 중지하세요.'));
   if (method === 'login' && !['browser', 'device_code'].includes(args.mode))
     throw new Error(t('로그인 방법을 선택하세요.'));
+  if (method === 'login') {
+    // Logging in replaces the saved login, so one that can no longer be decrypted is dropped and
+    // the runner is started here rather than asking the user to find another button first.
+    if (!broker.child && broker.status.failure?.unreadable) broker.vault.write(null);
+    await broker.ensure();
+  }
   if (method === 'verify') args = { modelId: engine.settings.modelId };
   return broker.request(method, args);
 });

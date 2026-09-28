@@ -64,9 +64,11 @@ const accountLabels = localizedLabels({
 export const accountLabel = (runtime) =>
   runtime?.paused && ['connected', 'ready'].includes(runtime.state)
     ? tr('새 실행 일시 정지')
-    : accountLabels[runtime?.state] || tr('계정 연결');
+    : // A saved login that can no longer be decrypted is fixed by logging in again.
+      accountLabels[runtime?.failure?.unreadable ? 'needs_login' : runtime?.state] ||
+      tr('계정 연결');
 function accountMessage(runtime) {
-  if (runtime.failure?.message) return runtime.failure.message;
+  if (runtime.failure?.message) return tr(runtime.failure.message);
   if (runtime.state === 'ready')
     return tr`${runtime.verifiedModel}의 실제 모델 응답을 확인했습니다.`;
   if (runtime.connected)

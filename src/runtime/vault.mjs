@@ -27,8 +27,10 @@ export class CredentialVault {
     try {
       return JSON.parse(this.protector.decryptString(encrypted));
     } catch {
-      throw new Error(
-        '저장된 계정 정보를 복호화하지 못했습니다. 연결을 해제하고 다시 로그인하세요.',
+      // Usually the OS key changed; logging in again replaces the unreadable file.
+      throw Object.assign(
+        new Error('저장된 계정 정보를 읽을 수 없습니다. 다시 로그인하면 새 정보로 바꿉니다.'),
+        { code: 'unreadable' },
       );
     }
   }

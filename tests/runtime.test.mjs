@@ -6,6 +6,8 @@ import os from 'node:os';
 import { Workroom } from '../src/core/service.mjs';
 import { AgentEngine } from '../src/runtime/engine.mjs';
 import { BrokerCredentials, CredentialVault } from '../src/runtime/vault.mjs';
+import { RuntimeBroker } from '../src/runtime/broker.mjs';
+import { EventEmitter } from 'node:events';
 import { readProductFile, listProductFiles } from '../src/runtime/files.mjs';
 import { publicFailure } from '../src/runtime/errors.mjs';
 
@@ -459,4 +461,45 @@ test('vault status exposes safe metadata for absent, saved, corrupt and deleted 
   assert.deepEqual(vault.status(), { state: 'unavailable' });
   vault.write(null);
   assert.deepEqual(vault.status(), { state: 'missing' });
+});
+
+test('a login that can no longer be decrypted is replaced by starting the runner for a new login', async (t) => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'workroom-broker-'));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const protector = {
+    isEncryptionAvailable: () => true,
+    encryptString: (text) => Buffer.from(text),
+    decryptString: () => {
+      throw new Error('key changed');
+    },
+  };
+  const vault = new CredentialVault(directory, protector, 'fixture.credential');
+  vault.write({ type: 'oauth', access: 'old-access', refresh: 'old-refresh' });
+  assert.throws(() => vault.read(), { code: 'unreadable' });
+  const inits = [];
+  const broker = new RuntimeBroker({
+    vault,
+    fork: () => {
+      const child = new EventEmitter();
+      child.kill = () => child.emit('exit');
+      child.postMessage = ({ id, method, payload }) => {
+        inits.push({ method, payload });
+        setImmediate(() => {
+          child.emit('message', { event: 'status', value: { state: 'disconnected' } });
+          child.emit('message', { reply: id, ok: true, value: {} });
+        });
+      };
+      setImmediate(() => child.emit('message', { event: 'booted' }));
+      return child;
+    },
+  });
+  await broker.start();
+  assert.equal(broker.status.state, 'storage_error');
+  assert.equal(broker.status.failure.unreadable, true);
+  await assert.rejects(() => broker.request('login'), /다시 연결/);
+  vault.write(null);
+  await broker.ensure();
+  assert.deepEqual(inits, [{ method: 'init', payload: { credential: null } }]);
+  assert.equal(broker.status.state, 'disconnected');
+  broker.close();
 });
