@@ -1,12 +1,13 @@
 import { t as tr, getLanguage } from '../shared/i18n.mjs';
-import { html, button, date, e, empty, field, header } from './html.js';
+import { html, button, date, e, field, header } from './html.js';
 import { operationSettings } from './operations-ui.js';
 import { data, product, ui } from './state.js';
 import { observation } from './work-views.js';
 import { codexConnectionView } from './codex-connection-view.js';
+import { publicationCredentialsForm } from './publication-ui.js';
 const unconfirmedCapture =
   () => html`<p class="small muted gap">설정 저장만으로 실행이 확인된 것은 아닙니다.
-  Codex 연결 화면의 승인 화면에서 작업실 훅을 검토·신뢰하면 다음 작업부터 수집합니다.</p>`;
+  아래 Codex 승인 화면에서 작업실 훅을 검토·신뢰하면 다음 작업부터 수집합니다.</p>`;
 export function accountReturnNotice() {
   const portfolio = data.portfolios.find((p) => p.id === ui.portfolioAccountReturn);
   if (portfolio)
@@ -51,27 +52,39 @@ export function newProduct() {
       </form>`
   );
 }
-export function productPage() {
-  const p = product();
-  if (!p) return empty(tr('등록한 제품이 없습니다.'), button(tr('제품 등록'), 'nav:new-product'));
-  return (
-    header(tr('폴더·수집 연결'), p.name, button(tr('설정으로'), 'nav:scope')) +
-    html`<section>
-        <h2>제품 폴더</h2>
-        <p class="gap product-folder">${e(p.folder)}</p>
-        <p class="small muted gap">${e(observation(p))}</p>
-        <div class="actions">
-          ${button(ui.busy ? tr('점검 중…') : tr('지금 기본 점검'), `inspect:${p.id}`)}
-        </div>
-      </section>${captureSetup(p)}`
-  );
+function folderSection(p) {
+  return html`<section class="section">
+      <h2>제품 폴더</h2>
+      <p class="gap product-folder">${e(p.folder)}</p>
+      <p class="small muted gap">${e(observation(p))}</p>
+      <div class="actions">
+        ${button(ui.busy ? tr('점검 중…') : tr('지금 기본 점검'), `inspect:${p.id}`)}
+      </div>
+    </section>`;
+}
+// Approving the product's Codex hooks happens inside Codex, per product folder.
+function codexApproval(p) {
+  if (typeof p.codexCaptureEnabled !== 'boolean') return '';
+  const status = ui.codexStatus?.productId === p.id ? ui.codexStatus : null;
+  const trusted =
+    status?.hooks?.length === 3 &&
+    status.hooks.every((h) => h.enabled && ['trusted', 'managed'].includes(h.trust));
+  return html`<section class="section">
+      <h3>Codex에서 수집 훅 승인</h3>
+      <p class="small muted gap">Codex 화면을 열어 로그인·프로젝트 신뢰 안내를 마친 뒤, 훅 승인 화면에서 ‘작업실 수집’ 항목 3개를 검토·승인하세요. 설정 파일을 직접 편집할 필요가 없습니다.</p>
+      <div class="actions">${button(tr('Codex 승인 화면 열기'), 'connection-terminal', 'class="primary"')}${button(tr('승인 상태 다시 확인'), 'connection-status')}</div>
+      <p class="gap">${trusted ? tr('✓ 작업실 훅 3개 신뢰·활성화 확인') : tr('작업실 훅 승인 확인 필요')}</p>
+      ${(status?.hooks || []).map((h) => `<p class="small muted">${e(h.event)} · ${{ trusted: tr('신뢰됨'), managed: tr('관리 정책 승인'), modified: tr('변경되어 재승인 필요'), untrusted: tr('승인 대기') }[h.trust] || e(h.trust)} · ${h.enabled ? tr('활성') : tr('비활성')}</p>`).join('')}
+      ${(status?.warnings || []).map((warning) => `<p class="small muted">${e(warning)}</p>`).join('')}
+      <p class="small muted gap">기존 Codex 대화에는 새 설정이 즉시 적용되지 않을 수 있으므로 새 작업에서 확인하세요. 파일 변경·검사가 포함된 작업이 끝나면 위 수집 상태에 최근 수신 시각이 표시됩니다.</p>
+    </section>`;
 }
 function captureSetup(p) {
   const connection = (data.captureConnections || []).find((c) => c.productId === p.id);
   const plan = ui.hookPlan?.productId === p.id ? ui.hookPlan : null;
   return html`<section class="capture-setup section">
       <div class="row between">
-        <h2>${ui.view === 'connection' ? '3. ' : ''}Codex 작업 자동 수집</h2>
+        <h2>Codex 작업 자동 수집</h2>
         <span class="small muted">
           ${!p.codexCaptureEnabled ? tr('꺼짐') : connection ? tr`최근 수집 ${date(connection.lastReceivedAt)}` : tr('첫 이벤트 수신 대기')}
         </span>
@@ -79,7 +92,7 @@ function captureSetup(p) {
       <p class="small muted gap">이 제품에서 파일 변경·검사 명령이 있었던 응답을 기록합니다. 일반 대화, 사용자 프롬프트와 전체 대화 로그는 수집하지 않습니다.</p>
       <div class="actions">
         ${button(tr('연결 설정 확인'), `codex-prepare:${p.id}`)}
-        ${ui.view !== 'connection' ? button(tr('Codex 연결·승인'), 'nav:connection', 'class="plain"') : ''}
+        ${button(tr('Codex 실행 환경·MCP 설정'), 'nav:connection', 'class="plain"')}
         ${
           typeof p.codexCaptureEnabled === 'boolean'
             ? button(
@@ -174,8 +187,13 @@ export function newWork() {
 }
 export function connectionPage() {
   return (
-    html`<section class="note"><h2>외부 도구에서 Workroom 기록 사용</h2><p class="small muted">Codex 연결은 외부 도구에서 기록을 읽고 결과를 보내는 연결입니다. Workroom의 조사·수정·포트폴리오 AI는 별도의 계정과 실행 설정을 사용합니다.</p>${button(tr('Workroom AI 계정과 실행'), 'nav:account', 'class="link"')}</section>` +
-    codexConnectionView(captureSetup) +
+    header(
+      tr('외부 도구 연결'),
+      tr(
+        'Codex 등 외부 도구에서 작업실 기록을 읽고 결과를 보내는 연결입니다. 작업실 AI의 계정과 실행은 AI 실행 탭에서 설정합니다.',
+      ),
+    ) +
+    codexConnectionView() +
     tr('<details class="section"><summary>다른 MCP 클라이언트 연결 · 최근 기록 변경</summary>') +
     html`<div class="form">
         <div class="note">
@@ -209,14 +227,12 @@ export function connectionPage() {
 export function scopePage() {
   const p = product();
   if (!p) return newProduct();
+  // Everything that belongs to this product, in one screen: folder, goal, automation, checks,
+  // and Codex collection. App-wide settings live under Settings in the sidebar.
   return (
     header(tr('제품 설정'), p.name) +
-    html`<section class="settings-connection">
-        <div>
-          <h2>제품 폴더와 결과 수집</h2>
-          <p class="small muted">${e(observation(p))}</p>
-        </div>${button(tr('연결 관리'), 'nav:product')}</section>
-      <section class="section">
+    folderSection(p) +
+    html`<section class="section">
         <h2>제품 목표</h2>
         <form data-form="goal" data-id="${p.id}" class="form gap">
           ${field('goal', tr('이 제품에서 이루고 싶은 것'), p.goal, 'textarea', 'maxlength="2000"')}
@@ -224,13 +240,27 @@ export function scopePage() {
             <button type="submit">목표 저장</button>
           </div>
         </form>
-      </section>${operationSettings(p, data)}`
+      </section>` +
+    operationSettings(p, data) +
+    captureSetup(p) +
+    codexApproval(p)
+  );
+}
+
+export function publishAccountPage() {
+  return (
+    header(
+      tr('공개 계정'),
+      tr(
+        '검토한 포트폴리오를 웹에 공개할 때 쓰는 계정입니다. 모든 대상이 같은 계정을 사용하고, 공개할 프로젝트는 대상마다 정합니다.',
+      ),
+    ) + publicationCredentialsForm(data)
   );
 }
 
 export function appSettingsPage() {
   return (
-    header(tr('앱 설정'), tr('모든 제품에 공통으로 적용되는 환경을 설정합니다.')) +
+    header(tr('일반'), tr('모든 제품에 공통으로 적용되는 화면 언어와 실행 방식입니다.')) +
     html`<section class="section">
       <h2>화면 언어</h2>
       <p id="language-description" class="small muted">메뉴와 안내의 언어를 바꿉니다. 작성한 기록과 모델 응답의 원문은 유지합니다.</p>

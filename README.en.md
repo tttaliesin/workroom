@@ -53,7 +53,7 @@ pnpm start
 
 On Windows, you can also launch `start-workroom.cmd` after installation.
 
-Open **App settings → Interface language** at the bottom left and choose **English** or **한국어**. Changes apply immediately and persist across launches. Your records keep their original text. Save or discard unsaved form changes before opening settings. This changes Workroom's interface; existing reports, model responses and the external Codex terminal are not automatically translated.
+Open **Settings → General → Interface language** at the bottom left and choose **English** or **한국어**. Changes apply immediately and persist across launches. Your records keep their original text. Save or discard unsaved form changes before opening settings. This changes Workroom's interface; existing reports, model responses and the external Codex terminal are not automatically translated.
 
 1. **Connect a product folder** — Select a development folder and describe your goal.
 2. **Assign a task** — Describe the result you want, then choose **Investigate first** or **Prepare changes too**.
@@ -99,20 +99,20 @@ Each record includes applicability, sources and delivery history. The built-in a
 
 The built-in runner uses [Pi](https://www.npmjs.com/package/@earendil-works/pi-coding-agent). External MCP clients can query the same products and records and report work results. Codex hooks can collect responses that involved file changes or check commands.
 
-Open **Codex connection** at the bottom left of the app:
+App-wide settings live under **Settings** at the bottom left: **AI runs** (Workroom AI account, model and pause), **External tools** (letting external tools read records and send results) and **Publishing account** (the Vercel token for portfolio publishing). Product-specific settings are in each product’s **Settings** tab. To report work yourself, use **Record work result / Create decision request** below the **Work** list.
 
-The account control at the top powers Workroom AI. **Codex connection** lets external tools read records and send results. To report work yourself, use **Work → Record work result / Create decision request**.
+To connect Codex:
 
-1. **Check environment and connection** — Discover Codex and Node.js 24+, or select their executables.
+1. In **Settings → External tools**, **Check environment and connection** — Discover Codex and Node.js 24+, or select their executables.
 2. **Review MCP registration → Register MCP in Codex** — Preserve other settings and back up the existing file.
 3. **Run connection check** — Verify the MCP tool list and product data access.
-4. **Automatic Codex work collection → Review connection settings → Save connection settings for this product** — Install the product hooks while preserving existing hooks.
-5. **Open Codex approval screen** — Complete any sign-in and project trust prompts, then open **Hook approval (/hooks)**. Review and trust the three `작업실 수집` (Workroom collection) hooks using the arrow keys and Enter.
+4. In the product’s **Settings → Automatic Codex work collection**, **Review connection settings → Save connection settings for this product** — Install the product hooks while preserving existing hooks.
+5. On the same screen, **Open Codex approval screen** — Complete any sign-in and project trust prompts, then open **Hook approval (/hooks)**. Review and trust the three `작업실 수집` (Workroom collection) hooks using the arrow keys and Enter.
 6. Close the Codex window and **Recheck approval status**. The next completed task involving file changes or checks will update the collection status.
 
 You do not need to edit configuration files or open a separate terminal. Initial account authentication uses Codex's official browser flow. Existing Codex chats may not immediately load new settings; verify in a new task. Closing the embedded Codex window ends that process, so wait for any work to finish first.
 
-Generic stdio settings for other MCP clients are available under **Other MCP clients · Recent record changes → View connection settings**. Workroom and the MCP server use the same local SQLite data.
+Generic stdio settings for other MCP clients are available in **Settings → External tools → Other MCP clients · Recent record changes → View connection settings**. Workroom and the MCP server use the same local SQLite data.
 
 ### Use alongside Jev Context
 
@@ -134,7 +134,7 @@ The built-in agent sends investigation and change requests to the connected mode
 - **Optional:** Periodic investigations, bounded retries, linked decision resume, npm dependency installation and verification profiles, tray execution, versioned job sources, and reviewed Vercel portfolio publication, verification and restoration.
 - **Not yet available:** Execution after the app process exits, remote execution, an installer or automatic updates. Live Vercel deployment still needs validation with your account.
 
-Closing the window exits by default. Enable tray execution in App settings to keep running, then use **Quit Workroom** in the tray to stop.
+Closing the window exits by default. Enable tray execution in **Settings → General** to keep running, then use **Quit Workroom** in the tray to stop.
 
 **Latest local validation · 2026-09-28:** **113 unit/integration tests** and **16 actual Electron app checks** passed, along with lint and formatting checks. Publication interruption and recovery were tested with simulated provider responses; these results do not establish live Vercel account deployment.
 

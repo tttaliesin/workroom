@@ -20,7 +20,7 @@ const launch = () => electron.launch({ executablePath: require('electron'), args
   const click=async(name)=>page.getByRole('button',{name,exact:true}).click();
   const summary=async(name)=>page.locator('summary').filter({hasText:name}).click();
   const settings=async()=>page.getByRole('navigation',{name:'제품 화면'}).getByRole('button',{name:'설정',exact:true}).click();
-  const productPage=async()=>{await settings();await click('연결 관리');};
+  const productPage=settings;
   const goal=()=>page.getByLabel('이 제품에서 이루고 싶은 것',{exact:true});
   const back=()=>click('이전 화면으로 돌아가기');
   const target=async(name)=>page.getByRole('navigation',{name:'포트폴리오 대상'}).getByRole('button',{name:new RegExp('^'+name+' ')}).click();
@@ -39,7 +39,7 @@ const launch = () => electron.launch({ executablePath: require('electron'), args
   await page.getByText('결정이 기록되었습니다.',{exact:false}).waitFor();
   await page.locator('[data-action="nav:ops"]').click();await click('작업 결과 기록');
   await page.getByLabel('작업 제목').fill('검색 누락 수정');await page.getByLabel('무엇이 달라졌나요?').fill('자모 분리 입력의 검색 결과를 복구했습니다.');
-  await click('Codex 연결');assert.equal(await page.getByLabel('작업 제목').inputValue(),'검색 누락 수정');
+  await page.locator('[data-action="nav:settings"]').click();assert.equal(await page.getByLabel('작업 제목').inputValue(),'검색 누락 수정');
   await click('새로고침');assert.equal(await page.getByLabel('무엇이 달라졌나요?').inputValue(),'자모 분리 입력의 검색 결과를 복구했습니다.');
   await app.evaluate(({dialog,BrowserWindow})=>{globalThis.closePromptCount=0;dialog.showMessageBoxSync=()=>{globalThis.closePromptCount++;return 0;};BrowserWindow.getAllWindows()[0].close();});
   await page.waitForFunction(()=>!!window.workroom);assert.equal(await app.evaluate(()=>globalThis.closePromptCount),1);
@@ -82,14 +82,14 @@ const launch = () => electron.launch({ executablePath: require('electron'), args
   await page.getByRole('heading',{name:'검증 제품',exact:true,level:1}).waitFor();
   await page.getByRole('navigation',{name:'제품 화면'}).getByRole('button',{name:'작업',exact:true}).click();
   await page.getByRole('heading',{name:'구조화된 근거 확인',exact:true,level:1}).waitFor();await task('검색 누락 수정');await click('포트폴리오 초안 보기');assert.match(await page.locator('.paper').innerText(),/개발 도구를 만드는/);
-  await click('Codex 연결');await page.getByText('다른 MCP 클라이언트 연결 · 최근 기록 변경', { exact: true }).click();await click('연결 설정 보기');await page.getByRole('heading',{name:'stdio 연결 설정'}).waitFor();
+  await page.locator('[data-action="nav:settings"]').click();await page.locator('[data-action="nav:connection"]').click();await page.getByText('다른 MCP 클라이언트 연결 · 최근 기록 변경', { exact: true }).click();await click('연결 설정 보기');await page.getByRole('heading',{name:'stdio 연결 설정'}).waitFor();
   await click('+ 제품 등록');await app.evaluate(({dialog},folder)=>{dialog.showOpenDialog=async()=>({canceled:false,filePaths:[folder]});},repo);
   await page.getByLabel('제품 이름',{exact:true}).fill('추가 제품');await click('폴더 선택');await page.getByLabel('지금 이 제품에서 이루고 싶은 것').fill('다른 목표');await click('제품 등록');
   await page.getByText('이미 등록한 폴더입니다.',{exact:false}).waitFor();assert.equal(await page.getByLabel('제품 이름',{exact:true}).inputValue(),'추가 제품');
   const repo2=path.join(dir,'repo2');fs.mkdirSync(repo2);await app.evaluate(({dialog},folder)=>{dialog.showOpenDialog=async()=>({canceled:false,filePaths:[folder]});},repo2);await click('폴더 선택');await click('제품 등록');
   await settings();assert.equal(await goal().inputValue(),'다른 목표');
   await product('검증 제품');await settings();assert.equal(await goal().inputValue(),'검색 안정화');
-  await goal().fill('미저장 목표');await click('연결 관리');assert.equal(await goal().inputValue(),'미저장 목표');await click('수정 취소');assert.equal(await goal().inputValue(),'검색 안정화');
+  await goal().fill('미저장 목표');await page.getByRole('navigation',{name:'제품 화면'}).getByRole('button',{name:'개요',exact:true}).click();assert.equal(await goal().inputValue(),'미저장 목표');await click('수정 취소');assert.equal(await goal().inputValue(),'검색 안정화');
   await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].setSize(760,650));
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));
   assert.deepEqual(errors,[]);

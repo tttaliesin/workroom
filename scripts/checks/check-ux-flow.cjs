@@ -78,6 +78,7 @@ const path = require('node:path');
     await click('dismiss-message');
     assert.equal(await page.locator('.message .notice').count(), 0);
     if ((await call('snapshot')).publicationAccount.state === 'missing') {
+      await click('nav:publish-account');
       const credentials = page.locator('[data-form="publication-credentials"]');
       const token = 'fixture-token-no-provider-call';
       await credentials.locator('[name="token"]').fill(token);

@@ -16,7 +16,7 @@ const root=path.resolve(__dirname,'../..');
  try{
   page=await app.firstWindow();page.on('pageerror',e=>errors.push(e.message));
   const click=name=>page.getByRole('button',{name,exact:true}).click();
-  const productConnection=async()=>{await page.getByRole('navigation',{name:'제품 화면'}).getByRole('button',{name:'설정',exact:true}).click();await click('연결 관리');};
+  const productConnection=async()=>{await page.getByRole('navigation',{name:'제품 화면'}).getByRole('button',{name:'설정',exact:true}).click();};
   await productConnection();
   await click('연결 설정 확인');await page.locator('.hook-plan').waitFor();
   assert.match(await page.locator('.hook-plan').innerText(),/새 프로젝트 훅 파일/);

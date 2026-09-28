@@ -19,10 +19,8 @@ const launch = () => electron.launch({ executablePath:require('electron'), args:
   page.on('dialog',dialog=>dialog.dismiss().catch(()=>{}));
   const productTabs = () => page.getByRole('navigation', { name: '제품 화면' });
   const openSettings = () => productTabs().getByRole('button', { name: '설정', exact: true }).click();
-  const openProductConnection = async () => {
-    await openSettings();
-    await page.getByRole('button', { name: '연결 관리', exact: true }).click();
-  };
+  // Folder, inspection and collection are part of product settings.
+  const openProductConnection = openSettings;
   const openManualRecord = async (name) => {
     await productTabs().getByRole('button', { name: '작업', exact: true }).click();
     await page.locator('.work-record-actions').getByRole('button', { name, exact: true }).click();
@@ -105,7 +103,7 @@ const launch = () => electron.launch({ executablePath:require('electron'), args:
   await page.getByRole('navigation', { name: '포트폴리오 탐색' }).getByRole('button', { name: '포트폴리오', exact: true }).click();
   await page.locator('#folio-preview').waitFor();
   assert.match(await page.locator('#folio-preview').innerText(), /개발 도구를 만드는 개발자입니다\./);
-  await page.getByRole('button', { name: 'Codex 연결', exact: true }).click();
+  await page.locator('[data-action="nav:settings"]').click();await page.locator('[data-action="nav:connection"]').click();
   await page.getByText('다른 MCP 클라이언트 연결 · 최근 기록 변경', { exact: true }).click();
   await page.getByRole('button', { name: '연결 설정 보기' }).click();
   await page.getByRole('heading', { name: 'stdio 연결 설정' }).waitFor();
@@ -131,7 +129,7 @@ const launch = () => electron.launch({ executablePath:require('electron'), args:
   assert.equal(await goalField().inputValue(), '검색 안정화');
   // An unsaved goal survives a blocked navigation and is reset by the discard control.
   await goalField().fill('아직 저장하지 않은 목표');
-  await page.getByRole('button', { name: '연결 관리', exact: true }).click();
+  await productTabs().getByRole('button', { name: '개요', exact: true }).click();
   assert.equal(await goalField().inputValue(), '아직 저장하지 않은 목표');
   await page.getByRole('button', { name: '수정 취소', exact: true }).click();
   assert.equal(await goalField().inputValue(), '검색 안정화');

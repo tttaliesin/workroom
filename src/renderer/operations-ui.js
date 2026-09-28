@@ -62,7 +62,7 @@ export function operationOverview(p, data) {
       <p class="small muted">최근 확인 ${date(s.lastAt)}
         ${s.enabled ? tr` · 오늘 ${startedToday(p, data)}/${s.maxDailyStarts}개 시작` : ''}
       </p>
-      ${s.lastReason ? `<p class="small muted">${e(s.lastReason)}</p>` : ''}
+      ${s.enabled && s.lastReason ? `<p class="small muted">${e(s.lastReason)}</p>` : ''}
       <div class="actions">
         ${b(tr('지금 확인'), `operation-check:${p.id}`)}
       </div>
@@ -181,7 +181,7 @@ export function operationSettings(p, data) {
         <label>명령별 제한 시간 · 초<input name="timeoutSeconds" type="number" min="10" max="120" value="${profile?.timeoutSeconds || 60}" required></label>
         <label class="check-option"><input type="checkbox" name="allowExecution">의존성 다운로드와 제품 스크립트 실행 허용</label>
         <p class="small muted">설치 후크는 실행하지 않습니다. 검사 스크립트는 컴퓨터와 네트워크에 접근할 수 있으므로 신뢰하는 제품에 사용하세요.</p>
-        <button type="submit">검사 환경 저장</button>
+        <div><button type="submit">검사 환경 저장</button></div>
       </form>
     </section>`;
 }

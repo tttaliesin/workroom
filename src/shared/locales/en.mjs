@@ -1262,4 +1262,31 @@ export default {
   '훅 설정이 변경되었습니다. 다시 확인하세요.': 'Hook settings changed. Review them again.',
   '저장 직전에 훅 설정이 변경되었습니다. 다시 확인하세요.':
     'Hook settings changed just before saving. Review them again.',
+  // Settings reorganization
+  일반: 'General',
+  'AI 실행': 'AI runs',
+  '외부 도구': 'External tools',
+  '공개 계정': 'Publishing account',
+  '실행 재개': 'Resume runs',
+  '새 실행이 일시 정지되어 있습니다. 대기 중인 작업, AI 작성과 지속 운영이 시작되지 않습니다.':
+    'New runs are paused. Queued tasks, AI drafting and continuous operation will not start.',
+  '모든 제품에 공통으로 적용되는 화면 언어와 실행 방식입니다.':
+    'Display language and run behavior shared by every product.',
+  'Codex 등 외부 도구에서 작업실 기록을 읽고 결과를 보내는 연결입니다. 작업실 AI의 계정과 실행은 AI 실행 탭에서 설정합니다.':
+    'Lets external tools such as Codex read Workroom records and send results. Workroom AI accounts and runs are set in the AI runs tab.',
+  '외부 Codex에서 기록을 읽고 결과를 보내는 연결은 외부 도구 탭에서 설정합니다.':
+    'Set up external Codex access to records and results in the External tools tab.',
+  '검토한 포트폴리오를 웹에 공개할 때 쓰는 계정입니다. 모든 대상이 같은 계정을 사용하고, 공개할 프로젝트는 대상마다 정합니다.':
+    'The account used to publish reviewed portfolios. Every target shares it; each target picks its own project.',
+  '공개 계정 설정': 'Publishing account settings',
+  'Codex 실행 환경·MCP 설정': 'Codex environment and MCP setup',
+  '3. 제품별 작업 자동 수집': '3. Automatic work collection per product',
+  '파일 변경·검사가 있었던 Codex 작업을 기록으로 모으려면 각 제품의 설정에서 수집을 켜고 Codex 훅을 승인하세요.':
+    'To collect Codex work that changed files or ran checks, turn on collection and approve the Codex hooks in each product’s settings.',
+  '현재 제품 설정 열기': 'Open current product settings',
+  'Codex에서 수집 훅 승인': 'Approve collection hooks in Codex',
+  '기존 Codex 대화에는 새 설정이 즉시 적용되지 않을 수 있으므로 새 작업에서 확인하세요. 파일 변경·검사가 포함된 작업이 끝나면 위 수집 상태에 최근 수신 시각이 표시됩니다.':
+    'Existing Codex chats may not pick up new settings right away, so check in a new task. After a task with file changes or checks finishes, the collection status above shows when it was last received.',
+  '설정 저장만으로 실행이 확인된 것은 아닙니다. 아래 Codex 승인 화면에서 작업실 훅을 검토·신뢰하면 다음 작업부터 수집합니다.':
+    'Saving the settings does not confirm that collection runs. Review and trust the Workroom hooks on the Codex approval screen below, and collection starts with the next task.',
 };

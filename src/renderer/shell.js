@@ -12,7 +12,7 @@ import {
   newDecision,
   newProduct,
   newWork,
-  productPage,
+  publishAccountPage,
   scopePage,
 } from './setup-views.js';
 import { data, hasTaskPane, portfolioArea, product, requestDraft, ui } from './state.js';
@@ -24,11 +24,28 @@ const shellClass = () =>
     ui.listOpen ? 'show-list' : '',
     data.products.length ? '' : 'no-products',
   ].join(' ');
+// Everything that applies to the whole app lives under one settings area with these tabs.
+const settingsTabs = [
+  ['settings', '일반'],
+  ['account', 'AI 실행'],
+  ['connection', '외부 도구'],
+  ['publish-account', '공개 계정'],
+];
+export const settingsArea = () => settingsTabs.some(([view]) => view === ui.view);
 function workspaceNavigation() {
-  if (['account', 'connection', 'new-product', 'settings'].includes(ui.view))
-    return html`<span class="view-label">
-        ${{ account: tr('계정과 실행'), connection: tr('외부 도구 연결'), 'new-product': tr('제품 등록'), settings: tr('앱 설정') }[ui.view]}
-      </span>`;
+  if (settingsArea())
+    return html`<nav class="product-tabs settings-tabs" aria-label="설정 화면">
+        ${settingsTabs
+          .map(([view, label]) =>
+            button(
+              tr(label),
+              `nav:${view}`,
+              `class="plain" ${ui.view === view ? 'aria-current="page"' : ''}`,
+            ),
+          )
+          .join('')}
+      </nav>`;
+  if (ui.view === 'new-product') return html`<span class="view-label">${tr('제품 등록')}</span>`;
   if (portfolioArea()) return tr('<span class="view-label">포트폴리오 · 대상별 소개</span>');
   if (!data.products.length) return '';
   const routes = {
@@ -56,7 +73,7 @@ function workspaceNavigation() {
 }
 function workspaceToolbar() {
   const canDelegate =
-    product() && ['home', 'ops', 'records', 'record-detail', 'scope', 'product'].includes(ui.view);
+    product() && ['home', 'ops', 'records', 'record-detail', 'scope'].includes(ui.view);
   return html`<div class="workspace-toolbar">${workspaceNavigation()}<div class="toolbar-actions">
         ${ui.history.length ? button('←', 'return-location', tr('class="plain history-back" aria-label="이전 화면으로 돌아가기" title="이전 화면으로 돌아가기"')) : ''}
         ${
@@ -90,6 +107,8 @@ function view() {
       );
     case 'account':
       return accountReturnNotice() + accountPage(data.runtime);
+    // 'product' was the separate folder/collection screen; it is now part of product settings.
+    case 'product':
     case 'scope':
       return scopePage();
     case 'settings':
@@ -100,8 +119,6 @@ function view() {
       return linkPage();
     case 'new-product':
       return newProduct();
-    case 'product':
-      return productPage();
     case 'records':
       return recordsPage();
     case 'new-record':
@@ -116,6 +133,8 @@ function view() {
       return portfolioPage();
     case 'connection':
       return connectionPage();
+    case 'publish-account':
+      return publishAccountPage();
     default:
       return operations();
   }
@@ -139,14 +158,23 @@ export function shellHTML() {
         </nav>
         <nav class="bottom" aria-label="앱 설정">
           ${button(tr('<span aria-hidden="true">＋</span><span>제품 등록</span>'), 'nav:new-product', tr('aria-label="+ 제품 등록"'))}
-          ${button(tr`${icon('connection')}<span>Codex 연결</span>`, 'nav:connection', ui.view === 'connection' ? 'aria-current="page"' : '')}
-          ${button(tr`${icon('settings')}<span>앱 설정</span>`, 'nav:settings', ui.view === 'settings' ? 'aria-current="page"' : '')}
+          ${button(tr`${icon('settings')}<span>설정</span>`, 'nav:settings', settingsArea() ? 'aria-current="page"' : '')}
         </nav>
       </aside>
       <div class="workspace">${workspaceToolbar()}<div
       class="workspace-body">${hasTaskPane() ? taskPane() : ''}
         <main class="main ${ui.view === 'home' ? 'overview-main' : ui.view === 'delegate' ? 'request-main' : ''}">
             <div class="content ${ui.view === 'home' ? 'overview-content' : ''}">
+              ${
+                // Pausing blocks queued tasks, AI drafts and continuous operation everywhere, so the
+                // way back is shown on every screen rather than only in the AI settings.
+                data.runtime?.paused && ui.view !== 'account'
+                  ? html`<div class="notice row between paused-banner" role="status">
+                  <span>새 실행이 일시 정지되어 있습니다. 대기 중인 작업, AI 작성과 지속 운영이 시작되지 않습니다.</span>
+                  ${button(tr('실행 재개'), 'runtime-pause', 'class="primary"')}
+                </div>`
+                  : ''
+              }
               <div class="sync-notice small muted" role="status">
                 ${ui.externalPending ? pendingMessage() : ''}
               </div>

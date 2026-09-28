@@ -69,7 +69,8 @@ const { _electron } = require('./lib/playwright.cjs');
     const click = (action) => page.locator(`[data-action="${action}"]`).first().click();
     const language = async (value, route = 'home') => {
       await click('nav:settings');
-      assert.equal(await page.locator('.product-tabs').count(), 0);
+      // Settings show their own tabs, never the product tabs.
+      assert.equal(await page.locator('.product-tabs:not(.settings-tabs)').count(), 0);
       assert.equal(await page.locator('.appbar #app-language').count(), 0);
       await page.locator('#app-language').selectOption(value);
       await page.waitForFunction((v) => document.documentElement.lang === v, value);
@@ -115,9 +116,9 @@ const { _electron } = require('./lib/playwright.cjs');
     await click('discard-form');
     for (const [route, heading] of [
       ['scope', 'Product settings'],
-      ['product', 'Folder and collection'],
       ['account', 'Built-in agent connection'],
-      ['connection', 'Codex connection'],
+      ['publish-account', 'Publishing account'],
+      ['connection', 'External tool connection'],
     ]) {
       await click('nav:' + route);
       await page.getByRole('heading', { name: heading, exact: true }).waitFor();
@@ -144,7 +145,7 @@ const { _electron } = require('./lib/playwright.cjs');
       false,
     );
     await click('nav:settings');
-    await page.getByRole('heading', { name: 'App settings', exact: true }).waitFor();
+    await page.getByRole('heading', { name: 'General', exact: true }).waitFor();
     assert.equal(
       await page
         .locator('main')

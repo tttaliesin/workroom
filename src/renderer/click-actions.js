@@ -507,12 +507,6 @@ const clickActions = {
     if (!response.ok) throw new Error(response.error);
     ui.connection = response.value;
   },
-  'connection-product': async (id) => {
-    if (!canLeave()) return;
-    ui.productId = id;
-    ui.codexStatus = null;
-    ui.mcpPlan = null;
-  },
   'connection-status': async () => {
     await connectionStatus();
     await refresh();

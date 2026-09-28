@@ -91,29 +91,6 @@ const formActions = {
     ui.resetForm = true;
     flash(tr('작업을 맡겼습니다. 진행 단계와 필요한 판단을 여기에서 확인할 수 있습니다.'));
   },
-  'change-start': async (form, values) => {
-    const testFiles = values.testFiles
-      .split(/\r?\n/)
-      .map((s) => s.trim())
-      .filter(Boolean);
-    if (testFiles.length && !values.allowTests)
-      throw new Error(tr('지정한 테스트의 실행을 허용하거나 테스트 경로를 비워주세요.'));
-    const task = await runtimeCall('start', {
-      productId: product().id,
-      goal: values.goal,
-      mode: 'change',
-      testFiles,
-      allowTests: !!values.allowTests,
-    });
-    await refresh();
-    ui.taskId = task.id;
-    ui.view = 'ops';
-    flash(
-      tr(
-        '분리된 수정안 작성을 맡겼습니다. 작업 폴더에 반영하기 전에 변경과 검사 결과를 확인할 수 있습니다.',
-      ),
-    );
-  },
   'change-apply': async (form, values) => {
     const task = data.tasks.find((t) => t.id === form.dataset.id),
       change = data.agentChanges.find((c) => c.id === task.changeSetId);
@@ -162,13 +139,6 @@ const formActions = {
     document.getElementById('oauth-code').value = '';
     await runtimeCall('manualCode', values);
     await refresh();
-  },
-  'agent-start': async (form, values) => {
-    const task = await runtimeCall('start', { productId: product().id, goal: values.goal });
-    await refresh();
-    ui.taskId = task.id;
-    ui.view = 'ops';
-    flash(tr('조사를 맡겼습니다. 단계별 진행과 근거가 여기에 쌓입니다.'));
   },
   product: async (form, values) => {
     const p = await call('createProduct', values);

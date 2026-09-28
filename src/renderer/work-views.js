@@ -142,6 +142,7 @@ export function taskPane() {
       </div>
       <nav class="tasknav" aria-label="작업 목록">${taskRows()}</nav>
       <div class="pane-footer">
+        <div class="actions work-record-actions">${button(tr('작업 결과 기록'), 'nav:new-work', 'class="plain"')}${button(tr('판단 요청 만들기'), 'nav:new-decision', 'class="plain"')}</div>
         <p class="observation small muted">
           ${product() ? e(observation(product())) : ''}
         </p>
@@ -198,12 +199,9 @@ export function operations() {
         </div>
       </div>`;
   const selected = data.tasks.find((t) => t.id === ui.taskId && t.productId === ui.productId);
-  return (
-    html`<div class="actions work-record-actions">${button(tr('작업 결과 기록'), 'nav:new-work', 'class="plain"')}${button(tr('판단 요청 만들기'), 'nav:new-decision', 'class="plain"')}</div><p class="small muted">작업 결과는 수행한 일과 근거를, 기록 화면은 다시 사용할 지식과 조건을 보관합니다.</p>` +
-    (selected
-      ? tr`<section class="detail" aria-label="작업 상세">${taskDetail(selected)}</section>`
-      : productWelcome())
-  );
+  return selected
+    ? tr`<section class="detail" aria-label="작업 상세">${taskDetail(selected)}</section>`
+    : productWelcome();
 }
 function taskDetail(t) {
   if (t.kind === 'agent') return agentDetail(t, data);

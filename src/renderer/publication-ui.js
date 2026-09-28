@@ -15,6 +15,25 @@ export function jobSourcePanel(p, data) {
       ${job ? `<p>v${job.version} · ${e(job.capturedAt)}</p>` : ''}<button type="submit">공고 버전 저장</button>
     </form></section>`;
 }
+// The Vercel token is one app-wide credential; each portfolio target only picks a project.
+export function publicationAccountStatus(data) {
+  const account = {
+    stored: tr('토큰 저장됨 · Vercel 권한은 아직 확인하지 않았습니다.'),
+    missing: tr('저장된 토큰 없음'),
+    unavailable: tr(
+      '보호 저장소를 읽을 수 없습니다. 운영체제 설정을 확인하거나 토큰을 다시 저장하세요.',
+    ),
+  };
+  return account[data.publicationAccount?.state] || account.unavailable;
+}
+export function publicationCredentialsForm(data) {
+  return html`<form class="form gap" data-form="publication-credentials"><h2>Vercel 계정</h2>
+      <p class="publication-account-status" role="status">${e(publicationAccountStatus(data))}</p>
+      <label>Vercel 접근 토큰<input name="token" type="password" autocomplete="off" required></label>
+      <p class="small muted">토큰은 운영체제 보호 저장소에 저장합니다. 공개 전용 프로젝트를 사용하세요.</p>
+      <div class="actions"><button type="submit">토큰 저장</button>${button(tr('토큰 삭제'), 'publication-disconnect')}</div>
+    </form>`;
+}
 export function publicationPanel(p, data) {
   const destination = data.publicationDestinations?.find((d) => d.portfolioId === p.id);
   const versions = (data.publications || []).filter((v) => v.portfolioId === p.id);
@@ -27,20 +46,10 @@ export function publicationPanel(p, data) {
     unverified: tr('공개 내용 미확인'),
     failed: tr('공개 실패'),
   };
-  const account = {
-    stored: tr('토큰 저장됨 · Vercel 권한은 아직 확인하지 않았습니다.'),
-    missing: tr('저장된 토큰 없음'),
-    unavailable: tr(
-      '보호 저장소를 읽을 수 없습니다. 운영체제 설정을 확인하거나 토큰을 다시 저장하세요.',
-    ),
-  };
   return html`<section class="section"><h2>웹에 공개</h2><p class="small muted">공개 대상 저장 → 공개 버전 준비 → 내용 검토 → 공개 순서로 진행합니다.</p>
-    <form class="form gap" data-form="publication-credentials"><h3>Vercel 계정</h3>
-      <p class="publication-account-status" role="status">${e(account[data.publicationAccount?.state] || account.unavailable)}</p>
-      <label>Vercel 접근 토큰<input name="token" type="password" autocomplete="off" required></label>
-      <p class="small muted">토큰은 운영체제 보호 저장소에 저장합니다. 공개 전용 프로젝트를 사용하세요.</p>
-      <div class="actions"><button type="submit">토큰 저장</button>${button(tr('토큰 삭제'), 'publication-disconnect')}</div>
-    </form>
+    <div class="row between gap"><div><h3>Vercel 계정</h3>
+      <p class="publication-account-status small muted" role="status">${e(publicationAccountStatus(data))}</p></div>
+      ${button(tr('공개 계정 설정'), 'nav:publish-account', 'class="plain"')}</div>
     <form class="form gap" data-form="publication-destination" data-id="${p.id}" data-version="${destination?.version || 0}">
       <label>공개 전용 프로젝트 이름<input name="project" required pattern="[a-z0-9][a-z0-9-]{1,99}" value="${e(destination?.project || '')}"></label>
       <label>Vercel 팀 ID · 선택<input name="teamId" value="${e(destination?.teamId || '')}"></label>

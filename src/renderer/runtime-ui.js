@@ -61,7 +61,10 @@ const accountLabels = localizedLabels({
   offline: '실행기 연결 끊김',
   error: '연결 확인 필요',
 });
-export const accountLabel = (runtime) => accountLabels[runtime?.state] || tr('계정 연결');
+export const accountLabel = (runtime) =>
+  runtime?.paused && ['connected', 'ready'].includes(runtime.state)
+    ? tr('새 실행 일시 정지')
+    : accountLabels[runtime?.state] || tr('계정 연결');
 function accountMessage(runtime) {
   if (runtime.failure?.message) return runtime.failure.message;
   if (runtime.state === 'ready')
@@ -107,7 +110,7 @@ export function accountPage(runtime = {}) {
       tr('내장 에이전트 연결'),
       tr('Workroom AI가 제품 조사·수정·검토와 포트폴리오 초안을 작성하는 연결입니다.'),
     ) +
-    html`<p class="small muted">외부 Codex에서 기록을 읽고 결과를 보내려면 사이드바의 Codex 연결을 사용하세요.</p>` +
+    html`<p class="small muted">외부 Codex에서 기록을 읽고 결과를 보내는 연결은 외부 도구 탭에서 설정합니다.</p>` +
     html`
     <section class="task-outcome">
         <h2>${e(accountLabel(runtime))}</h2>

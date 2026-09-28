@@ -147,6 +147,8 @@ const { _electron } = require('./lib/playwright.cjs');
     await click('open-portfolio');
     await click('portfolio-section:publish');
     await page.getByText('Review before publishing', { exact: true }).waitFor();
+    // The Vercel token is app-wide and lives under Settings → Publishing account.
+    await click('nav:publish-account');
     assert.equal(
       await page.locator('form[data-form="publication-credentials"] input').getAttribute('type'),
       'password',
