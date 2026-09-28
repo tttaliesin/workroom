@@ -21,12 +21,11 @@
 <p align="center">
   <a href="#getting-started">Get started</a> ·
   <a href="#a-look-inside">Screenshots</a> ·
-  <a href="docs/guide.md">User guide (Korean)</a> ·
-  <a href="docs/development.md">Development (Korean)</a> ·
+  <a href="#connect-your-tools">Connect your tools</a> ·
   <a href="https://github.com/tttaliesin/workroom/issues">Report an issue</a>
 </p>
 
-<img src="docs/images/en/overview-dark.png" alt="Workroom overview: pending decisions, queued tasks, recent results and collected records" width="1280">
+<img src="assets/readme/en/overview-dark.png" alt="Workroom overview: pending decisions, queued tasks, recent results and collected records" width="1280">
 
 <p align="center"><sub>All screenshots are captured from the actual Electron app in dark mode. Products, tasks and portfolio content are illustrative examples.</sub></p>
 
@@ -69,7 +68,7 @@ Workroom starts empty. You can prepare requests before signing in, browse existi
 
 See work in progress separately from tasks that need your judgment. Open a task to review the policy choices and their effects.
 
-![Decision request with options to save a draft before navigation or ask for confirmation](docs/images/en/decision.png)
+![Decision request with options to save a draft before navigation or ask for confirmation](assets/readme/en/decision.png)
 
 ### Turn work results into your introduction
 
@@ -77,11 +76,11 @@ Choose the experience to emphasize for each target and collect new results in a 
 
 Under **Write**, edit the draft yourself or **Create an AI draft**. Account, model, target priorities and work evidence requirements are shown before execution. Return to the same target after account setup. AI proposes an introduction, case descriptions and contributions, then reviews the evidence separately.
 
-![Portfolio AI drafting and readiness guidance](docs/images/en/portfolio-ai.png)
+![Portfolio AI drafting and readiness guidance](assets/readme/en/portfolio-ai.png)
 
 **Target & sources** holds job sources and cases; **Design** holds templates; **Publish** handles HTML export and Vercel publication. Report syncing collects work results. Automatic AI editing calls a model to tailor the writing, and shows why it is waiting when setup is incomplete.
 
-![Portfolio draft with target-specific focus and work examples](docs/images/en/portfolio.png)
+![Portfolio draft with target-specific focus and work examples](assets/readme/en/portfolio.png)
 
 Choose **Studio · Editorial · Resume** under **Design**, then **Save draft**. Save dark cards, an editorial layout, or a compact two-column resume for each target. Save or discard pending edits before switching sections. Preview and HTML share the same design; exported files work offline and include print styles.
 
@@ -92,7 +91,7 @@ Design references: [DevPortfolio](https://github.com/RyanFitzgerald/devportfolio
 
 Each record includes applicability, sources and delivery history. The built-in agent and MCP share the same retrieval service. When linked file evidence changes, a record is withheld until it is rechecked.
 
-![Records with sources, applicability and automatic reference controls](docs/images/en/records.png)
+![Records with sources, applicability and automatic reference controls](assets/readme/en/records.png)
 
 </details>
 
@@ -119,13 +118,13 @@ Generic stdio settings for other MCP clients are available under **Other MCP cli
 
 Workroom manages work and results; [Jev Context](https://github.com/tttaliesin/jev-context) manages long-term memory. **Register each app's MCP server independently in Codex or Claude Desktop.** The agent can read Workroom results and use Jev's memory tools when needed. There is no direct connection or transfer screen between the apps.
 
-Registering both servers does not automatically save memories. User requests or explicit agent instructions determine what to remember and when. Repositories, databases and releases stay separate, and either app works on its own. For example: “Read this Workroom result and remember its key decisions and limitations in Jev, including its source and reported status.” See the [agent workflow (Korean)](docs/agent-memory-workflow.md), [independence policy](docs/independent-products.md) and [change results](docs/jev-integration-results.md).
+Registering both servers does not automatically save memories. User requests or explicit agent instructions determine what to remember and when. Repositories, databases and releases stay separate, and either app works on its own. For example: “Read this Workroom result and remember its key decisions and limitations in Jev, including its source and reported status.”
 
 ## Where does the data stay?
 
 Records and settings are stored locally in `.workroom/` by default. The built-in agent's credentials are encrypted using OS-protected storage. Semantic retrieval and reranking run on the local CPU; public model files are downloaded on first use.
 
-The built-in agent sends investigation and change requests to the connected model. Not every AI feature works offline. See the [user guide (Korean)](docs/guide.md#데이터와-보안) for data locations, backup and file-access scope.
+The built-in agent sends investigation and change requests to the connected model. Not every AI feature works offline. Set `WORKROOM_DATA_DIR` to move the data; back it up by copying the whole folder after closing the app and the MCP server. The agent's file tools are limited to registered product folders.
 
 ## Current status
 
@@ -135,13 +134,11 @@ The built-in agent sends investigation and change requests to the connected mode
 - **Optional:** Periodic investigations, bounded retries, linked decision resume, npm dependency installation and verification profiles, tray execution, versioned job sources, and reviewed Vercel portfolio publication, verification and restoration.
 - **Not yet available:** Execution after the app process exits, remote execution, an installer or automatic updates. Live Vercel deployment still needs validation with your account.
 
-Closing the window exits by default. Enable tray execution in App settings to keep running, then use **Quit Workroom** in the tray to stop. See the [workflow guide](docs/quality-workflows.md) and [implementation plan and validation](docs/quality-implementation-plan.md).
+Closing the window exits by default. Enable tray execution in App settings to keep running, then use **Quit Workroom** in the tray to stop.
 
 **Latest local validation · 2026-09-28:** **113 unit/integration tests** and **16 actual Electron app checks** passed, along with lint and formatting checks. Publication interruption and recovery were tested with simulated provider responses; these results do not establish live Vercel account deployment.
 
-The 12 UX audit findings were addressed after reviewing the implementation plan: visible AI readiness, separate portfolio stages, persistent error feedback and clearer recovery paths. See the [plan, self-review and validation results (Korean)](docs/ux-remediation-plan.md).
-
-The latest cleanup removes a circular dependency in verification, reduces redundant persisted state and automatically cleans up temporary profiles after successful checks. See the [cleanup plan and completed results (Korean)](docs/cleanup-implementation-plan.md).
+The latest cleanup removes a circular dependency in verification, reduces redundant persisted state and automatically cleans up temporary profiles after successful checks.
 
 ## Help improve Workroom
 
@@ -154,15 +151,9 @@ pnpm lint
 pnpm format:check
 ```
 
-App checks use isolated example data. Temporary directories are deleted after successful checks and retained on failure for diagnosis. Set `WORKROOM_KEEP_FIXTURES=1` when you need the example databases for comparisons of rendered HTML. See [execution and retention instructions (Korean)](docs/development.md).
+App checks use isolated example data. Temporary directories are deleted after successful checks and retained on failure for diagnosis. Set `WORKROOM_KEEP_FIXTURES=1` when you need the example databases for comparisons of rendered HTML.
 
-| Document | Contents |
-| :--- | :--- |
-| [User guide (Korean)](docs/guide.md) | Running tasks, data and security, MCP, retrieval and evidence |
-| [Development and validation (Korean)](docs/development.md) | App checks, model evaluation and code structure |
-| [Recovery, checks and publishing (Korean/English)](docs/quality-workflows.md) | Retries, decision resume, npm checks, tray execution and Vercel publication |
-| [Cleanup plan and results (Korean)](docs/cleanup-implementation-plan.md) | Test artifact retention, dependency and state cleanup, regression validation |
-| [Screenshot capture (Korean)](docs/images/README.md) | Recreate screenshots from illustrative data |
+README screenshots are recaptured from example data with `pnpm docs:screenshots` (`--english` for English). [How to capture (Korean)](assets/readme/README.md)
 
 ## License
 

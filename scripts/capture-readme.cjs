@@ -59,7 +59,7 @@ const demo = (text) => (language === 'en' ? englishDemo[text] || text : text);
 (async () => {
   const { Workroom } = await import(pathToFileURL(path.join(root, 'src/core/service.mjs')));
   const work = path.join(root, 'work');
-  const output = path.join(root, 'docs/images', language === 'en' ? 'en' : '');
+  const output = path.join(root, 'assets/readme', language === 'en' ? 'en' : '');
   fs.mkdirSync(work, { recursive: true });
   fs.mkdirSync(output, { recursive: true });
   const directory = createFixture(path.join(work, 'readme-capture-'));
