@@ -58,7 +58,11 @@ async function operationAction(id, action) {
     flash(
       action === 'operation-check'
         ? tr('현재 운영 상태를 확인했습니다.')
-        : tr('운영 상태를 저장했습니다.'),
+        : action === 'portfolio-auto'
+          ? tr('AI 자동 편집 설정을 저장했습니다. 실행 준비 상태를 확인하세요.')
+          : action === 'portfolio-apply'
+            ? tr('검토한 제안을 초안에 반영했습니다.')
+            : tr('운영 상태를 저장했습니다.'),
     );
 }
 async function runtimeAction(id, action) {
@@ -135,6 +139,39 @@ async function savePortfolioAction(id, action) {
 }
 // Every data-action handled inside run(); actions without an entry still re-render.
 const clickActions = {
+  'dismiss-message': async () => {
+    ui.message = '';
+  },
+  'clear-record-query': async () => {
+    ui.query = '';
+    ui.focusAfterRender = 'record-query';
+  },
+  'portfolio-section': async (section) => {
+    if (!canLeave() || !['write', 'sources', 'design', 'publish'].includes(section)) return;
+    rememberLocation();
+    ui.portfolioSection = section;
+    ui.editing = false;
+    ui.review = false;
+    ui.message = '';
+  },
+  'portfolio-account': async (id) => {
+    if (!canLeave()) return;
+    ui.accountReturn = null;
+    sessionStorage.removeItem('workroom-account-return');
+    ui.portfolioAccountReturn = id;
+    sessionStorage.setItem('workroom-portfolio-return', id);
+    go('account');
+  },
+  'portfolio-return': async () => {
+    if (!canLeave()) return;
+    const id = ui.portfolioAccountReturn;
+    ui.portfolioAccountReturn = null;
+    sessionStorage.removeItem('workroom-portfolio-return');
+    go('portfolio');
+    loadDraft(id);
+    ui.portfolioSection = 'write';
+    ui.editing = false;
+  },
   'publication-prepare': async (id) => {
     if (!canLeave()) return;
     const p = data.portfolios.find((p) => p.id === id);
@@ -155,6 +192,7 @@ const clickActions = {
   },
   'publication-disconnect': async () => {
     await publicationCall('disconnect');
+    await refresh();
     flash(tr('Vercel 토큰을 삭제했습니다.'));
   },
   'publication-restore': async (id) => {
@@ -219,12 +257,19 @@ const clickActions = {
       startRequest(id === 'new-change' ? 'change' : 'investigation');
     else {
       if (id === 'account') {
+        if (!canLeave()) return;
         if (ui.requestOpen) {
+          ui.portfolioAccountReturn = null;
+          sessionStorage.removeItem('workroom-portfolio-return');
           ui.accountReturn = ui.productId;
           sessionStorage.setItem('workroom-account-return', ui.accountReturn);
         } else {
           ui.accountReturn = null;
           sessionStorage.removeItem('workroom-account-return');
+          if (ui.view === 'portfolio') {
+            ui.portfolioAccountReturn = ui.portfolioId;
+            sessionStorage.setItem('workroom-portfolio-return', ui.portfolioId);
+          }
         }
       }
       go(id);
@@ -363,6 +408,9 @@ const clickActions = {
   'source-keep': sourceReviewAction,
   'source-regenerate': sourceReviewAction,
   'edit-portfolio': async (id) => {
+    if (!canLeave()) return;
+    rememberLocation();
+    ui.portfolioSection = 'write';
     ui.editing = true;
   },
   'add-current': async (id) => {

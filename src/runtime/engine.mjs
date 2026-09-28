@@ -254,7 +254,9 @@ export class AgentEngine {
       .parse(input);
     const task = this.store.get('task', id);
     if (['operation', 'portfolio'].includes(task.mode) && !recovery && !decision)
-      throw new Error('제품의 지금 확인 또는 대상에 맞게 정리에서 새 기준으로 요청하세요.');
+      throw new Error(
+        '제품의 지금 확인 또는 포트폴리오의 AI로 초안 만들기에서 새 기준으로 요청하세요.',
+      );
     if (
       task.revision !== revision ||
       task.kind !== 'agent' ||

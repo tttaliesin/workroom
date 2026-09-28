@@ -434,8 +434,29 @@ test('vault requires OS encryption and public failures never expose upstream res
   const directory = await mkdtemp(path.join(os.tmpdir(), 'workroom-vault-'));
   t.after(() => rm(directory, { recursive: true, force: true }));
   const vault = new CredentialVault(directory, { isEncryptionAvailable: () => false });
+  assert.deepEqual(vault.status(), { state: 'unavailable' });
   assert.throws(() => vault.write({ type: 'oauth', access: 'secret', refresh: 'secret' }));
   const failure = publicFailure(new Error('401 refresh failed: {access_token: "sensitive"}'));
   assert.equal(failure.code, 'auth');
   assert.equal(JSON.stringify(failure).includes('sensitive'), false);
+});
+
+test('vault status exposes safe metadata for absent, saved, corrupt and deleted credentials', async (t) => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'workroom-vault-status-'));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const protector = {
+    isEncryptionAvailable: () => true,
+    encryptString: (text) => Buffer.from(text),
+    decryptString: (buffer) => buffer.toString(),
+  };
+  const vault = new CredentialVault(directory, protector, 'fixture.credential');
+  assert.deepEqual(vault.status(), { state: 'missing' });
+  vault.write({ type: 'oauth', access: 'fixture-secret-never-in-status', refresh: '' });
+  assert.deepEqual(vault.status(), { state: 'stored' });
+  protector.decryptString = () => {
+    throw new Error('sensitive failure');
+  };
+  assert.deepEqual(vault.status(), { state: 'unavailable' });
+  vault.write(null);
+  assert.deepEqual(vault.status(), { state: 'missing' });
 });

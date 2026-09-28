@@ -112,7 +112,7 @@ export function taskPane() {
   if (portfolioArea())
     return html`<section class="taskpane" aria-label="대상 탐색">
         <div class="pane-heading">
-          <h2>지원 대상</h2>
+          <h2>포트폴리오 대상</h2>
           ${button(tr('상세로 돌아가기'), 'toggle-list', 'class="plain list-toggle"')}
         </div>
         <nav class="tasknav" aria-label="포트폴리오 대상">
@@ -191,16 +191,19 @@ function relatedRecords(t) {
 export function operations() {
   if (!data.products.length)
     return html`<div class="empty">
-        <h1>제품 폴더 연결</h1>
+        <h1>제품 등록</h1>
         <p class="muted gap">개발 중인 제품의 폴더를 선택하세요. 점검과 에이전트가 보고한 작업을 제품별로 모아 볼 수 있습니다.</p>
         <div class="actions">
           ${button(tr('첫 제품 등록'), 'nav:new-product', 'class="primary"')}
         </div>
       </div>`;
   const selected = data.tasks.find((t) => t.id === ui.taskId && t.productId === ui.productId);
-  return selected
-    ? tr`<section class="detail" aria-label="작업 상세">${taskDetail(selected)}</section>`
-    : productWelcome();
+  return (
+    html`<div class="actions work-record-actions">${button(tr('작업 결과 기록'), 'nav:new-work', 'class="plain"')}${button(tr('판단 요청 만들기'), 'nav:new-decision', 'class="plain"')}</div><p class="small muted">작업 결과는 수행한 일과 근거를, 기록 화면은 다시 사용할 지식과 조건을 보관합니다.</p>` +
+    (selected
+      ? tr`<section class="detail" aria-label="작업 상세">${taskDetail(selected)}</section>`
+      : productWelcome())
+  );
 }
 function taskDetail(t) {
   if (t.kind === 'agent') return agentDetail(t, data);

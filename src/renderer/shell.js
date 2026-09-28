@@ -27,9 +27,10 @@ const shellClass = () =>
 function workspaceNavigation() {
   if (['account', 'connection', 'new-product', 'settings'].includes(ui.view))
     return html`<span class="view-label">
-        ${{ account: tr('계정과 실행'), connection: tr('외부 도구 연결'), 'new-product': tr('제품 연결'), settings: tr('앱 설정') }[ui.view]}
+        ${{ account: tr('계정과 실행'), connection: tr('외부 도구 연결'), 'new-product': tr('제품 등록'), settings: tr('앱 설정') }[ui.view]}
       </span>`;
   if (portfolioArea()) return tr('<span class="view-label">포트폴리오 · 대상별 소개</span>');
+  if (!data.products.length) return '';
   const routes = {
     home: ['home'],
     ops: ['ops', 'new-work', 'new-decision', 'work-link'],
@@ -149,8 +150,8 @@ export function shellHTML() {
               <div class="sync-notice small muted" role="status">
                 ${ui.externalPending ? pendingMessage() : ''}
               </div>
-              <div class="message" role="status" aria-live="polite">
-                ${ui.message ? `<div class="notice ${ui.error ? 'error' : ''}">${e(ui.message)}</div>` : ''}
+              <div class="message" role="${ui.error ? 'alert' : 'status'}" aria-live="${ui.error ? 'assertive' : 'polite'}">
+                ${ui.message && !ui.requestOpen ? html`<div class="notice ${ui.error ? 'error' : ''}"><span>${e(ui.message)}</span>${button(tr('닫기'), 'dismiss-message', 'class="link"')}</div>` : ''}
               </div>${view()}</div>
           </main>
       </div>

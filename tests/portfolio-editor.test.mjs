@@ -97,6 +97,60 @@ async function fixture(
   });
   return { room, product, p, report, engine, broker, calls };
 }
+test('portfolio readiness and execution share blockers, including connected network retries', async (t) => {
+  const { engine, p, broker, room } = await fixture(t);
+  assert.equal(engine.editor.readiness(p).ready, true);
+  engine.configure({ paused: true });
+  broker.status.state = 'disconnected';
+  engine.settings.modelId = null;
+  const empty = { ...p, requirements: '', autoProductIds: [], entries: [] };
+  assert.deepEqual(engine.editor.readiness(empty).blockers, [
+    'account',
+    'model',
+    'paused',
+    'requirements',
+    'sources',
+  ]);
+  assert.throws(() => engine.editor.request({ portfolioId: p.id }), /AI 계정/);
+  assert.equal(engine.editor.request({ portfolioId: p.id, automatic: true }), null);
+  assert.equal(room.store.list('portfolio-edit').length, 0);
+  broker.status = { state: 'network_error', connected: true };
+  engine.settings.modelId = 'fixture';
+  engine.configure({ paused: false });
+  assert.equal(engine.editor.readiness(p).ready, true);
+  const missing = room.createPortfolio({ target: 'Missing sources' });
+  assert.throws(() => engine.editor.request({ portfolioId: missing.id }), /강조점/);
+  const noSources = room.createPortfolio({
+    target: 'No sources',
+    requirements: 'Specific experience',
+  });
+  assert.throws(() => engine.editor.request({ portfolioId: noSources.id }), /작업 사례/);
+  assert.equal(room.store.list('portfolio-edit').length, 0);
+});
+
+test('automatic readiness distinguishes switched off, running, unchanged and daily limit', async (t) => {
+  const { engine, p, room, broker } = await fixture(t, { hold: true });
+  assert.equal(engine.editor.readiness(p).automaticState, 'off');
+  const enabled = engine.editor.configure({
+    id: p.id,
+    revision: room.store.get('portfolio', p.id).revision,
+    enabled: true,
+  });
+  assert.equal(engine.editor.readiness(enabled).automaticState, 'ready');
+  const task = engine.editor.request({ portfolioId: p.id, automatic: true });
+  await until(() => !!broker.release);
+  assert.equal(engine.editor.readiness(enabled).activeTaskId, task.id);
+  assert.equal(engine.editor.readiness(enabled).ready, false);
+  await engine.stop({ id: task.id });
+  broker.release();
+  await until(() => !engine.active.size);
+  const stopped = engine.editor.readiness(room.store.get('portfolio', p.id));
+  assert.equal(stopped.automaticState, 'waiting_sources');
+  assert.ok(stopped.latest.at);
+  engine.editor.startsToday = () => 2;
+  assert.equal(engine.editor.readiness(enabled).automaticState, 'daily_limit');
+});
+
 test('automatic failed edit recovers the same signature and keeps a single proposal', async (t) => {
   const f = await fixture(t, { failures: 1 });
   const p = f.room.store.get('portfolio', f.p.id);
@@ -109,6 +163,9 @@ test('automatic failed edit recovers the same signature and keeps a single propo
       !f.engine.operations.busy,
   );
   f.engine.recovery.now = () => Date.now() + 31000;
+  const readiness = f.engine.editor.readiness(f.room.store.get('portfolio', p.id));
+  assert.equal(readiness.automaticState, 'retry_wait');
+  assert.ok(readiness.retryAt);
   f.engine.recovery.tick();
   await until(
     () =>

@@ -70,8 +70,7 @@ const { _electron } = require('./lib/playwright.cjs');
         .locator(`[data-action="${action}"]`)
         .first()
         .evaluate((el) => el.click());
-    await click('nav:scope');
-    await click('nav:product');
+    await click('nav:ops');
     await click('nav:new-decision');
     const decisionForm = page.locator('form[data-form="new-decision"]');
     await decisionForm.locator('[name="targetTaskId"]').selectOption(stopped.id);
@@ -123,7 +122,7 @@ const { _electron } = require('./lib/playwright.cjs');
     await page.evaluate(() => window.workroom.runtime('configure', { background: false }));
     await click('open-portfolio');
     await page.getByRole('heading', { name: '포트폴리오 초안', exact: true }).waitFor();
-    await page.getByText('공고 원문과 공개 버전', { exact: true }).click();
+    await click('portfolio-section:sources');
     const job = page.locator('form[data-form="job-source"]');
     await job.locator('[name="url"]').fill('https://example.com/jobs');
     await job.locator('[name="description"]').fill('Developer tooling experience');
@@ -131,6 +130,7 @@ const { _electron } = require('./lib/playwright.cjs');
     await page.waitForFunction(
       async () => (await window.workroom.call('snapshot')).value.jobSources.length === 1,
     );
+    await click('portfolio-section:publish');
     const destination = page.locator('form[data-form="publication-destination"]');
     await destination.locator('[name="project"]').fill('workroom-fixture');
     await destination.locator('button').click();
@@ -145,7 +145,7 @@ const { _electron } = require('./lib/playwright.cjs');
     await page.locator('#app-language').selectOption('en');
     await page.waitForFunction(() => document.documentElement.lang === 'en');
     await click('open-portfolio');
-    await page.getByText('Job source and published versions', { exact: true }).click();
+    await click('portfolio-section:publish');
     await page.getByText('Review before publishing', { exact: true }).waitFor();
     assert.equal(
       await page.locator('form[data-form="publication-credentials"] input').getAttribute('type'),

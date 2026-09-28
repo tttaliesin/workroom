@@ -26,18 +26,18 @@ const launch = () => electron.launch({ executablePath: require('electron'), args
   const target=async(name)=>page.getByRole('navigation',{name:'포트폴리오 대상'}).getByRole('button',{name:new RegExp('^'+name+' ')}).click();
   const product=async(name)=>page.getByRole('navigation',{name:'등록한 제품'}).getByRole('button',{name,exact:true}).click();
   const task=async(name)=>page.locator('.tasknav button').filter({has:page.locator('span').filter({hasText:new RegExp('^'+name+'$')})}).click();
-  await click('제품 폴더 연결');
+  await click('제품 등록');
   await app.evaluate(({dialog},folder)=>{dialog.showOpenDialog=async()=>({canceled:false,filePaths:[folder]});},repo);
   await page.getByLabel('제품 이름',{exact:true}).fill('검증 제품');await click('폴더 선택');
   await page.getByLabel('지금 이 제품에서 이루고 싶은 것').fill('검색 안정화');await click('제품 등록');
   await productPage();await click('지금 기본 점검');await page.getByRole('heading',{name:'저장소 기본 점검',exact:true}).waitFor();
   assert.match(await page.locator('.detail').innerText(),/테스트 실행/);
-  await productPage();await summary('직접 기록');await click('판단 요청 만들기');
+  await page.locator('[data-action="nav:ops"]').click();await page.locator('.work-record-actions [data-action="nav:new-decision"]').click();
   await page.getByLabel('요청 제목').fill('중복 ID 처리');await page.getByLabel('왜 이 결정이 필요한가요?').fill('충돌 데이터 보존 방침 미정');
   for(const [label,value] of [['선택 1','기존 유지'],['선택 2','새 값으로 변경'],['선택 1의 영향','가져온 충돌 항목 제외'],['선택 2의 영향','기존 값을 교체']])await page.getByLabel(label,{exact:true}).fill(value);
   await click('판단 요청 저장');await page.getByRole('radio',{name:/기존 유지/}).check();await click('결정 저장');
   await page.getByText('결정이 기록되었습니다.',{exact:false}).waitFor();
-  await productPage();await summary('직접 기록');await click('작업 결과 기록');
+  await page.locator('[data-action="nav:ops"]').click();await click('작업 결과 기록');
   await page.getByLabel('작업 제목').fill('검색 누락 수정');await page.getByLabel('무엇이 달라졌나요?').fill('자모 분리 입력의 검색 결과를 복구했습니다.');
   await click('Codex 연결');assert.equal(await page.getByLabel('작업 제목').inputValue(),'검색 누락 수정');
   await click('새로고침');assert.equal(await page.getByLabel('무엇이 달라졌나요?').inputValue(),'자모 분리 입력의 검색 결과를 복구했습니다.');
@@ -60,7 +60,7 @@ const launch = () => electron.launch({ executablePath: require('electron'), args
   await page.getByLabel('사례 설명').fill('첫 기업에만 적용할 설명');
   await target('다른 기업');assert.equal(await page.getByLabel('사례 설명').inputValue(),'첫 기업에만 적용할 설명');
   await product('검증 제품');assert.equal(await page.getByLabel('사례 설명').inputValue(),'첫 기업에만 적용할 설명');
-  await click('초안 저장');await target('다른 기업');assert.ok(!(await page.locator('.paper').innerText()).includes('첫 기업에만'));
+  await click('초안 저장');await target('다른 기업');assert.ok(!(await page.locator('#folio-preview').innerText()).includes('첫 기업에만'));
   await target('검증 기업');await click('작업 근거 보기');await page.getByRole('heading',{name:'보고된 근거',exact:true}).waitFor();await click('← 포트폴리오 초안');
   await page.getByRole('heading',{name:'포트폴리오 초안',exact:true}).waitFor();
   // An excluded case stays excluded when the portfolio is reopened from its task.

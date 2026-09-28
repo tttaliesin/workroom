@@ -16,6 +16,7 @@ const formActions = {
   'publication-credentials': async (form, values) => {
     form.elements.token.value = '';
     await publicationCall('credentials', { token: values.token });
+    await refresh();
     flash(tr('Vercel 토큰을 보호 저장소에 저장했습니다.'));
   },
   'publication-destination': async (form, values) => {

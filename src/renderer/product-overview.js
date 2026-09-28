@@ -106,7 +106,7 @@ export function productHome(product, data, draft, otherDrafts = []) {
         <h1>어떤 제품을 함께 관리할까요?</h1>
         <p class="gap muted">개발 폴더와 목표를 연결하면 작업의 진행, 필요한 판단, 쌓인 결과를 한곳에서 확인할 수 있습니다.</p>
         <div class="actions">
-          ${button(tr('제품 폴더 연결'), 'nav:new-product', 'class="primary"')}
+          ${button(tr('제품 등록'), 'nav:new-product', 'class="primary"')}
         </div>
         <ol class="onboarding-steps">
           <li>

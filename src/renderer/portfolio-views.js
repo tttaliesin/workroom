@@ -2,7 +2,7 @@ import { portfolioMarkup, normalizeTemplate, portfolioTemplates } from '../share
 import { t as tr, getLanguage } from '../shared/i18n.mjs';
 import { html, button, date, e, empty, field, header } from './html.js';
 import { portfolioAgentPanel } from './operations-ui.js';
-import { publicationPanel } from './publication-ui.js';
+import { jobSourcePanel, publicationPanel } from './publication-ui.js';
 import { data, loadDraft, product, productName, ui } from './state.js';
 export function newTarget() {
   return (
@@ -113,6 +113,25 @@ export function portfolioPage() {
         <span id="save-state" class="small muted">${ui.dirty ? tr('저장하지 않은 변경') : tr('로컬 초안 저장됨')}</span>
       </div>
       ${
+        !ui.review
+          ? html`<nav class="portfolio-tabs actions" aria-label="포트폴리오 단계">${[
+              ['write', tr('작성')],
+              ['sources', tr('대상·근거')],
+              ['design', tr('디자인')],
+              ['publish', tr('공개')],
+            ]
+              .map(([id, label]) =>
+                button(
+                  label,
+                  `portfolio-section:${id}`,
+                  `class="plain" ${ui.portfolioSection === id ? 'aria-current="page"' : ''}`,
+                ),
+              )
+              .join('')}</nav>`
+          : ''
+      }
+      ${!ui.editing && !ui.review && ui.portfolioSection === 'write' ? html`<div class="actions">${button(tr('초안 편집'), 'edit-portfolio')}<span class="small muted">소개와 사례를 직접 작성합니다.</span></div>` : ''}
+      ${
         !ui.editing && !ui.review
           ? html`<div class="folio-context">
           ${e(d.requirements || tr('이 대상에게 강조할 경험을 초안 편집에서 정할 수 있습니다.'))}
@@ -122,22 +141,25 @@ export function portfolioPage() {
         </div>`
           : ''
       }
-      ${!ui.editing && !ui.review ? portfolioAgentPanel(d, data) : ''}
-      ${!ui.editing && !ui.review ? publicationPanel(d, data) : ''}
-      ${!ui.review ? templatePicker(d) : ''}
+      ${!ui.editing && !ui.review && ui.portfolioSection === 'write' ? portfolioAgentPanel(d, data) : ''}
+      ${!ui.editing && !ui.review && ui.portfolioSection === 'sources' ? html`<section class="section"><h2>대상과 작업 근거</h2><p class="small muted">대상별 강조점과 작업 사례, 보고 자동 반영을 편집합니다.</p><div class="actions">${button(tr('강조점·사례 편집'), 'edit-portfolio')}</div>${entryEvidence(d)}</section>${jobSourcePanel(d, data)}` : ''}
+      ${!ui.editing && !ui.review && ui.portfolioSection === 'publish' ? publicationPanel(d, data) + html`<div class="actions">${button(tr('HTML 내보내기 검토'), 'review-export')}</div>` : ''}
+      ${!ui.review && !ui.editing && ui.portfolioSection === 'design' ? templatePicker(d) : ''}
       ${portfolioSourceNotices(d)}
       ${d.pendingTaskIds?.length ? tr`<p class="notice">사례 20개 한도로 ${d.pendingTaskIds.length}개 작업이 대기 중입니다. 사례를 제외하고 저장하면 빈자리에 반영합니다.</p>` : ''}
       ${
         ui.review
           ? exportReview(d)
-          : html`${
-              from && !d.entries.some((x) => x.taskId === from.id)
-                ? html`<div class="context-entry row between">
+          : !ui.editing && ['sources', 'publish'].includes(ui.portfolioSection)
+            ? ''
+            : html`${
+                from && !d.entries.some((x) => x.taskId === from.id)
+                  ? html`<div class="context-entry row between">
           <span>‘${e(from.title)}’은 이 대상에 포함되지 않았습니다.</span>
           ${button(tr('이 작업 추가'), `add-current:${from.id}`)}
         </div>`
-                : ''
-            }
+                  : ''
+              }
         ${
           ui.editing
             ? html`${conflictReview()}<section class="editor" aria-label="초안 편집">${subscriptions(d)}
@@ -184,12 +206,12 @@ export function portfolioPage() {
         </section>`,
             )
             .join('')}
-          <div class="actions">
+          <div class="actions editor-save">
             ${button(tr('초안 저장'), 'save-portfolio', 'class="primary"')}
             ${button(tr('수정 취소'), 'discard-draft')}</div>
         </section><div id="folio-preview" class="editor-preview">${preview(d)}</div>`
-            : html`<div id="folio-preview">${preview(d)}</div>
-        <div class="actions">${button(tr('초안 편집'), 'edit-portfolio')}
+            : html`<div id="folio-preview">${d.entries.length || d.intro || ui.portfolioSection === 'design' ? preview(d) : empty(tr('아직 작성한 소개와 사례가 없습니다.'), tr('직접 편집하거나 위에서 AI 작성 준비를 마치세요.'))}</div>
+        <div class="actions">
           ${from ? button(tr('작업 근거 보기'), `portfolio-evidence:${from.id}`, 'class="plain"') : ''}
           ${entryEvidence(d)}${button(tr('HTML 내보내기 검토'), 'review-export')}</div>`
         }

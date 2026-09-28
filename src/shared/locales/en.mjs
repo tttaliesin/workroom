@@ -1,5 +1,93 @@
 // UI source strings only; user-authored content is never translated.
 export default {
+  '제품의 지금 확인 또는 포트폴리오의 AI로 초안 만들기에서 새 기준으로 요청하세요.':
+    'Request a new run using Check now on the product or Create an AI draft in the portfolio.',
+  '자동 재시도 대기 · {0}': 'Automatic retry scheduled · {0}',
+  'AI로 포트폴리오 초안 만들기': 'Draft your portfolio with AI',
+  'AI로 초안 만들기': 'Create an AI draft',
+  '모델 미선택': 'No model selected',
+  'AI가 소개·사례 설명·기여를 제안하고 별도로 근거를 검토합니다. 직접 요청한 제안은 확인 후 반영하며, 자동 편집은 검토 통과 후 반영합니다. 직접 쓴 문장과 제외한 사례는 보존합니다.':
+    'AI proposes an introduction, case descriptions and contributions, then reviews the evidence separately. Apply requested proposals after checking them; automatic edits apply after passing review. Your writing and excluded cases are preserved.',
+  '실행기를 준비하고 있습니다.': 'Preparing the runtime.',
+  'AI 계정을 연결하세요.': 'Connect an AI account.',
+  '사용할 모델을 선택하세요.': 'Choose a model.',
+  '새 실행 일시 정지를 해제하세요.': 'Resume new runs.',
+  '대상별 강조점을 저장하세요.': 'Save what to emphasize for this target.',
+  '작업 사례를 추가하거나 결과를 받을 제품을 선택하세요.':
+    'Add a work case or select a product to receive reports from.',
+  '계정과 실행 설정': 'Account and execution settings',
+  'AI 자동 편집 꺼짐': 'Automatic AI editing off',
+  'AI 자동 편집 켜짐 · 준비 필요': 'Automatic AI editing on · setup required',
+  'AI 자동 편집 켜짐 · 실행 중': 'Automatic AI editing on · running',
+  'AI 자동 편집 켜짐 · 실행 순서 대기': 'Automatic AI editing on · queued',
+  '진행 중인 편집 중지 중': 'Stopping the current edit',
+  '오늘 한도 도달 · 다음 날 다시 확인': 'Daily limit reached · checks resume tomorrow',
+  '새 근거 대기 · 같은 근거는 자동 재실행하지 않습니다.':
+    'Waiting for new evidence · unchanged evidence does not trigger another automatic run.',
+  '실행 준비됨 · 다음 자동 확인에서 시작': 'Ready · starts at the next automatic check',
+  '연결된 근거 {0}개': '{0} linked sources',
+  '오늘 {0}/2회 · 최근 편집 {1}': '{0}/2 starts today · last edit {1}',
+  '진행 중인 편집 보기': 'View current edit',
+  '보고 자동 반영은 새 작업 결과를 모읍니다. AI 자동 편집은 모델을 호출해 대상에 맞는 문장으로 정리합니다.':
+    'Report syncing collects new work results. Automatic AI editing calls a model to tailor the writing to this target.',
+  'AI 자동 편집 설정을 저장했습니다. 실행 준비 상태를 확인하세요.':
+    'Saved automatic AI editing settings. Check the readiness status.',
+  '검토한 제안을 초안에 반영했습니다.': 'Applied the reviewed proposal to the draft.',
+  '포트폴리오 단계': 'Portfolio stages',
+  작성: 'Write',
+  '대상·근거': 'Target & sources',
+  디자인: 'Design',
+  공개: 'Publish',
+  '소개와 사례를 직접 작성합니다.': 'Write your introduction and cases yourself.',
+  '대상과 작업 근거': 'Target and work evidence',
+  '대상별 강조점과 작업 사례, 보고 자동 반영을 편집합니다.':
+    'Edit the target priorities, work cases and report syncing.',
+  '강조점·사례 편집': 'Edit priorities and cases',
+  '아직 작성한 소개와 사례가 없습니다.': 'No introduction or cases yet.',
+  '직접 편집하거나 위에서 AI 작성 준비를 마치세요.':
+    'Write directly or complete the AI setup above.',
+  '연결과 모델 설정을 마친 뒤 이 대상에서 AI 초안을 요청하세요.':
+    'After setting up your account and model, return to this target to request an AI draft.',
+  '포트폴리오로 돌아가기': 'Return to portfolio',
+  '웹에 공개': 'Publish to the web',
+  '공개 대상 저장 → 공개 버전 준비 → 내용 검토 → 공개 순서로 진행합니다.':
+    'Save a destination → prepare a version → review the content → publish.',
+  '토큰 저장됨 · Vercel 권한은 아직 확인하지 않았습니다.':
+    'Token stored · Vercel permissions have not been verified.',
+  '저장된 토큰 없음': 'No token stored',
+  '보호 저장소를 읽을 수 없습니다. 운영체제 설정을 확인하거나 토큰을 다시 저장하세요.':
+    'Cannot read the protected store. Check your operating system settings or save the token again.',
+  '외부 도구에서 Workroom 기록 사용': 'Use Workroom records from external tools',
+  'Codex 연결은 외부 도구에서 기록을 읽고 결과를 보내는 연결입니다. Workroom의 조사·수정·포트폴리오 AI는 별도의 계정과 실행 설정을 사용합니다.':
+    'The Codex connection lets external tools read records and send results. Workroom investigations, changes and portfolio AI use separate account and execution settings.',
+  'Workroom AI 계정과 실행': 'Workroom AI account and execution',
+  'Workroom AI가 제품 조사·수정·검토와 포트폴리오 초안을 작성하는 연결입니다.':
+    'This connection powers Workroom AI investigations, changes, reviews and portfolio drafts.',
+  '외부 Codex에서 기록을 읽고 결과를 보내려면 사이드바의 Codex 연결을 사용하세요.':
+    'To read records and send results from Codex, use Codex connection in the sidebar.',
+  '작업 결과는 수행한 일과 근거를, 기록 화면은 다시 사용할 지식과 조건을 보관합니다.':
+    'Work results describe what was done and its evidence. Records hold reusable knowledge and its conditions.',
+  '제목·내용·적용 조건의 글자를 찾습니다. AI 실행 중 관련 근거를 찾는 검색과는 별개입니다.':
+    'Matches text in titles, content and conditions. This is separate from evidence retrieval during AI runs.',
+  '검색어와 일치하는 기록이 없습니다.': 'No records match your search.',
+  '검색 해제': 'Clear search',
+  '아직 저장된 기록이 없습니다.': 'No saved records yet.',
+  '기록 추가에서 다시 사용할 지식과 적용 조건을 남기세요.':
+    'Use Add record to save reusable knowledge and its conditions.',
+  '자동 재시도 예정: {0}. 지금 재개를 누르면 예약을 앞당깁니다.':
+    'Automatic retry scheduled: {0}. Resume now to bring it forward.',
+  '먼저 계정을 연결하세요. 연결이 복구되면 대기 중인 작업을 이어갑니다.':
+    'Connect your account first. Waiting work continues when the connection is restored.',
+  '계정의 사용 한도를 확인한 뒤 이 단계부터 재개하세요.':
+    'Check your account limits, then resume this step.',
+  '위 중단 원인을 해결한 뒤 이 단계부터 재개하세요. 연결 오류라면 계정과 모델을 먼저 확인하세요.':
+    'Resolve the cause above, then resume this step. For a connection error, check your account and model first.',
+  '변경된 근거를 확인한 뒤 최신 상태로 다시 조사하세요.':
+    'Check the changed evidence, then investigate the latest state.',
+  '판단 요청에 답하면 연결된 작업을 이어갑니다.':
+    'Answer the decision request to continue the linked work.',
+  '저장된 결과를 확인하고 필요한 후속 작업을 맡기세요.':
+    'Review the saved result and request any follow-up work.',
   '모든 제품에 공통으로 적용되는 환경을 설정합니다.':
     'Set preferences that apply to every product.',
   '화면 언어': 'Interface language',

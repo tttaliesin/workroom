@@ -5,10 +5,19 @@ export async function publicationCall(method, args) {
   if (!result.ok) throw new Error(result.error);
   return result.value;
 }
+export function jobSourcePanel(p, data) {
+  const job = data.jobSources?.find((s) => s.id === p.jobSourceId);
+  return html`<section class="section">
+    <form class="form gap" data-form="job-source" data-id="${p.id}" data-revision="${p.revision}">
+      <h3>공고 원문 보관</h3><p class="small muted">공고 주소와 읽은 원문을 붙여 넣으면 버전별로 보관하고 대상 요구에 반영합니다.</p>
+      <label>공고 주소<input name="url" type="url" required value="${e(job?.url || '')}"></label>
+      <label>공고 원문<textarea name="description" required maxlength="12000">${e(job?.description || '')}</textarea></label>
+      ${job ? `<p>v${job.version} · ${e(job.capturedAt)}</p>` : ''}<button type="submit">공고 버전 저장</button>
+    </form></section>`;
+}
 export function publicationPanel(p, data) {
   const destination = data.publicationDestinations?.find((d) => d.portfolioId === p.id);
   const versions = (data.publications || []).filter((v) => v.portfolioId === p.id);
-  const job = data.jobSources?.find((s) => s.id === p.jobSourceId);
   const states = {
     prepared: tr('공개 전 검토'),
     submitting: tr('전송 중'),
@@ -18,14 +27,16 @@ export function publicationPanel(p, data) {
     unverified: tr('공개 내용 미확인'),
     failed: tr('공개 실패'),
   };
-  return html`<details class="section"><summary>공고 원문과 공개 버전</summary>
-    <form class="form gap" data-form="job-source" data-id="${p.id}" data-revision="${p.revision}">
-      <h3>공고 원문 보관</h3><p class="small muted">공고 주소와 읽은 원문을 붙여 넣으면 버전별로 보관하고 대상 요구에 반영합니다.</p>
-      <label>공고 주소<input name="url" type="url" required value="${e(job?.url || '')}"></label>
-      <label>공고 원문<textarea name="description" required maxlength="12000">${e(job?.description || '')}</textarea></label>
-      ${job ? `<p>v${job.version} · ${e(job.capturedAt)}</p>` : ''}<button type="submit">공고 버전 저장</button>
-    </form>
+  const account = {
+    stored: tr('토큰 저장됨 · Vercel 권한은 아직 확인하지 않았습니다.'),
+    missing: tr('저장된 토큰 없음'),
+    unavailable: tr(
+      '보호 저장소를 읽을 수 없습니다. 운영체제 설정을 확인하거나 토큰을 다시 저장하세요.',
+    ),
+  };
+  return html`<section class="section"><h2>웹에 공개</h2><p class="small muted">공개 대상 저장 → 공개 버전 준비 → 내용 검토 → 공개 순서로 진행합니다.</p>
     <form class="form gap" data-form="publication-credentials"><h3>Vercel 계정</h3>
+      <p class="publication-account-status" role="status">${e(account[data.publicationAccount?.state] || account.unavailable)}</p>
       <label>Vercel 접근 토큰<input name="token" type="password" autocomplete="off" required></label>
       <p class="small muted">토큰은 운영체제 보호 저장소에 저장합니다. 공개 전용 프로젝트를 사용하세요.</p>
       <div class="actions"><button type="submit">토큰 저장</button>${button(tr('토큰 삭제'), 'publication-disconnect')}</div>
@@ -55,5 +66,5 @@ export function publicationPanel(p, data) {
     </article>`,
       )
       .join('')}
-  </details>`;
+  </section>`;
 }

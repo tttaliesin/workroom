@@ -149,6 +149,7 @@ export function pushLocation() {
     productId: ui.productId,
     taskId: ui.taskId,
     portfolioId: ui.portfolioId,
+    portfolioSection: ui.portfolioSection,
     source: ui.source,
     fromTaskId: ui.fromTaskId,
     recordId: ui.recordId,

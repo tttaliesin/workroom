@@ -81,6 +81,20 @@ function stageMessage(task) {
   return task.reason;
 }
 function nextStage(task) {
+  if (task.retryAt)
+    return tr`자동 재시도 예정: ${new Date(task.retryAt).toLocaleString(getLocale())}. 지금 재개를 누르면 예약을 앞당깁니다.`;
+  if (task.status === 'waiting_auth')
+    return tr('먼저 계정을 연결하세요. 연결이 복구되면 대기 중인 작업을 이어갑니다.');
+  if (task.status === 'waiting_quota')
+    return tr('계정의 사용 한도를 확인한 뒤 이 단계부터 재개하세요.');
+  if (['failed', 'stopped', 'interrupted'].includes(task.status))
+    return tr(
+      '위 중단 원인을 해결한 뒤 이 단계부터 재개하세요. 연결 오류라면 계정과 모델을 먼저 확인하세요.',
+    );
+  if (task.status === 'needs_review')
+    return tr('변경된 근거를 확인한 뒤 최신 상태로 다시 조사하세요.');
+  if (task.status === 'waiting_decision') return tr('판단 요청에 답하면 연결된 작업을 이어갑니다.');
+  if (task.status === 'accepted') return tr('저장된 결과를 확인하고 필요한 후속 작업을 맡기세요.');
   if (task.stage === 'investigate') return tr('다음: 별도 세션에서 근거 확인');
   if (task.stage === 'review') return tr('다음: 조건부 기록 정리');
   return tr('개발 결과와 별개로 재사용 기록을 정리합니다.');
@@ -89,7 +103,11 @@ export function accountPage(runtime = {}) {
   const logging = runtime.state === 'logging_in',
     models = runtime.models || [];
   return (
-    heading(tr('내장 에이전트 연결'), tr('한 계정으로 제품별 조사·수정·검토를 실행합니다.')) +
+    heading(
+      tr('내장 에이전트 연결'),
+      tr('Workroom AI가 제품 조사·수정·검토와 포트폴리오 초안을 작성하는 연결입니다.'),
+    ) +
+    html`<p class="small muted">외부 Codex에서 기록을 읽고 결과를 보내려면 사이드바의 Codex 연결을 사용하세요.</p>` +
     html`
     <section class="task-outcome">
         <h2>${e(accountLabel(runtime))}</h2>
@@ -213,7 +231,6 @@ export function agentDetail(task, data) {
         ${task.retryAt || ['running', 'queued', 'waiting_auth', 'waiting_decision'].includes(task.status) ? button(tr('이 작업 중지'), `agent-stop:${task.id}`) : ''}
         ${canResume ? button(task.status === 'needs_review' ? tr('최신 상태로 다시 조사') : tr('이 단계부터 재개'), `agent-resume:${task.id}`) : ''}
         ${task.status === 'waiting_decision' ? button(tr('판단 요청 보기'), `task:${task.decisionId}`) : ''}
-        ${canResume ? button(tr('판단 요청 만들기'), 'nav:new-decision', 'class="plain"') : ''}
         ${['waiting_auth', 'waiting_quota', 'failed'].includes(task.status) ? button(tr('계정 연결 보기'), 'nav:account', 'class="plain"') : ''}
         ${task.resultTaskId ? button(tr('저장된 결과와 기록'), `task:${task.resultTaskId}`) : ''}
       </div>

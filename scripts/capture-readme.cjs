@@ -265,6 +265,8 @@ const demo = (text) => (language === 'en' ? englishDemo[text] || text : text);
     await click('nav:home');
     await click(`target:${portfolio.id}`);
     await page.getByRole('heading', { name: demo('포트폴리오 초안'), exact: true }).waitFor();
+    await capture('portfolio-ai');
+    await click('portfolio-section:design');
     await app.evaluate(({ BrowserWindow }) =>
       BrowserWindow.getAllWindows()[0].setContentSize(1280, 1080),
     );

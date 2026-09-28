@@ -24,16 +24,15 @@ const launch = () => electron.launch({ executablePath:require('electron'), args:
     await page.getByRole('button', { name: '연결 관리', exact: true }).click();
   };
   const openManualRecord = async (name) => {
-    await openProductConnection();
-    await page.getByText('결과를 직접 기록', { exact: true }).click();
-    await page.getByRole('button', { name, exact: true }).click();
+    await productTabs().getByRole('button', { name: '작업', exact: true }).click();
+    await page.locator('.work-record-actions').getByRole('button', { name, exact: true }).click();
   };
   const goalField = () => page.getByLabel('이 제품에서 이루고 싶은 것', { exact: true });
   const chooseFolder = (folder) =>
     app.evaluate(({ dialog }, folder) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [folder] }); }, folder);
-  await page.getByRole('button', { name: '제품 폴더 연결', exact: true }).waitFor();
+  await page.getByRole('button', { name: '제품 등록', exact: true }).waitFor();
   await page.screenshot({ path: path.join(workDir, 'electron-empty.png') });
-  await page.getByRole('button', { name: '제품 폴더 연결', exact: true }).click();
+  await page.getByRole('button', { name: '제품 등록', exact: true }).click();
   // Stub the native OS picker, not the app's IPC or service.
   await chooseFolder(repo);
   await page.getByLabel('제품 이름', { exact: true }).fill('검증 제품');

@@ -9,7 +9,7 @@ export function recordsPage() {
       product()?.name || tr('등록한 제품이 없습니다.'),
       button(tr('기록 추가'), 'nav:new-record'),
     ) +
-    `${field('record-query', tr('내용 검색'), ui.query)}<div id="record-results">${recordResults()}</div>`
+    `${field('record-query', tr('내용 검색'), ui.query)}${html`<p class="small muted">제목·내용·적용 조건의 글자를 찾습니다. AI 실행 중 관련 근거를 찾는 검색과는 별개입니다.</p>`}<div id="record-results">${recordResults()}</div>`
   );
 }
 export function recordResults() {
@@ -39,10 +39,15 @@ export function recordResults() {
               </article>`,
         )
         .join('')
-    : empty(
-        tr('일치하는 기록이 없습니다.'),
-        tr('제품을 점검하거나 작업 결과를 기록하면 근거가 여기에 쌓입니다.'),
-      );
+    : ui.query
+      ? empty(
+          tr('검색어와 일치하는 기록이 없습니다.'),
+          button(tr('검색 해제'), 'clear-record-query'),
+        )
+      : empty(
+          tr('아직 저장된 기록이 없습니다.'),
+          tr('기록 추가에서 다시 사용할 지식과 적용 조건을 남기세요.'),
+        );
 }
 function recordUseLine(record) {
   const contexts = (data.agentContexts || []).filter((c) =>

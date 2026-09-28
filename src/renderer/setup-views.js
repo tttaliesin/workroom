@@ -8,6 +8,9 @@ const unconfirmedCapture =
   () => html`<p class="small muted gap">설정 저장만으로 실행이 확인된 것은 아닙니다.
   Codex 연결 화면의 승인 화면에서 작업실 훅을 검토·신뢰하면 다음 작업부터 수집합니다.</p>`;
 export function accountReturnNotice() {
+  const portfolio = data.portfolios.find((p) => p.id === ui.portfolioAccountReturn);
+  if (portfolio)
+    return html`<section class="connection-return"><strong>${e(portfolio.target)}</strong><p class="small muted gap">연결과 모델 설정을 마친 뒤 이 대상에서 AI 초안을 요청하세요.</p>${button(tr('포트폴리오로 돌아가기'), 'portfolio-return')}</section>`;
   const pending = ui.accountReturn && data.products.find((p) => p.id === ui.accountReturn),
     draft = pending && ui.requests[pending.id];
   if (!pending || !draft) return '';
@@ -60,10 +63,7 @@ export function productPage() {
         <div class="actions">
           ${button(ui.busy ? tr('점검 중…') : tr('지금 기본 점검'), `inspect:${p.id}`)}
         </div>
-      </section>${captureSetup(p)}<details>
-        <summary>결과를 직접 기록</summary>
-        <div class="actions">${button(tr('작업 결과 기록'), 'nav:new-work')}${button(tr('판단 요청 만들기'), 'nav:new-decision')}</div>
-      </details>`
+      </section>${captureSetup(p)}`
   );
 }
 function captureSetup(p) {
@@ -174,6 +174,7 @@ export function newWork() {
 }
 export function connectionPage() {
   return (
+    html`<section class="note"><h2>외부 도구에서 Workroom 기록 사용</h2><p class="small muted">Codex 연결은 외부 도구에서 기록을 읽고 결과를 보내는 연결입니다. Workroom의 조사·수정·포트폴리오 AI는 별도의 계정과 실행 설정을 사용합니다.</p>${button(tr('Workroom AI 계정과 실행'), 'nav:account', 'class="link"')}</section>` +
     codexConnectionView(captureSetup) +
     tr('<details class="section"><summary>다른 MCP 클라이언트 연결 · 최근 기록 변경</summary>') +
     html`<div class="form">

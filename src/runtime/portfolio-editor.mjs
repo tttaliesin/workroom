@@ -106,13 +106,72 @@ export class PortfolioEditor {
         .reduce((sum, t) => sum + (t.retryStarts || []).filter((d) => d === day).length, 0)
     );
   }
+  readiness(p, sources = this.sources(p)) {
+    const blockers = [];
+    if (!this.engine.canRun()) blockers.push('account');
+    if (!this.engine.settings.modelId) blockers.push('model');
+    if (this.engine.settings.paused) blockers.push('paused');
+    if (!p.requirements.trim()) blockers.push('requirements');
+    if (!sources.length) blockers.push('sources');
+    const tasks = this.store.list('task');
+    const active = tasks.find(
+      (t) =>
+        t.mode === 'portfolio' &&
+        t.portfolioId === p.id &&
+        ['queued', 'running', 'stopping', 'waiting_auth'].includes(t.status),
+    );
+    const edits = this.store
+      .list('portfolio-edit')
+      .filter((e) => e.portfolioId === p.id)
+      .sort((a, b) => b.created.localeCompare(a.created));
+    const latest = edits[0];
+    const signature = this.signature(p, sources);
+    const unchanged = edits.some((e) => e.signature === signature);
+    const retry = tasks.find(
+      (t) => t.portfolioId === p.id && t.automatic && t.status === 'failed' && t.retryAt,
+    );
+    const dailyStarts = this.startsToday(p.id);
+    return {
+      blockers,
+      ready: !blockers.length && !active,
+      sourceCount: sources.length,
+      modelId: this.engine.settings.modelId,
+      activeTaskId: active?.id,
+      activeStatus: active?.status,
+      dailyStarts,
+      retryAt: retry?.retryAt,
+      automaticState: !p.autoEdit
+        ? 'off'
+        : active
+          ? active.status
+          : blockers.length
+            ? 'blocked'
+            : dailyStarts >= 2
+              ? 'daily_limit'
+              : retry
+                ? 'retry_wait'
+                : unchanged
+                  ? 'waiting_sources'
+                  : 'ready',
+      latest: latest ? { status: latest.status, at: latest.updated || latest.created } : null,
+    };
+  }
   request({ portfolioId, automatic = false }) {
     z.string().uuid().parse(portfolioId);
     const p = this.store.get('portfolio', portfolioId);
     if (automatic && !p.autoEdit) return null;
-    if (this.engine.settings.paused || !this.engine.settings.modelId || !this.engine.canRun()) {
+    const sources = this.sources(p);
+    const readiness = this.readiness(p, sources);
+    if (readiness.blockers.length) {
       if (automatic) return null;
-      throw new Error('계정과 모델 연결, 새 실행 상태를 확인하세요.');
+      const messages = {
+        account: 'AI 계정을 연결하세요.',
+        model: '사용할 모델을 선택하세요.',
+        paused: '새 실행 일시 정지를 해제하세요.',
+        requirements: '대상별 강조점을 저장하세요.',
+        sources: '작업 사례를 추가하거나 결과를 받을 제품을 선택하세요.',
+      };
+      throw new Error(messages[readiness.blockers[0]]);
     }
     const active = this.store
       .list('task')
@@ -123,11 +182,6 @@ export class PortfolioEditor {
           ['queued', 'running', 'stopping', 'waiting_auth'].includes(t.status),
       );
     if (active) return active;
-    const sources = this.sources(p);
-    if (!p.requirements.trim() || !sources.length) {
-      if (automatic) return null;
-      throw new Error('대상별 강조점과 연결된 작업 결과가 필요합니다.');
-    }
     const signature = this.signature(p, sources);
     const edits = this.store.list('portfolio-edit').filter((e) => e.portfolioId === portfolioId);
     if (

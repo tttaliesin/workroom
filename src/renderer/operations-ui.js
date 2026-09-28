@@ -304,16 +304,44 @@ function portfolioEditResult(edit) {
 }
 export function portfolioAgentPanel(p, data) {
   const edit = (data.portfolioEdits || []).find((x) => x.portfolioId === p.id);
+  const ready = data.portfolioReadiness?.[p.id] || { blockers: ['starting'] };
+  const reasons = {
+    starting: tr('실행기를 준비하고 있습니다.'),
+    account: tr('AI 계정을 연결하세요.'),
+    model: tr('사용할 모델을 선택하세요.'),
+    paused: tr('새 실행 일시 정지를 해제하세요.'),
+    requirements: tr('대상별 강조점을 저장하세요.'),
+    sources: tr('작업 사례를 추가하거나 결과를 받을 제품을 선택하세요.'),
+  };
+  const autoStates = {
+    off: tr('AI 자동 편집 꺼짐'),
+    blocked: tr('AI 자동 편집 켜짐 · 준비 필요'),
+    running: tr('AI 자동 편집 켜짐 · 실행 중'),
+    queued: tr('AI 자동 편집 켜짐 · 실행 순서 대기'),
+    stopping: tr('진행 중인 편집 중지 중'),
+    waiting_auth: tr('계정 연결 대기'),
+    daily_limit: tr('오늘 한도 도달 · 다음 날 다시 확인'),
+    waiting_sources: tr('새 근거 대기 · 같은 근거는 자동 재실행하지 않습니다.'),
+    ready: tr('실행 준비됨 · 다음 자동 확인에서 시작'),
+    retry_wait: tr`자동 재시도 대기 · ${date(ready.retryAt)}`,
+  };
   return html`<section class="portfolio-agent-panel">
       <div class="section-title">
-        <h2>이 대상에게 맞는 경험 정리</h2>
+        <h2>AI로 포트폴리오 초안 만들기</h2>
         <span class="small muted">
-          ${p.autoEdit ? tr('새 근거에서 자동 편집 · 하루 최대 2회') : tr('직접 요청할 때 편집')}
+          ${e(ready.modelId || tr('모델 미선택'))}
         </span>
       </div>
-      <p class="small muted">저장한 대상 요구와 작업 결과에서 사례를 선택하고 별도로 근거를 검토합니다. 자동 편집도 직접 쓴 문장과 제외한 사례를 보존합니다.</p>
+      <p class="small muted">AI가 소개·사례 설명·기여를 제안하고 별도로 근거를 검토합니다. 직접 요청한 제안은 확인 후 반영하며, 자동 편집은 검토 통과 후 반영합니다. 직접 쓴 문장과 제외한 사례는 보존합니다.</p>
+      ${ready.blockers.length ? html`<ul class="readiness-list">${ready.blockers.map((reason) => html`<li>${e(reasons[reason])}</li>`).join('')}</ul>` : ''}
+      ${ready.blockers.some((r) => ['account', 'model', 'paused'].includes(r)) ? b(tr('계정과 실행 설정'), `portfolio-account:${p.id}`, 'class="link"') : ''}
+      <p class="small muted">${tr`연결된 근거 ${ready.sourceCount || 0}개`}</p>
       <div class="actions">
-        ${b(tr('대상에 맞게 정리'), `portfolio-edit:${p.id}`)}
+        ${b(tr('AI로 초안 만들기'), `portfolio-edit:${p.id}`, `class="primary" ${ready.ready ? '' : 'disabled'}`)}
+        ${ready.activeTaskId ? b(tr('진행 중인 편집 보기'), `task:${ready.activeTaskId}`) : ''}
         ${b(p.autoEdit ? tr('자동 편집 끄기') : tr('새 결과 자동 편집 켜기'), `portfolio-auto:${p.id}`, 'class="plain"')}
-      </div>${edit ? portfolioEditResult(edit) : ''}</section>`;
+      </div><p class="small muted gap">${e(autoStates[ready.automaticState] || tr('실행기를 준비하고 있습니다.'))}</p>
+      <p class="small muted">${tr`오늘 ${ready.dailyStarts || 0}/2회 · 최근 편집 ${date(ready.latest?.at)}`}</p>
+      <p class="small muted">보고 자동 반영은 새 작업 결과를 모읍니다. AI 자동 편집은 모델을 호출해 대상에 맞는 문장으로 정리합니다.</p>
+      ${edit ? portfolioEditResult(edit) : ''}</section>`;
 }

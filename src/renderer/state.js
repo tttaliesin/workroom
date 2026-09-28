@@ -6,6 +6,7 @@ export const ui = {
   productId: null,
   taskId: null,
   portfolioId: null,
+  portfolioSection: 'write',
   draft: null,
   dirty: false,
   formDirty: false,
@@ -40,6 +41,9 @@ Object.assign(ui, {
 });
 export let data = { products: [], tasks: [], records: [], portfolios: [], audit: [] };
 try {
+  ui.portfolioAccountReturn = sessionStorage.getItem('workroom-portfolio-return');
+} catch {}
+try {
   // Reopening always starts on the last product's overview by design; only the selections
   // that each area resumes from are restored, never the last screen itself.
   const saved = JSON.parse(localStorage.getItem('workroom-navigation') || 'null');
@@ -59,7 +63,7 @@ try {
   ui.requests = {};
 }
 try {
-  ui.accountReturn = JSON.parse(sessionStorage.getItem('workroom-account-return') || 'null');
+  ui.accountReturn = sessionStorage.getItem('workroom-account-return');
 } catch {}
 try {
   ui.requestOrigin = JSON.parse(sessionStorage.getItem('workroom-request-origin') || 'null');
@@ -113,7 +117,7 @@ export const rootTasks = () => {
 };
 export const portfolioArea = () => ['portfolio', 'new-target'].includes(ui.view);
 export const locationKey = () =>
-  `${ui.view}:${ui.productId}:${ui.taskId}:${ui.portfolioId}:${ui.recordId}:${ui.source}:${ui.editing}`;
+  `${ui.view}:${ui.productId}:${ui.taskId}:${ui.portfolioId}:${ui.recordId}:${ui.source}:${ui.editing}:${ui.portfolioSection}`;
 export const shortStatus = localizedLabels({
   reported: '보고됨',
   completed: '점검 완료',

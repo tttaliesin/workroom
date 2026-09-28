@@ -85,6 +85,11 @@ function disableBusyControls() {
     });
 }
 function restoreFocus({ focusId, focusAction }) {
+  if (ui.focusAfterRender) {
+    document.getElementById(ui.focusAfterRender)?.focus({ preventScroll: true });
+    ui.focusAfterRender = null;
+    return;
+  }
   if (focusId && document.getElementById(focusId))
     document.getElementById(focusId).focus({ preventScroll: true });
   else if (focusAction)

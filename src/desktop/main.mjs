@@ -126,12 +126,21 @@ handle('workroom:call', async (method, args) => {
     return {
       ...room.snapshot(),
       runtime: engine?.info() || { state: 'starting' },
+      portfolioReadiness: Object.fromEntries(
+        room.store
+          .list('portfolio')
+          .map((p) => [
+            p.id,
+            engine?.editor.readiness(p) || { ready: false, blockers: ['starting'] },
+          ]),
+      ),
       agentRuns: room.store.list('agent-run'),
       agentEvidence: room.store.list('agent-evidence'),
       agentContexts: room.store.list('agent-context'),
       agentChanges: room.store.list('change-set'),
       applyJournals: room.store.list('apply-journal'),
       publicationDestinations: room.store.list('publication-destination'),
+      publicationAccount: publishVault.status(),
       publications: room.store.list('publication').map(({ html, ...p }) => p),
     };
   const result = await room[method](args);

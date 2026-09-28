@@ -32,6 +32,22 @@ export class CredentialVault {
       );
     }
   }
+  status() {
+    try {
+      const credential = this.read();
+      if (!credential) return { state: 'missing' };
+      return {
+        state:
+          credential.type === 'oauth' &&
+          typeof credential.access === 'string' &&
+          credential.access.length > 0
+            ? 'stored'
+            : 'unavailable',
+      };
+    } catch {
+      return { state: 'unavailable' };
+    }
+  }
   write(credential) {
     if (credential === null) {
       rmSync(this.filename, { force: true });

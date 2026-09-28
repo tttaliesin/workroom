@@ -75,9 +75,15 @@ See work in progress separately from tasks that need your judgment. Open a task 
 
 Choose the experience to emphasize for each target and collect new results in a draft. Automatic updates preserve wording you edited and examples you excluded. Review the content before saving it as standalone HTML.
 
+Under **Write**, edit the draft yourself or **Create an AI draft**. Account, model, target priorities and work evidence requirements are shown before execution. Return to the same target after account setup. AI proposes an introduction, case descriptions and contributions, then reviews the evidence separately.
+
+![Portfolio AI drafting and readiness guidance](docs/images/en/portfolio-ai.png)
+
+**Target & sources** holds job sources and cases; **Design** holds templates; **Publish** handles HTML export and Vercel publication. Report syncing collects work results. Automatic AI editing calls a model to tailor the writing, and shows why it is waiting when setup is incomplete.
+
 ![Portfolio draft with target-specific focus and work examples](docs/images/en/portfolio.png)
 
-Choose **Studio · Editorial · Resume** on the portfolio screen, then **Save draft**. Save dark cards, an editorial layout, or a compact two-column resume for each target without losing your wording. Preview and HTML share the same design; exported files work offline and include print styles.
+Choose **Studio · Editorial · Resume** under **Design**, then **Save draft**. Save dark cards, an editorial layout, or a compact two-column resume for each target. Save or discard pending edits before switching sections. Preview and HTML share the same design; exported files work offline and include print styles.
 
 Design references: [DevPortfolio](https://github.com/RyanFitzgerald/devportfolio) and [minimalist CV](https://github.com/BartoszJarocki/cv). See [Third-party notices](THIRD_PARTY_NOTICES.md#portfolio-design-references) for attribution.
 
@@ -95,6 +101,8 @@ Each record includes applicability, sources and delivery history. The built-in a
 The built-in runner uses [Pi](https://www.npmjs.com/package/@earendil-works/pi-coding-agent). External MCP clients can query the same products and records and report work results. Codex hooks can collect responses that involved file changes or check commands.
 
 Open **Codex connection** at the bottom left of the app:
+
+The account control at the top powers Workroom AI. **Codex connection** lets external tools read records and send results. To report work yourself, use **Work → Record work result / Create decision request**.
 
 1. **Check environment and connection** — Discover Codex and Node.js 24+, or select their executables.
 2. **Review MCP registration → Register MCP in Codex** — Preserve other settings and back up the existing file.
@@ -129,7 +137,9 @@ The built-in agent sends investigation and change requests to the connected mode
 
 Closing the window exits by default. Enable tray execution in App settings to keep running, then use **Quit Workroom** in the tray to stop. See the [workflow guide](docs/quality-workflows.md) and [implementation plan and validation](docs/quality-implementation-plan.md).
 
-**Latest local validation · 2026-09-27:** **110 unit/integration tests** and **15 actual Electron app checks** passed, along with lint and formatting checks. Publication interruption and recovery were tested with simulated provider responses; these results do not establish live Vercel account deployment.
+**Latest local validation · 2026-09-28:** **113 unit/integration tests** and **16 actual Electron app checks** passed, along with lint and formatting checks. Publication interruption and recovery were tested with simulated provider responses; these results do not establish live Vercel account deployment.
+
+The 12 UX audit findings were addressed after reviewing the implementation plan: visible AI readiness, separate portfolio stages, persistent error feedback and clearer recovery paths. See the [plan, self-review and validation results (Korean)](docs/ux-remediation-plan.md).
 
 The latest cleanup removes a circular dependency in verification, reduces redundant persisted state and automatically cleans up temporary profiles after successful checks. See the [cleanup plan and completed results (Korean)](docs/cleanup-implementation-plan.md).
 
