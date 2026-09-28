@@ -2,11 +2,13 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import { Workroom, schemas } from '../core/service.mjs';
-import { databaseFile, dataDirectory } from '../core/paths.mjs';
+import { databaseFile, dataDirectory, projectRoot } from '../core/paths.mjs';
+import { registerControlTools } from './control-tools.mjs';
 import { runtimeEmbeddings } from '../runtime/local-embeddings.mjs';
 
 const room = new Workroom(databaseFile, { embedding: runtimeEmbeddings(dataDirectory) });
 const server = new McpServer({ name: 'workroom-local', version: '0.1.0' });
+registerControlTools(server, { directory: dataDirectory, root: projectRoot });
 function tool(name, description, schema, readOnly, handler) {
   server.registerTool(
     name,
@@ -31,7 +33,7 @@ function tool(name, description, schema, readOnly, handler) {
 }
 tool(
   'workroom_operation_status',
-  '제품의 저장된 운영 정책·최근 관측·발견 문제를 조회합니다. 실행 권한 변경이나 자동화 시작은 앱에서만 합니다.',
+  '제품의 저장된 운영 정책·최근 관측·발견 문제를 조회합니다. 실제 연결과 제어는 workroom_control 도구를 사용하세요.',
   z.object({ productId: z.string().uuid() }),
   true,
   ({ productId }) => {
@@ -50,7 +52,7 @@ tool(
 );
 tool(
   'workroom_list_products',
-  '앱에서 사용자가 등록한 제품을 나열합니다. 새 폴더 접근 권한은 앱에서만 등록할 수 있습니다.',
+  '등록된 제품을 나열합니다. 새 제품은 workroom_control의 core.createProduct로 검토 후 등록할 수 있습니다.',
   z.object({}),
   true,
   () => room.store.list('product'),
@@ -88,7 +90,7 @@ tool(
 );
 tool(
   'workroom_request_decision',
-  '제품 방침이 없어 진행할 수 없을 때만 판단 요청을 만듭니다. 이유와 선택별 영향을 적으세요. 사용자의 선택은 앱에서 이루어집니다.',
+  '제품 방침이 없어 진행할 수 없을 때 판단 요청을 만듭니다. 사용자 선택을 받으면 workroom_control의 core.resolveDecision으로 답변할 수 있습니다.',
   schemas.requestDecision,
   false,
   (args) => room.requestDecision(args, 'mcp'),

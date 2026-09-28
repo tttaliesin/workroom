@@ -16,6 +16,9 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { createCommands } from '../control/commands.mjs';
+import { ControlService } from '../control/service.mjs';
+import { listenControl } from '../control/transport.mjs';
 import { Workroom } from '../core/service.mjs';
 import { portfolioHTML } from '../core/export.mjs';
 import { Publications } from '../core/publication.mjs';
@@ -65,7 +68,24 @@ let broker,
   engine,
   operationTimer,
   exiting = false;
-app.on('second-instance', () => {
+const commands = createCommands({
+  room,
+  getEngine: () => engine,
+  getBroker: () => broker,
+  publications,
+  publishVault,
+  shell,
+});
+const control = new ControlService({
+  room,
+  commands,
+  getEngine: () => engine,
+  languageFile,
+  dataDirectory,
+});
+let controlServer;
+app.on('second-instance', (_event, argv) => {
+  if (argv.includes('--workroom-service')) return;
   if (window) {
     window.show();
     window.restore();
@@ -81,27 +101,7 @@ function checkSender(event) {
   )
     throw new Error(t('허용되지 않은 화면 요청입니다.'));
 }
-const allowed = new Set([
-  'snapshot',
-  'changes',
-  'createProduct',
-  'updateProduct',
-  'inspect',
-  'addRecord',
-  'toggleRecord',
-  'requestDecision',
-  'resolveDecision',
-  'deferDecision',
-  'reportWork',
-  'createPortfolio',
-  'savePortfolio',
-  'saveJobSource',
-  'context',
-  'setCodexCapture',
-  'changeWorkLink',
-  'reviewRecord',
-  'reviewPortfolioSource',
-]);
+
 function handle(channel, fn) {
   ipcMain.handle(channel, async (event, ...args) => {
     try {
@@ -114,79 +114,14 @@ function handle(channel, fn) {
 }
 handle('workroom:language', async (language) => {
   if (language !== undefined) {
-    if (!['ko', 'en'].includes(language)) throw new Error('Unsupported language');
-    await writeFile(languageFile, JSON.stringify(language), 'utf8');
-    setLanguage(language);
+    await control.invoke('settings.language', { language });
   }
   return getLanguage();
 });
-handle('workroom:call', async (method, args) => {
-  if (!allowed.has(method)) throw new Error(t('지원하지 않는 작업입니다.'));
-  if (method === 'snapshot')
-    return {
-      ...room.snapshot(),
-      runtime: engine?.info() || { state: 'starting' },
-      portfolioReadiness: Object.fromEntries(
-        room.store
-          .list('portfolio')
-          .map((p) => [
-            p.id,
-            engine?.editor.readiness(p) || { ready: false, blockers: ['starting'] },
-          ]),
-      ),
-      agentRuns: room.store.list('agent-run'),
-      agentEvidence: room.store.list('agent-evidence'),
-      agentContexts: room.store.list('agent-context'),
-      agentChanges: room.store.list('change-set'),
-      applyJournals: room.store.list('apply-journal'),
-      publicationDestinations: room.store.list('publication-destination'),
-      publicationAccount: publishVault.status(),
-      publications: room.store.list('publication').map(({ html, ...p }) => p),
-    };
-  const result = await room[method](args);
-  if (method === 'resolveDecision') engine?.recovery.tick();
-  return result;
-});
-handle('workroom:runtime', async (method, args = {}) => {
-  if (!engine) throw new Error(t('내장 실행기를 준비하고 있습니다.'));
-  if (method === 'configure') return engine.configure(args);
-  if (method === 'configureOperations') return engine.operations.configure(args);
-  if (method === 'configureVerification') return engine.profiles.save(args);
-  if (method === 'checkOperations')
-    return engine.operations.observe({ productId: args.productId, manual: true });
-  if (method === 'issueAction') return engine.operations.act(args);
-  if (method === 'editPortfolio') return engine.editor.request({ portfolioId: args.portfolioId });
-  if (method === 'configurePortfolioEditor') return engine.editor.configure(args);
-  if (method === 'applyPortfolioEdit') return engine.editor.apply(args);
-  if (method === 'start') return engine.start(args);
-  if (method === 'resume') return engine.resume(args);
-  if (method === 'stop') return engine.stop(args);
-  if (method === 'applyChange') return engine.changes.apply(args);
-  if (method === 'restart') {
-    if (broker.child) throw new Error(t('실행기가 연결되어 있습니다.'));
-    await broker.start();
-    return engine.info();
-  }
-  if (method === 'logout' && !broker.child) {
-    broker.vault.write(null);
-    await broker.start();
-    return engine.info();
-  }
-  if (!['login', 'cancelLogin', 'manualCode', 'logout', 'verify'].includes(method))
-    throw new Error(t('지원하지 않는 실행 요청입니다.'));
-  if (['login', 'logout', 'verify'].includes(method) && engine.active.size)
-    throw new Error(t('진행 중인 작업을 먼저 중지하세요.'));
-  if (method === 'login' && !['browser', 'device_code'].includes(args.mode))
-    throw new Error(t('로그인 방법을 선택하세요.'));
-  if (method === 'login') {
-    // Logging in replaces the saved login, so one that can no longer be decrypted is dropped and
-    // the runner is started here rather than asking the user to find another button first.
-    if (!broker.child && broker.status.failure?.unreadable) broker.vault.write(null);
-    await broker.ensure();
-  }
-  if (method === 'verify') args = { modelId: engine.settings.modelId };
-  return broker.request(method, args);
-});
+handle('workroom:call', (method, args = {}) => commands.core(method, args));
+
+handle('workroom:runtime', (method, args = {}) => commands.runtime(method, args));
+
 handle('workroom:folder', async () => {
   const result = await dialog.showOpenDialog(window, {
     title: t('관리할 제품 폴더'),
@@ -194,39 +129,8 @@ handle('workroom:folder', async () => {
   });
   return result.canceled ? null : result.filePaths[0];
 });
-handle('workroom:publication', async (method, args = {}) => {
-  if (method === 'credentials') {
-    if (typeof args.token !== 'string' || args.token.length < 10 || args.token.length > 1000)
-      throw new Error(t('유효한 Vercel 토큰을 입력하세요.'));
-    publishVault.write({ type: 'oauth', access: args.token, refresh: '' });
-    return { saved: true };
-  }
-  if (method === 'disconnect') {
-    publishVault.write(null);
-    return { saved: false };
-  }
-  if (method === 'configure') return publications.configure(args);
-  if (method === 'prepare') {
-    const { html, ...p } = publications.prepare({ ...args, language: getLanguage() });
-    return p;
-  }
-  if (method === 'publish') {
-    const { html, ...p } = await publications.publish(args);
-    return p;
-  }
-  if (method === 'reconcile') {
-    const { html, ...p } = await publications.reconcile(args);
-    return p;
-  }
-  if (method === 'open') {
-    const p = room.store.get('publication', args.id);
-    if (!p.url || !/^https:\/\/[a-zA-Z0-9-]+\.vercel\.app$/.test(p.url))
-      throw new Error('Invalid public URL');
-    await shell.openExternal(p.url);
-    return;
-  }
-  throw new Error(t('지원하지 않는 작업입니다.'));
-});
+handle('workroom:publication', (method, args = {}) => commands.publication(method, args));
+
 handle('workroom:export', async (id, revision) => {
   const snapshot = room.prepareExport(id, revision);
   const result = await dialog.showSaveDialog(window, {
@@ -258,7 +162,7 @@ const hookRuntime = {
   node: process.env.WORKROOM_NODE || 'node',
   script: path.join(projectRoot, 'src/integrations/codex-hook.mjs'),
 };
-handle('workroom:codex-setup', async (productId, revision) => {
+async function codexSetup(productId, revision) {
   const detected = await codex.detect();
   hookRuntime.node = detected.node?.path || hookRuntime.node;
   try {
@@ -279,8 +183,9 @@ handle('workroom:codex-setup', async (productId, revision) => {
   return revision === undefined
     ? prepareCodexSetup(room, productId, hookRuntime)
     : installCodexSetup(room, productId, revision, hookRuntime);
-});
-handle('workroom:codex-connection', async (action, productId, value) => {
+}
+handle('workroom:codex-setup', codexSetup);
+async function codexConnection(action, productId, value) {
   const product = productId ? room.store.get('product', productId) : null;
   if (action === 'status') return codex.status(product);
   if (action === 'prepare') return codex.prepare(product?.folder || projectRoot);
@@ -323,7 +228,19 @@ handle('workroom:codex-connection', async (action, productId, value) => {
     return;
   }
   throw new Error(t('지원하지 않는 Codex 연결 요청입니다.'));
-});
+}
+handle('workroom:codex-connection', codexConnection);
+commands.connection = async (method, args) => {
+  if (method === 'select') return codex.select(args.kind, args.path);
+  if (method === 'prepareHooks') return codexSetup(args.productId);
+  if (method === 'installHooks') {
+    if (!args.revision) throw new Error('Review hook settings and provide their revision.');
+    return codexSetup(args.productId, args.revision);
+  }
+  if (!['status', 'prepare', 'install', 'probe'].includes(method))
+    throw new Error('Unknown connection command.');
+  return codexConnection(method, args.productId, args.planId);
+};
 
 app
   .whenReady()
@@ -366,6 +283,7 @@ app
     });
     broker.onTool = (input) => engine.tool(input);
     broker.onProgress = (event) => engine.progress(event);
+    controlServer = await listenControl(dataDirectory, (message) => control.handle(message));
     await broker.start();
     session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) =>
       callback(false),
@@ -376,7 +294,7 @@ app
       height: 860,
       minWidth: 760,
       minHeight: 600,
-      show: process.env.WORKROOM_HEADLESS !== '1',
+      show: process.env.WORKROOM_HEADLESS !== '1' && !process.argv.includes('--workroom-service'),
       title: t('작업실 · 로컬 알파'),
       icon: appIcon,
       backgroundColor: '#ffffff',
@@ -438,6 +356,7 @@ app
 app.on('window-all-closed', () => app.quit());
 app.on('before-quit', () => {
   exiting = true;
+  controlServer?.close();
   clearInterval(operationTimer);
   if (engine) void engine.shutdown();
   broker?.close();

@@ -190,7 +190,7 @@ export function connectionPage() {
     header(
       tr('외부 도구 연결'),
       tr(
-        'Codex 등 외부 도구에서 작업실 기록을 읽고 결과를 보내는 연결입니다. 작업실 AI의 계정과 실행은 AI 실행 탭에서 설정합니다.',
+        'Codex 등 외부 도구에서 기록 조회·편집과 작업 실행·검토·반영을 요청하는 연결입니다. 작업실 AI를 실행하려면 AI 실행 탭의 계정과 모델 설정이 필요합니다.',
       ),
     ) +
     codexConnectionView() +
@@ -198,8 +198,8 @@ export function connectionPage() {
     html`<div class="form">
         <div class="note">
           <h3>연결하면 가능한 것</h3>
-          <p>제품 조회 · 적용할 기록 검색 · 저장소 기본 점검 · 판단 요청 · 작업 결과와 지식 기록</p>
-          <p class="small muted">등록 폴더 변경, 사용자 대신 결정, 실제 코드 수정과 배포 기능은 MCP에 노출하지 않았습니다.</p>
+          <p>제품·기록 조회와 편집 · AI 작업 시작·중지·재개 · 판단 답변 · 포트폴리오 작성 · 변경 검토와 공개</p>
+          <p class="small muted">Codex에서 검토한 명령을 MCP로 실행할 수 있습니다. 원본 반영과 공개는 검토한 버전을 확인하며, 앱 승인 화면을 따로 열 필요가 없습니다. 새 제어 도구가 보이지 않으면 MCP를 다시 연결하세요.</p>
         </div>
         ${
           ui.connection

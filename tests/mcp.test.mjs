@@ -9,7 +9,7 @@ import { Workroom } from '../src/core/service.mjs';
 import { projectRoot } from '../src/core/paths.mjs';
 import { readProductFile } from '../src/runtime/files.mjs';
 
-test('real MCP stdio handshake and tool calls share the app database without exposing authority changes', async (t) => {
+test('real MCP stdio preserves records and advertises explicit reviewed control separately', async (t) => {
   const parent = path.join(projectRoot, 'work/tests');
   mkdirSync(parent, { recursive: true });
   const dir = mkdtempSync(path.join(parent, 'mcp-'));
@@ -28,9 +28,14 @@ test('real MCP stdio handshake and tool calls share the app database without exp
   try {
     await client.connect(transport);
     const { tools } = await client.listTools();
-    assert.equal(tools.length, 10);
+    assert.equal(tools.length, 17);
     assert.ok(tools.some((t) => t.name === 'workroom_list_work'));
-    assert.ok(!tools.some((t) => /resolve|export|create_product|configure|apply/.test(t.name)));
+    assert.ok(tools.some((t) => t.name === 'workroom_control_execute'));
+    const catalog = await client.callTool({ name: 'workroom_control_catalog', arguments: {} });
+    assert.equal(
+      JSON.parse(catalog.content[0].text).commands['runtime.applyChange'].reviewRequired,
+      true,
+    );
     const operation = await client.callTool({
       name: 'workroom_operation_status',
       arguments: { productId: product.id },

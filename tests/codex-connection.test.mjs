@@ -64,7 +64,7 @@ test('Codex connection uses official versioned writes, preserves other settings,
   assert.match(written, /\[mcp_servers.workroom\]/);
   const checked = await connection.probe(product);
   assert.equal(checked.configured, true);
-  assert.equal(checked.probe.toolCount, 10);
+  assert.equal(checked.probe.toolCount, 17);
   assert.deepEqual(checked.hooks, []);
   const hookRuntime = {
     database: path.join(directory, 'workroom.sqlite'),

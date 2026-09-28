@@ -1,4 +1,4 @@
-import { t as tr } from '../shared/i18n.mjs';
+import { t as tr, setLanguage, getLanguage } from '../shared/i18n.mjs';
 import { mergeDraft } from './merge-draft.js';
 import { captureScreen, restoreScreen, saveNavigation } from './screen-state.js';
 import { pendingMessage, shellHTML } from './shell.js';
@@ -169,6 +169,12 @@ export function returnLocation() {
   ui.listOpen = false;
 }
 function applySnapshot(next) {
+  if (next.language && next.language !== getLanguage()) {
+    setLanguage(next.language);
+    ui.languageChanged = true;
+    document.documentElement.lang = next.language;
+    document.title = next.language === 'en' ? 'Workroom · Local alpha' : '작업실 · 로컬 알파';
+  }
   setData(next);
   ui.externalPending = false;
   if (!data.products.some((p) => p.id === ui.productId)) ui.productId = data.products[0]?.id;

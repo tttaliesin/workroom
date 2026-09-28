@@ -99,7 +99,11 @@ Each record includes applicability, sources and delivery history. The built-in a
 
 The built-in runner uses [Pi](https://www.npmjs.com/package/@earendil-works/pi-coding-agent). External MCP clients can query the same products and records and report work results. Codex hooks can collect responses that involved file changes or check commands.
 
-App-wide settings live under **Settings** at the bottom left: **AI runs** (Workroom AI account, model and pause), **External tools** (letting external tools read records and send results) and **Publishing account** (the Vercel token for portfolio publishing). Product-specific settings are in each product’s **Settings** tab. To report work yourself, use **Record work result / Create decision request** below the **Work** list.
+**You can also operate Workroom from Codex through MCP:** register products, answer decisions, start/stop/resume AI work, configure automation, edit portfolios and publish. Review changes and checks in Codex, then request application or publication of that exact version. No separate approval screen in the app is required.
+
+If Workroom is closed, call `workroom_control_connect` with `start:true` to start the executor without opening a window. The app and MCP share one executor; request IDs let you retrieve results and retry delivery without duplicating execution. After updating an already running older app, close it normally, restart it and reconnect MCP in Codex to load the new tools. [MCP workflow and command contract](MCP.md)
+
+App-wide settings live under **Settings** at the bottom left: **AI runs** (Workroom AI account, model and pause), **External tools** (letting external tools read and edit records, run tasks, review and apply results) and **Publishing account** (the Vercel token for portfolio publishing). Product-specific settings are in each product’s **Settings** tab. To report work yourself, use **Record work result / Create decision request** below the **Work** list.
 
 To connect Codex:
 
@@ -136,7 +140,7 @@ The built-in agent sends investigation and change requests to the connected mode
 
 Closing the window exits by default. Enable tray execution in **Settings → General** to keep running, then use **Quit Workroom** in the tray to stop.
 
-**Latest local validation · 2026-09-28:** **113 unit/integration tests** and **16 actual Electron app checks** passed, along with lint and formatting checks. Publication interruption and recovery were tested with simulated provider responses; these results do not establish live Vercel account deployment.
+**Latest local validation · 2026-09-28:** **118 unit/integration tests** and **18 actual Electron app checks** passed, along with lint and formatting checks. Checks include actual MCP-to-app control, background startup, restart recovery and preservation of unsaved input. Publication interruption and recovery were tested with simulated provider responses; these results do not establish live paid-model responses or Vercel account deployment.
 
 The latest cleanup removes a circular dependency in verification, reduces redundant persisted state and automatically cleans up temporary profiles after successful checks.
 

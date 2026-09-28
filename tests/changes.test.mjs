@@ -7,6 +7,9 @@ import { Workroom } from '../src/core/service.mjs';
 import { AgentEngine } from '../src/runtime/engine.mjs';
 import { applyOne, sourceTree } from '../src/runtime/change-files.mjs';
 import { runNode } from '../src/runtime/node-process.mjs';
+import { createCommands } from '../src/control/commands.mjs';
+import { ControlService } from '../src/control/service.mjs';
+import { randomUUID } from 'node:crypto';
 
 const pause = () => new Promise((r) => setTimeout(r, 15));
 async function until(fn) {
@@ -173,7 +176,7 @@ async function apply(f, extra = {}) {
     ...extra,
   });
 }
-test('real Node before/after tests verify the exact isolated change; source changes only on apply', async (t) => {
+test('real Node before/after tests and reviewed control apply the exact isolated change once', async (t) => {
   const f = await fixture(t);
   const task = await ready(f);
   assert.equal(task.status, 'awaiting_apply', JSON.stringify(task.outputs.check));
@@ -183,7 +186,27 @@ test('real Node before/after tests verify the exact isolated change; source chan
   assert.equal(checks.checks.find((c) => c.target === 'baseline').result, 'failed');
   assert.equal(checks.checks.find((c) => c.name === '선택한 테스트 · 수정 후').result, 'passed');
   assert.deepEqual(f.calls, ['develop', 'change_review']);
-  await apply(f);
+  const commands = createCommands({
+    room: f.room,
+    getEngine: () => f.engine,
+    getBroker: () => f.broker,
+  });
+  const control = new ControlService({ room: f.room, commands, getEngine: () => f.engine });
+  const request = {
+    command: 'runtime.applyChange',
+    args: {
+      id: task.id,
+      revision: task.revision,
+      artifactHash: f.engine.changes.get(task).artifactHash,
+    },
+  };
+  const review = control.review(request);
+  assert.ok(review.evidence.some((r) => r.kind === 'change-set' && r.changes.length));
+  const execute = { ...request, requestId: randomUUID(), reviewHash: review.reviewHash };
+  control.execute(execute);
+  await control.pending.get(execute.requestId);
+  assert.equal(control.operation(execute.requestId).status, 'completed');
+  assert.equal(control.execute(execute).status, 'completed');
   await until(
     () => f.room.store.get('task', f.task.id).status === 'accepted' && f.engine.active.size === 0,
   );

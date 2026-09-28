@@ -1,5 +1,9 @@
 // UI source strings only; user-authored content is never translated.
 export default {
+  '제품·기록 조회와 편집 · AI 작업 시작·중지·재개 · 판단 답변 · 포트폴리오 작성 · 변경 검토와 공개':
+    'Read and edit products and records · Start, stop and resume AI work · Answer decisions · Draft portfolios · Review changes and publish',
+  'Codex에서 검토한 명령을 MCP로 실행할 수 있습니다. 원본 반영과 공개는 검토한 버전을 확인하며, 앱 승인 화면을 따로 열 필요가 없습니다. 새 제어 도구가 보이지 않으면 MCP를 다시 연결하세요.':
+    'Review commands in Codex and execute them through MCP. Applying changes and publishing validate the reviewed version without a separate approval screen in the app. Reconnect MCP if the new control tools are missing.',
   '제품의 지금 확인 또는 포트폴리오의 AI로 초안 만들기에서 새 기준으로 요청하세요.':
     'Request a new run using Check now on the product or Create an AI draft in the portfolio.',
   '자동 재시도 대기 · {0}': 'Automatic retry scheduled · {0}',
@@ -1272,8 +1276,8 @@ export default {
     'New runs are paused. Queued tasks, AI drafting and continuous operation will not start.',
   '모든 제품에 공통으로 적용되는 화면 언어와 실행 방식입니다.':
     'Display language and run behavior shared by every product.',
-  'Codex 등 외부 도구에서 작업실 기록을 읽고 결과를 보내는 연결입니다. 작업실 AI의 계정과 실행은 AI 실행 탭에서 설정합니다.':
-    'Lets external tools such as Codex read Workroom records and send results. Workroom AI accounts and runs are set in the AI runs tab.',
+  'Codex 등 외부 도구에서 기록 조회·편집과 작업 실행·검토·반영을 요청하는 연결입니다. 작업실 AI를 실행하려면 AI 실행 탭의 계정과 모델 설정이 필요합니다.':
+    'Lets external tools such as Codex read and edit records, run tasks, review and apply results. Workroom AI runs require an account and model configured in the AI runs tab.',
   '외부 Codex에서 기록을 읽고 결과를 보내는 연결은 외부 도구 탭에서 설정합니다.':
     'Set up external Codex access to records and results in the External tools tab.',
   '검토한 포트폴리오를 웹에 공개할 때 쓰는 계정입니다. 모든 대상이 같은 계정을 사용하고, 공개할 프로젝트는 대상마다 정합니다.':

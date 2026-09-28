@@ -1,0 +1,102 @@
+const { createFixture } = require('./lib/fixture.cjs');
+const { _electron } = require('./lib/playwright.cjs');
+const assert = require('node:assert/strict');
+const path = require('node:path');
+const fs = require('node:fs');
+const { execFileSync } = require('node:child_process');
+const { randomUUID } = require('node:crypto');
+
+(async () => {
+  const root = path.resolve(__dirname, '../..');
+  // Windows may release Chromium/SQLite handles after the background process tree has exited.
+  const directory = createFixture(path.join(root, 'work/control-ui-'), { cleanupRetries: 20 });
+  const folder = path.join(directory, 'product'); fs.mkdirSync(folder);
+  const { Client } = await import('@modelcontextprotocol/sdk/client/index.js');
+  const { StdioClientTransport } = await import('@modelcontextprotocol/sdk/client/stdio.js');
+  const { Workroom } = await import('../../src/core/service.mjs');
+  const room = new Workroom(path.join(directory, 'workroom.sqlite'));
+  room.store.create('runtime-settings', { paused: true, modelId: null });
+  room.close();
+  const env = { ...process.env, WORKROOM_DATA_DIR: directory, WORKROOM_NODE: process.execPath, WORKROOM_SEMANTIC_SEARCH: '0', WORKROOM_HEADLESS: '1' };
+  delete env.ELECTRON_RUN_AS_NODE;
+  const client = new Client({ name: 'desktop-control-test', version: '1' });
+  const transport = new StdioClientTransport({ command: process.execPath, args: [path.join(root, 'src/mcp/server.mjs')], env, stderr: 'pipe' });
+  let app, page, ownedServicePid;
+  const call = async (name, args = {}) => {
+    const result = await client.callTool({ name, arguments: args });
+    assert(!result.isError, JSON.stringify(result));
+    return JSON.parse(result.content[0].text);
+  };
+  const run = async (command, args, reviewed = false) => {
+    const request = { command, args, requestId: randomUUID() };
+    if (reviewed) request.reviewHash = (await call('workroom_control_prepare', { command, args })).reviewHash;
+    let result = await call('workroom_control_execute', request);
+    for (let n = 0; result.status === 'running' && n < 100; n++) {
+      await new Promise((r) => setTimeout(r, 20));
+      result = await call('workroom_control_operation', { requestId: request.requestId });
+    }
+    assert.equal(result.status, 'completed', result.error);
+    return result;
+  };
+  try {
+    await client.connect(transport);
+    assert.equal((await call('workroom_control_connect')).liveConnection, false);
+    app = await _electron.launch({ executablePath: require('electron'), args: [root, '--workroom-service'], env });
+    page = await app.firstWindow(); page.setDefaultTimeout(15000);
+    const errors = []; page.on('pageerror', (error) => errors.push(error.message));
+    await page.waitForFunction(() => !!window.workroom);
+    const status = await call('workroom_control_connect');
+    assert.equal(status.liveConnection, true);
+    const duplicateConnection = await call('workroom_control_connect', { start: true });
+    assert.equal(duplicateConnection.instanceId, status.instanceId);
+    const product = (await run('core.createProduct', { name: 'Controlled from Codex', folder }, true)).result;
+    await page.getByRole('heading', { name: product.name, exact: true }).waitFor();
+    const p = (await run('core.createPortfolio', { target: 'Remote target' })).result;
+    const save = await run('core.savePortfolio', { id: p.id, revision: p.revision, intro: 'MCP draft', requirements: 'Focus', entries: [] });
+    assert.equal((await page.evaluate(async () => (await window.workroom.call('snapshot')).value)).portfolios[0].intro, 'MCP draft');
+    await run('settings.language', { language: 'en' });
+    await page.waitForFunction(() => document.documentElement.lang === 'en');
+    // Native controls and MCP must operate on the same current portfolio and dirty-input guard.
+    await page.locator('[data-action="open-portfolio"]').click();
+    await page.locator('[data-action="edit-portfolio"]').click();
+    await page.locator('#folio-intro').fill('Unsaved in app');
+    await run('core.savePortfolio', { id: p.id, revision: save.result.revision, intro: 'Updated remotely', requirements: 'Focus', entries: [] });
+    await page.locator('.sync-notice').filter({ hasText: 'New records' }).waitFor();
+    assert.equal(await page.locator('#folio-intro').inputValue(), 'Unsaved in app');
+    await page.locator('[data-action="discard-draft"]').click();
+    const operationId = save.requestId;
+    await app.close(); app = null;
+    assert.equal((await call('workroom_control_connect')).liveConnection, false);
+    app = await _electron.launch({ executablePath: require('electron'), args: [root, '--workroom-service'], env });
+    page = await app.firstWindow();
+    await page.waitForFunction(() => !!window.workroom);
+    assert.notEqual((await call('workroom_control_connect')).instanceId, status.instanceId);
+    assert.equal((await call('workroom_control_operation', { requestId: operationId })).status, 'completed');
+    await app.close(); app = null;
+    const started = await call('workroom_control_connect', { start: true });
+    assert.equal(started.liveConnection, true);
+    ownedServicePid = JSON.parse(fs.readFileSync(path.join(directory, 'auth.control.json'), 'utf8')).pid;
+    assert.equal((await call('workroom_control_operation', { requestId: operationId })).status, 'completed');
+    assert.deepEqual(errors, []);
+    console.log('MCP → actual Electron: same executor, product creation, portfolio editing, language sync, dirty input preservation, offline detection and durable results passed');
+  } finally {
+    if (app) await app.close();
+    await client.close();
+    if (ownedServicePid) {
+      // This PID came only from this test's newly created, isolated profile.
+      try {
+        if (process.platform === 'win32')
+          execFileSync('taskkill.exe', ['/PID', String(ownedServicePid), '/T', '/F'], { windowsHide: true, stdio: 'ignore' });
+        else process.kill(-ownedServicePid);
+      } catch (error) {
+        try { process.kill(ownedServicePid, 0); throw error; } catch (state) {
+          if (state.code !== 'ESRCH') throw state;
+        }
+      }
+      for (let n = 0; n < 50; n++) {
+        try { process.kill(ownedServicePid, 0); } catch { break; }
+        await new Promise((r) => setTimeout(r, 100));
+      }
+    }
+  }
+})().catch((error) => { console.error(error); process.exitCode = 1; });
