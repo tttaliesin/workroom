@@ -20,7 +20,6 @@ import { createCommands } from '../control/commands.mjs';
 import { ControlService } from '../control/service.mjs';
 import { listenControl } from '../control/transport.mjs';
 import { Workroom } from '../core/service.mjs';
-import { portfolioHTML } from '../core/export.mjs';
 import { Publications } from '../core/publication.mjs';
 import { VercelPublisher } from '../integrations/vercel.mjs';
 import { dataDirectory, databaseFile, projectRoot } from '../core/paths.mjs';
@@ -108,19 +107,30 @@ function handle(channel, fn) {
       checkSender(event);
       return { ok: true, value: await fn(...args) };
     } catch (error) {
-      return { ok: false, error: t(error.message) };
+      return {
+        ok: false,
+        error: t(error.message),
+        code: error.code || 'DOMAIN_REJECTED',
+        details: error.details,
+      };
     }
   });
 }
 handle('workroom:language', async (language) => {
   if (language !== undefined) {
-    await control.invoke('settings.language', { language });
+    await control.fromApp('settings.language', { language });
   }
   return getLanguage();
 });
-handle('workroom:call', (method, args = {}) => commands.core(method, args));
+handle('workroom:call', (method, args = {}, requestId) =>
+  ['snapshot', 'changes'].includes(method)
+    ? commands.core(method, args)
+    : control.fromApp(`core.${method}`, args, requestId),
+);
 
-handle('workroom:runtime', (method, args = {}) => commands.runtime(method, args));
+handle('workroom:runtime', (method, args = {}, requestId) =>
+  control.fromApp(`runtime.${method}`, args, requestId),
+);
 
 handle('workroom:folder', async () => {
   const result = await dialog.showOpenDialog(window, {
@@ -129,19 +139,30 @@ handle('workroom:folder', async () => {
   });
   return result.canceled ? null : result.filePaths[0];
 });
-handle('workroom:publication', (method, args = {}) => commands.publication(method, args));
+handle('workroom:publication', (method, args = {}, requestId) =>
+  method === 'open'
+    ? commands.publication(method, args)
+    : control.fromApp(`publication.${method}`, args, requestId),
+);
 
 handle('workroom:export', async (id, revision) => {
-  const snapshot = room.prepareExport(id, revision);
+  const artifact = await control.fromApp('artifact.export', {
+    id,
+    revision,
+    language: getLanguage(),
+  });
   const result = await dialog.showSaveDialog(window, {
     title: t('포트폴리오 HTML 내보내기'),
     defaultPath: 'portfolio.html',
     filters: [{ name: 'HTML', extensions: ['html'] }],
   });
   if (result.canceled || !result.filePath) return null;
-  await writeFile(result.filePath, portfolioHTML(snapshot, { language: getLanguage() }), 'utf8');
+  await writeFile(result.filePath, artifact.html, 'utf8');
   // The exported snapshot is immutable even if MCP changes the draft while the dialog is open.
-  room.recordExport(id, snapshot, result.filePath);
+  await control.fromApp('artifact.recordExport', {
+    artifactId: artifact.artifactId,
+    filename: result.filePath,
+  });
   return { filename: result.filePath };
 });
 handle('workroom:connection', () => ({
@@ -184,7 +205,12 @@ async function codexSetup(productId, revision) {
     ? prepareCodexSetup(room, productId, hookRuntime)
     : installCodexSetup(room, productId, revision, hookRuntime);
 }
-handle('workroom:codex-setup', codexSetup);
+handle('workroom:codex-setup', (productId, revision) =>
+  control.fromApp(revision === undefined ? 'connection.prepareHooks' : 'connection.installHooks', {
+    productId,
+    ...(revision === undefined ? {} : { revision }),
+  }),
+);
 async function codexConnection(action, productId, value) {
   const product = productId ? room.store.get('product', productId) : null;
   if (action === 'status') return codex.status(product);
@@ -200,7 +226,8 @@ async function codexConnection(action, productId, value) {
         ? { filters: [{ name: t('실행 파일'), extensions: ['exe'] }] }
         : {}),
     });
-    if (!result.canceled) await codex.select(value, result.filePaths[0]);
+    if (!result.canceled)
+      await control.fromApp('connection.select', { kind: value, path: result.filePaths[0] });
     return codex.status(product);
   }
   if (action === 'terminal') {
@@ -229,7 +256,14 @@ async function codexConnection(action, productId, value) {
   }
   throw new Error(t('지원하지 않는 Codex 연결 요청입니다.'));
 }
-handle('workroom:codex-connection', codexConnection);
+handle('workroom:codex-connection', (action, productId, value) =>
+  ['terminal', 'select'].includes(action)
+    ? codexConnection(action, productId, value)
+    : control.fromApp(`connection.${action}`, {
+        ...(productId ? { productId } : {}),
+        ...(action === 'install' ? { planId: value } : {}),
+      }),
+);
 commands.connection = async (method, args) => {
   if (method === 'select') return codex.select(args.kind, args.path);
   if (method === 'prepareHooks') return codexSetup(args.productId);
@@ -281,9 +315,17 @@ app
       agentDirectory,
       nodeExecutable: process.env.WORKROOM_NODE || 'node',
     });
+    engine.scheduleOperations = () =>
+      control.run(
+        'runtime.tick',
+        {},
+        { caller: { channel: 'scheduler', sessionId: control.instanceId } },
+      );
     broker.onTool = (input) => engine.tool(input);
     broker.onProgress = (event) => engine.progress(event);
-    controlServer = await listenControl(dataDirectory, (message) => control.handle(message));
+    controlServer = await listenControl(dataDirectory, (message, caller) =>
+      control.handle(message, caller),
+    );
     await broker.start();
     session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) =>
       callback(false),
@@ -342,7 +384,7 @@ app
     await window.loadURL(pageURL);
     room.knowledge.index?.start();
     const operationTick = () =>
-      void engine.operations.tick().catch((error) => {
+      void engine.scheduleOperations().catch((error) => {
         if (!exiting) room.store.log(t('운영 점검 오류'), 'runtime', error.message);
       });
     operationTimer = setInterval(operationTick, 30000);

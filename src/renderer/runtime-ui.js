@@ -42,6 +42,7 @@ Object.assign(agentLabels, {
   check_failed: '검사 실패',
   changes_requested: '보완 필요',
   awaiting_apply: '반영 검토 대기',
+  awaiting_review: '외부 검토 대기',
   applying: '반영 중',
   apply_conflict: '원본 변경 확인',
   apply_partial: '반영 상태 확인',

@@ -14,6 +14,7 @@ import { createCommands } from '../src/control/commands.mjs';
 import { ControlService } from '../src/control/service.mjs';
 import { listenControl, controlRequest } from '../src/control/transport.mjs';
 import { projectRoot } from '../src/core/paths.mjs';
+import { authorize } from './control-support.mjs';
 
 async function fixture(t) {
   const directory = await mkdtemp(path.join(os.tmpdir(), 'workroom-control-'));
@@ -56,7 +57,7 @@ async function fixture(t) {
   });
   const execute = async (command, args, reviewed = false) => {
     const request = { command, args, requestId: randomUUID() };
-    if (reviewed) request.reviewHash = control.review({ command, args }).reviewHash;
+    if (reviewed) Object.assign(request, await authorize(control, command, args));
     control.execute(request);
     await control.pending.get(request.requestId);
     const result = control.operation(request.requestId);
@@ -81,8 +82,12 @@ test('control replays concurrent request IDs, rejects changed content and stale 
   const command = 'core.createProduct',
     args = { name: 'Fixture', folder: f.folder };
   assert.throws(() => f.control.execute({ command, args, requestId: randomUUID() }), /review/);
-  const review = f.control.review({ command, args });
-  const request = { command, args, reviewHash: review.reviewHash, requestId: randomUUID() };
+  const request = {
+    command,
+    args,
+    ...(await authorize(f.control, command, args)),
+    requestId: randomUUID(),
+  };
   const first = f.control.execute(request);
   assert.equal(
     f.control.execute({ ...request, args: { folder: f.folder, name: 'Fixture' } }).id,
@@ -157,7 +162,12 @@ test('control publishes only the reviewed frozen version and replays without dep
     review.evidence.find((r) => r.kind === 'publication').snapshot.intro,
     'Introduction',
   );
-  const request = { command, args, requestId: randomUUID(), reviewHash: review.reviewHash };
+  const request = {
+    command,
+    args,
+    requestId: randomUUID(),
+    ...(await authorize(f.control, command, args)),
+  };
   f.control.execute(request);
   await f.control.pending.get(request.requestId);
   assert.equal(f.control.operation(request.requestId).status, 'completed');
@@ -219,10 +229,24 @@ test('real MCP stdio controls a single live executor through its authenticated l
     };
     const run = async (command, args, reviewed = false) => {
       const request = { command, args, requestId: randomUUID() };
-      if (reviewed)
-        request.reviewHash = (await call('workroom_control_prepare', { command, args })).reviewHash;
+      if (reviewed) {
+        const p = await call('workroom_control_prepare', { command, args });
+        const r = await run('review.submit', {
+          packageId: p.id,
+          verdict: 'supported',
+          assessment: 'Reviewed fixture',
+          limitations: 'Local test',
+          files: [],
+        });
+        const d = await run('review.decide', {
+          reviewId: r.id,
+          choice: 'execute',
+          authority: { basis: 'user_instruction', reference: 'Fixture instruction' },
+        });
+        Object.assign(request, { reviewId: r.id, decisionId: d.id });
+      }
       let result = await call('workroom_control_execute', request);
-      for (let n = 0; result.status === 'running' && n < 100; n++) {
+      for (let n = 0; ['accepted', 'running'].includes(result.status) && n < 100; n++) {
         await new Promise((r) => setTimeout(r, 10));
         result = await call('workroom_control_operation', { requestId: request.requestId });
       }

@@ -1,9 +1,11 @@
 import net from 'node:net';
 import path from 'node:path';
-import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
+import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import { chmod, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { ControlError, failure } from './contracts.mjs';
 
 const MAX_BYTES = 16 * 1024 * 1024;
+const clientSession = randomUUID();
 // auth.* is excluded from agent reads and source copies, even with a custom data directory.
 const endpointFile = (directory) => path.join(directory, 'auth.control.json');
 const address = (directory) => {
@@ -43,13 +45,22 @@ export async function listenControl(directory, handler) {
         const message = JSON.parse(buffer.slice(0, buffer.indexOf('\n')));
         if (!validToken(message.token, token))
           throw new Error('Local control authentication failed.');
-        const value = await handler({ action: message.action, input: message.input });
+        const value = await handler(
+          { action: message.action, input: message.input },
+          {
+            channel: 'mcp',
+            sessionId:
+              typeof message.sessionId === 'string' && /^[a-f0-9-]{36}$/.test(message.sessionId)
+                ? message.sessionId
+                : 'local-client',
+          },
+        );
         const response = JSON.stringify({ ok: true, value }) + '\n';
         if (Buffer.byteLength(response) > MAX_BYTES)
           throw new Error('Response too large. Read fewer entities or a specific entity ID.');
         socket.end(response);
       } catch (error) {
-        socket.end(JSON.stringify({ ok: false, error: error.message }) + '\n');
+        socket.end(JSON.stringify({ ok: false, error: failure(error) }) + '\n');
       }
     });
   });
@@ -71,12 +82,16 @@ export async function controlRequest(directory, action, input = {}) {
   try {
     config = JSON.parse(await readFile(endpointFile(directory), 'utf8'));
   } catch {
-    throw new Error(
+    throw new ControlError(
+      'EXECUTOR_OFFLINE',
       'Workroom executor is offline or an older app is running. Use workroom_control_connect with start:true, or restart the old app.',
     );
   }
   if (config.protocol !== 1 || typeof config.token !== 'string')
-    throw new Error('Unsupported Workroom control endpoint. Restart the updated app.');
+    throw new ControlError(
+      'PROTOCOL_MISMATCH',
+      'Unsupported Workroom control endpoint. Restart the updated app.',
+    );
   return new Promise((resolve, reject) => {
     const socket = net.createConnection(address(directory));
     let text = '',
@@ -86,7 +101,11 @@ export async function controlRequest(directory, action, input = {}) {
       if (settled) return;
       settled = true;
       socket.destroy();
-      reject(new Error(message));
+      reject(
+        typeof message === 'object'
+          ? new ControlError(message.code, message.message, message.details)
+          : new ControlError('EXECUTOR_UNREACHABLE', message),
+      );
     };
     socket.setEncoding('utf8');
     socket.setTimeout(15000, () =>
@@ -98,7 +117,8 @@ export async function controlRequest(directory, action, input = {}) {
       ),
     );
     socket.on('connect', () => {
-      const message = JSON.stringify({ token: config.token, action, input }) + '\n';
+      const message =
+        JSON.stringify({ token: config.token, sessionId: clientSession, action, input }) + '\n';
       if (Buffer.byteLength(message) > MAX_BYTES) return fail('Control request too large.');
       socket.write(message);
     });

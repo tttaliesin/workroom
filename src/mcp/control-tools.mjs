@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { catalog, entityKinds } from '../control/catalog.mjs';
 import { controlRequest } from '../control/transport.mjs';
 import { connectControl } from '../control/client.mjs';
+import { failure } from '../control/contracts.mjs';
 export function registerControlTools(server, { directory, root }) {
   const args = z.record(z.string(), z.unknown()).default({});
   const command = { command: z.enum(Object.keys(catalog)), args };
@@ -22,7 +23,10 @@ export function registerControlTools(server, { directory, root }) {
         try {
           return { content: [{ type: 'text', text: JSON.stringify(await handler(input)) }] };
         } catch (error) {
-          return { isError: true, content: [{ type: 'text', text: error.message }] };
+          return {
+            isError: true,
+            content: [{ type: 'text', text: JSON.stringify(failure(error)) }],
+          };
         }
       },
     );
@@ -32,7 +36,7 @@ export function registerControlTools(server, { directory, root }) {
     '앱과 공유하는 제어 명령·입력 계약을 조회합니다. core=제품/판단/기록/초안, runtime=작업/계정/자동화, publication=공개. 먼저 계약을 읽으세요. MCP에서 검토·실행하며 앱 승인 화면은 필요 없습니다.',
     {},
     true,
-    () => ({ protocol: 1, commands: catalog, entityKinds }),
+    () => ({ protocol: 2, commands: catalog, entityKinds }),
   );
   register(
     'workroom_control_connect',
@@ -56,17 +60,20 @@ export function registerControlTools(server, { directory, root }) {
   );
   register(
     'workroom_control_prepare',
-    '명령 인수·현재 버전·변경/공개 근거를 검토용으로 반환합니다. 사용자 지시나 위임 범위에 맞춰 Codex에서 검토하고 execute에 같은 인수와 reviewHash를 전달하세요. 이 호출은 실행하거나 승인하지 않습니다.',
+    '불변 검토 자료와 packageId를 저장·반환합니다. review.submit으로 판정·이유·한계·파일별 해시를, review.decide로 사용자 지시나 위임 근거와 결정을 기록하세요. prepare나 해시만으로 승인하지 않습니다.',
     command,
-    true,
+    false,
     (input) => controlRequest(directory, 'prepare', input),
   );
   register(
     'workroom_control_execute',
-    '제어 명령을 단일 실행기에 접수합니다. UUID requestId를 먼저 정하고 연결이 끊겨도 같은 ID를 재사용하세요. 같은 ID에 다른 내용은 거절합니다. 응답 running은 완료가 아니며 operation으로 확인합니다. 검토 필수 명령은 prepare의 reviewHash를 전달합니다. 계정 로그인은 여기서 시작하되 브라우저 인증은 사용자가 마칩니다. 공개·원본 반영·코드 실행은 사용자 승인 또는 명시적 위임 범위 안에서만 요청하세요.',
+    '공통 제어 명령을 접수합니다. UUID requestId는 재전송 때 유지하세요. accepted/running은 완료가 아니며 operation으로 확인합니다. 검토 필수 명령에는 review.submit 결과 reviewId와 review.decide 결과 decisionId가 필요합니다. 외부 수정안은 external.submit으로 분리 복사본에 제출하고 앱이 검사합니다. reviewHash만으로 실행할 수 없습니다. 공개·반영·코드 실행은 사용자 지시 또는 위임 범위에서만 요청하세요.',
     {
       ...command,
       requestId: z.string().uuid(),
+      protocol: z.literal(2).optional(),
+      reviewId: z.string().uuid().optional(),
+      decisionId: z.string().uuid().optional(),
       reviewHash: z
         .string()
         .regex(/^[a-f0-9]{64}$/)
@@ -91,7 +98,7 @@ export function registerControlTools(server, { directory, root }) {
       revision: z.number().int(),
       language: z.enum(['ko', 'en']).default('ko'),
     },
-    true,
+    false,
     (input) => controlRequest(directory, 'export', input),
   );
 }

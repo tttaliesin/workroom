@@ -7,6 +7,7 @@ import { readProductFile, relativeFile, allowed } from './files.mjs';
 import { verifyChange } from './change-checks.mjs';
 import { evidenceRefs } from './contracts.mjs';
 import { redact } from './errors.mjs';
+import { commandSchemas, ControlError } from '../control/contracts.mjs';
 
 export class ChangeWorkflow {
   constructor(engine, { node = 'node' } = {}) {
@@ -21,6 +22,115 @@ export class ChangeWorkflow {
   }
   save(change, patch) {
     return this.store.update('change-set', change.id, change.revision, { ...change, ...patch });
+  }
+  async submitExternal(input, context) {
+    const args = commandSchemas['external.submit'].parse(input);
+    const product = this.store.get('product', args.productId);
+    if (product.revision !== args.productRevision)
+      throw new ControlError('VERSION_CONFLICT', 'Product scope changed.');
+    if (
+      this.engine.activeHasProduct(product.id) ||
+      this.applying.size ||
+      this.engine.active.size >= this.engine.maxConcurrent
+    )
+      throw new ControlError('EXECUTOR_BUSY', 'Wait for the current product operation to finish.');
+    if (args.testFiles.length && !args.allowTests)
+      throw new ControlError('EXECUTION_SCOPE', 'Explicitly allow the selected tests.');
+    for (const file of args.testFiles)
+      if (!/\.(test|spec)\.(mjs|cjs|js)$/.test(relativeFile(file)) || /[*?\[\]{}]/.test(file))
+        throw new ControlError('INVALID_INPUT', 'Use explicit Node test file paths.');
+    if (
+      new Set(args.files.map((f) => relativeFile(f.path).toLowerCase())).size !== args.files.length
+    )
+      throw new ControlError('INVALID_INPUT', 'Duplicate file paths.');
+    if (args.sourceTaskId && this.store.get('task', args.sourceTaskId).productId !== product.id)
+      throw new ControlError('INVALID_INPUT', 'Source task belongs to another product.');
+    let task = this.store.create('task', {
+      kind: 'agent',
+      mode: 'change',
+      executor: 'external',
+      reviewMode: 'external',
+      source: args.source,
+      sourceTaskId: args.sourceTaskId,
+      productId: product.id,
+      productRevision: product.revision,
+      title: args.goal.slice(0, 100),
+      goal: args.goal,
+      testFiles: args.testFiles,
+      verificationProfile: this.engine.profiles.current(product.id)?.enabled
+        ? this.engine.profiles.current(product.id)
+        : null,
+      status: 'running',
+      stage: 'develop',
+      outputs: {},
+      verification: 'none',
+      deployment: 'none',
+      reason: '외부에서 제출한 수정안을 분리된 복사본에서 확인합니다.',
+    });
+    context.onTarget?.({ taskId: task.id });
+    const run = this.store.create('agent-run', {
+      taskId: task.id,
+      productId: product.id,
+      productRevision: product.revision,
+      role: 'develop',
+      source: 'external',
+      owner: this.engine.owner,
+      status: 'running',
+      toolCalls: 0,
+    });
+    task = this.engine.updateTask(task, { activeRunId: run.id });
+    const controller = new AbortController();
+    this.engine.active.set(task.id, { runId: run.id, controller });
+    try {
+      await this.prepare(task, run);
+      for (const file of args.files) {
+        if (file.beforeHash)
+          await this.engine.tool({ runId: run.id, name: 'read', args: { path: file.path } });
+        await this.engine.tool({
+          runId: run.id,
+          name: 'write',
+          args: { path: file.path, expectedHash: file.beforeHash, content: file.content },
+        });
+      }
+      task = this.store.get('task', task.id);
+      await this.seal(task);
+      context.assertCurrent?.();
+      const checked = await this.checks(task, controller.signal);
+      this.engine.owned(run.id);
+      const evidenceIds = this.store
+        .list('agent-evidence')
+        .filter((e) => e.runId === run.id)
+        .map((e) => e.id);
+      task = this.engine.updateTask(this.store.get('task', task.id), {
+        status: checked.result.status === 'failed' ? 'check_failed' : 'awaiting_review',
+        stage: 'change_review',
+        activeRunId: null,
+        verification: checked.result.status === 'passed' ? 'checks_passed' : 'partial_checks',
+        outputs: {
+          develop: {
+            runId: run.id,
+            result: { summary: args.goal, limitations: args.limitations, evidenceIds },
+          },
+          check: { runId: run.id, result: checked.result },
+        },
+        message: '외부 수정안의 검사 결과와 파일을 검토하고 실행 결정을 전달하세요.',
+      });
+      const current = this.store.get('agent-run', run.id);
+      this.store.update('agent-run', run.id, current.revision, { ...current, status: 'completed' });
+      return task;
+    } catch (error) {
+      const current = this.store.get('task', task.id);
+      this.engine.updateTask(current, {
+        status: controller.signal.aborted ? 'stopped' : 'failed',
+        activeRunId: null,
+        message: redact(error.message),
+      });
+      const r = this.store.get('agent-run', run.id);
+      this.store.update('agent-run', r.id, r.revision, { ...r, status: 'failed' });
+      throw error;
+    } finally {
+      this.engine.active.delete(task.id);
+    }
   }
   async prepare(task, run) {
     if (task.stage !== 'develop') return this.get(task);
@@ -287,7 +397,7 @@ export class ChangeWorkflow {
             }
           : {
               stage: 'change_review',
-              status: 'queued',
+              status: task.reviewMode === 'external' ? 'awaiting_review' : 'queued',
               verification: result.status === 'passed' ? 'checks_passed' : 'partial_checks',
             };
     if (role === 'change_review')
@@ -309,7 +419,7 @@ export class ChangeWorkflow {
       message: '수정본 반영과 재사용 기록 정리를 마쳤습니다.',
     };
   }
-  async apply(input) {
+  async apply(input, authorization = {}) {
     const {
       id,
       revision,
@@ -327,10 +437,17 @@ export class ChangeWorkflow {
     let task = this.store.get('task', id);
     this.engine.profiles.assert(task);
     const change = this.get(task);
+    if (['failed', 'cancelled'].includes(task.outputs.check?.result.status))
+      throw new ControlError(
+        'CHECKS_FAILED',
+        'Failed or cancelled checks cannot be overridden by a review.',
+      );
     if (
       task.revision !== revision ||
       task.mode !== 'change' ||
-      !['awaiting_apply', 'apply_partial', 'apply_conflict'].includes(task.status) ||
+      !['awaiting_apply', 'awaiting_review', 'apply_partial', 'apply_conflict'].includes(
+        task.status,
+      ) ||
       task.appliedAt ||
       this.applying.size ||
       this.engine.activeHasProduct(task.productId)
@@ -339,9 +456,24 @@ export class ChangeWorkflow {
     if (
       change.artifactHash !== artifactHash ||
       task.outputs.check?.result.artifactHash !== artifactHash ||
-      task.outputs.change_review?.result.verdict !== 'supported'
+      !(
+        authorization.review?.verdict === 'supported' ||
+        task.outputs.change_review?.result.verdict === 'supported'
+      )
     )
       throw new Error('검토한 수정본과 적용할 버전이 일치하지 않습니다.');
+    if (
+      authorization.review &&
+      (authorization.package?.command !== 'runtime.applyChange' ||
+        authorization.package?.args.id !== id ||
+        authorization.package?.args.artifactHash !== artifactHash)
+    )
+      throw new ControlError('DECISION_MISMATCH', 'Review belongs to another change.');
+    if (['failed', 'cancelled'].includes(task.outputs.check.result.status))
+      throw new ControlError(
+        'CHECKS_FAILED',
+        'Failed or cancelled checks cannot be overridden by a review.',
+      );
     if (task.outputs.check.result.status !== 'passed' && !acceptUnconfirmed)
       throw new Error('미확인 검사 범위를 읽고 적용 여부를 선택하세요.');
     const product = this.store.get('product', task.productId);
@@ -361,6 +493,12 @@ export class ChangeWorkflow {
         );
       task = this.store.get('task', id);
       if (task.revision !== revision) throw new Error('검토 중 작업 상태가 바뀌었습니다.');
+      if (this.store.get('product', product.id).revision !== task.productRevision)
+        throw new ControlError(
+          'VERSION_CONFLICT',
+          'Product scope changed before file application.',
+        );
+      authorization.assertCurrent?.();
       let journal = this.store
         .list('apply-journal')
         .find((j) => j.changeSetId === change.id && j.taskId === id);
@@ -396,8 +534,10 @@ export class ChangeWorkflow {
         task = this.engine.updateTask(
           this.store.get('task', id),
           {
-            status: 'queued',
-            stage: 'knowledge',
+            status: task.executor === 'external' ? 'accepted' : 'queued',
+            stage: task.executor === 'external' ? 'done' : 'knowledge',
+            appliedReviewId: authorization.review?.id || null,
+            appliedDecisionId: authorization.decision?.id || null,
             appliedAt: new Date().toISOString(),
             message: '검토한 수정본을 반영했습니다. 재사용 기록을 정리합니다.',
           },
@@ -406,7 +546,7 @@ export class ChangeWorkflow {
       });
       this.materialize(task.id);
       queueMicrotask(() => this.engine.pump());
-      return task;
+      return this.store.get('task', task.id);
     } catch (error) {
       const current = this.store.get('task', id);
       if (!current.appliedAt)
@@ -429,6 +569,10 @@ export class ChangeWorkflow {
     if (!task.appliedAt) return;
     const change = this.get(task),
       checks = task.outputs.check.result;
+    const formalReview = task.appliedReviewId
+      ? this.store.get('review-record', task.appliedReviewId)
+      : null;
+    const review = formalReview || task.outputs.change_review?.result;
     if (!task.resultTaskId) {
       const report = this.engine.room.reportWork(
         {
@@ -436,14 +580,15 @@ export class ChangeWorkflow {
           externalId: `pi-change:${task.id}:${change.artifactHash}`,
           title: task.title,
           summary: task.outputs.develop.result.summary,
-          evidence: `수정본 ${change.artifactHash}\n${task.outputs.change_review.result.assessment}`,
+          evidence: `수정본 ${change.artifactHash}\n${review.assessment}`,
           limitations:
-            `${task.outputs.develop.result.limitations}\n${task.outputs.change_review.result.limitations}\n${checks.status === 'passed' ? '선택한 검사만 통과했습니다.' : '일부 검사 범위는 미확인입니다.'} 실제 서비스 배포는 수행하지 않았습니다.`.slice(
+            `${task.outputs.develop.result.limitations}\n${review.limitations}\n${checks.status === 'passed' ? '선택한 검사만 통과했습니다.' : '일부 검사 범위는 미확인입니다.'} 실제 서비스 배포는 수행하지 않았습니다.`.slice(
               0,
               4000,
             ),
-          contribution:
-            '사용자가 수정 목표·검사 범위를 지정하고 변경본을 검토해 반영했습니다. Pi의 별도 세션이 수정안 작성과 검토를 맡았고 앱이 기록된 검사를 실행했습니다.',
+          contribution: formalReview
+            ? `검토 출처: ${formalReview.caller.channel}. 기록된 실행 결정에 따라 수정본을 반영했습니다. 앱이 기록된 검사를 실행했습니다.`
+            : '사용자가 수정 목표·검사 범위를 지정하고 변경본을 검토해 반영했습니다. Pi의 별도 세션이 수정안 작성과 검토를 맡았고 앱이 기록된 검사를 실행했습니다.',
           changedFiles: change.changes.map((c) => ({
             path: c.path,
             summary: c.beforeHash ? '검토한 수정본 적용' : '검토한 파일 추가',
@@ -454,7 +599,7 @@ export class ChangeWorkflow {
             detail: (c.output || '정상 종료').slice(0, 2000),
           })),
         },
-        'pi',
+        task.executor === 'external' ? 'mcp' : 'pi',
       );
       task = this.engine.updateTask(task, { resultTaskId: report.id }, '반영 결과 연결');
     }
@@ -468,7 +613,7 @@ export class ChangeWorkflow {
         evidenceIds: [
           ...new Set([
             ...task.outputs.develop.result.evidenceIds,
-            ...task.outputs.change_review.result.evidenceIds,
+            ...(task.outputs.change_review?.result.evidenceIds || []),
           ]),
         ],
       });

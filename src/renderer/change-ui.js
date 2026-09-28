@@ -2,6 +2,7 @@ import { t as tr, localizedLabels } from '../shared/i18n.mjs';
 import { automationOrigin } from './operations-ui.js';
 import { taskJourney, connectedOutcome } from './product-overview.js';
 import { html, e } from './html.js';
+import { controlReviewHistory } from './control-review-ui.js';
 const acceptUnconfirmed = () => html`<label class="check-option">
   <input type="checkbox" name="acceptUnconfirmed" required>미확인 검사 범위를 읽었으며
   이 수정본을 적용합니다.</label>`;
@@ -24,6 +25,7 @@ const roles = localizedLabels({
   develop: '수정안 작성',
   check: '수정본 검사',
   change_review: '별도 변경 검토',
+  done: '반영·기록 완료',
   knowledge: '재사용 기록 정리',
 });
 const states = localizedLabels({
@@ -40,6 +42,7 @@ const states = localizedLabels({
   check_failed: '검사 실패',
   changes_requested: '보완 필요',
   awaiting_apply: '반영 검토 대기',
+  awaiting_review: '외부 검토 대기',
   applying: '작업 폴더에 반영 중',
   apply_conflict: '원본 변경 확인 필요',
   apply_partial: '반영 상태 확인 필요',
@@ -115,16 +118,21 @@ export function changeDetail(task, data) {
   const runs = (data.agentRuns || [])
     .filter((r) => r.taskId === task.id)
     .sort((a, b) => a.created.localeCompare(b.created));
-  const canApply = ['awaiting_apply', 'apply_conflict', 'apply_partial'].includes(task.status);
-  const canResume = [
-    'stopped',
-    'interrupted',
-    'failed',
-    'needs_review',
-    'waiting_quota',
-    'check_failed',
-    'changes_requested',
-  ].includes(task.status);
+  const canApply =
+    ['awaiting_apply', 'awaiting_review', 'apply_conflict', 'apply_partial'].includes(
+      task.status,
+    ) && !['failed', 'cancelled'].includes(checks?.status);
+  const canResume =
+    task.executor !== 'external' &&
+    [
+      'stopped',
+      'interrupted',
+      'failed',
+      'needs_review',
+      'waiting_quota',
+      'check_failed',
+      'changes_requested',
+    ].includes(task.status);
   const resumeLabel = ['check_failed', 'changes_requested', 'needs_review'].includes(task.status)
     ? tr('수정안 보완하기')
     : tr('이 단계부터 재개');
@@ -209,6 +217,7 @@ export function changeDetail(task, data) {
       </section>`
         : ''
     }
+    ${controlReviewHistory(data, 'runtime.applyChange', task.id)}
     ${
       canApply && change
         ? html`<section class="section apply-review">

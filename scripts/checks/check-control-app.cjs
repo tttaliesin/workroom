@@ -4,13 +4,16 @@ const assert = require('node:assert/strict');
 const path = require('node:path');
 const fs = require('node:fs');
 const { execFileSync } = require('node:child_process');
-const { randomUUID } = require('node:crypto');
+const { randomUUID, createHash } = require('node:crypto');
 
 (async () => {
   const root = path.resolve(__dirname, '../..');
   // Windows may release Chromium/SQLite handles after the background process tree has exited.
   const directory = createFixture(path.join(root, 'work/control-ui-'), { cleanupRetries: 20 });
   const folder = path.join(directory, 'product'); fs.mkdirSync(folder);
+  const original = 'export const add = (a,b) => a - b;\n', fixed = 'export const add = (a,b) => a + b;\n';
+  fs.writeFileSync(path.join(folder, 'math.mjs'), original);
+  fs.writeFileSync(path.join(folder, 'math.test.mjs'), "import test from 'node:test';import assert from 'node:assert/strict';import {add} from './math.mjs';test('adds',()=>assert.equal(add(2,3),5));");
   const { Client } = await import('@modelcontextprotocol/sdk/client/index.js');
   const { StdioClientTransport } = await import('@modelcontextprotocol/sdk/client/stdio.js');
   const { Workroom } = await import('../../src/core/service.mjs');
@@ -29,9 +32,14 @@ const { randomUUID } = require('node:crypto');
   };
   const run = async (command, args, reviewed = false) => {
     const request = { command, args, requestId: randomUUID() };
-    if (reviewed) request.reviewHash = (await call('workroom_control_prepare', { command, args })).reviewHash;
+    if (reviewed) {
+      const p = await call('workroom_control_prepare', { command, args });
+      const r = (await run('review.submit', { packageId: p.id, verdict: 'supported', assessment: 'Reviewed fixture', limitations: 'Local test', files: (p.evidence.find((e) => e.kind === 'change-set')?.changes || []).map((c) => ({ path: c.path, hash: c.afterHash })) })).result;
+      const d = (await run('review.decide', { reviewId: r.id, choice: 'execute', authority: { basis: 'user_instruction', reference: 'Fixture instruction' } })).result;
+      Object.assign(request, { reviewId: r.id, decisionId: d.id });
+    }
     let result = await call('workroom_control_execute', request);
-    for (let n = 0; result.status === 'running' && n < 100; n++) {
+    for (let n = 0; ['accepted', 'running'].includes(result.status) && n < 500; n++) {
       await new Promise((r) => setTimeout(r, 20));
       result = await call('workroom_control_operation', { requestId: request.requestId });
     }
@@ -51,6 +59,15 @@ const { randomUUID } = require('node:crypto');
     assert.equal(duplicateConnection.instanceId, status.instanceId);
     const product = (await run('core.createProduct', { name: 'Controlled from Codex', folder }, true)).result;
     await page.getByRole('heading', { name: product.name, exact: true }).waitFor();
+    const task = (await run('external.submit', { productId: product.id, productRevision: product.revision, goal: 'MCP reviewed addition', source: 'Codex fixture', limitations: 'Local test', testFiles: ['math.test.mjs'], allowTests: true, files: [{ path: 'math.mjs', beforeHash: createHash('sha256').update(original).digest('hex'), content: fixed }] }, true)).result;
+    assert.equal(task.status, 'awaiting_review');
+    assert.equal(task.outputs.check.result.status, 'passed');
+    await page.locator(`[data-action="task:${task.id}"]`).first().click();
+    const applied = (await run('runtime.applyChange', { id: task.id, revision: task.revision, artifactHash: task.outputs.check.result.artifactHash }, true)).result;
+    assert(applied.appliedAt);
+    await page.locator('.control-reviews').getByText('Reviewed fixture', { exact: true }).waitFor();
+    assert.equal(fs.readFileSync(path.join(folder, 'math.mjs'), 'utf8'), fixed);
+    assert.equal((await call('workroom_control_connect')).runtime.modelId, null);
     const p = (await run('core.createPortfolio', { target: 'Remote target' })).result;
     const save = await run('core.savePortfolio', { id: p.id, revision: p.revision, intro: 'MCP draft', requirements: 'Focus', entries: [] });
     assert.equal((await page.evaluate(async () => (await window.workroom.call('snapshot')).value)).portfolios[0].intro, 'MCP draft');

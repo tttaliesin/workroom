@@ -1,4 +1,5 @@
 import { t, getLanguage } from '../shared/i18n.mjs';
+import { captureCodexEvent } from '../integrations/codex-capture.mjs';
 export const coreMethods = new Set([
   'snapshot',
   'changes',
@@ -22,6 +23,10 @@ export const coreMethods = new Set([
 ]);
 export function createCommands({ room, getEngine, getBroker, publications, publishVault, shell }) {
   return {
+    capture: (method, args) => {
+      if (method !== 'event') throw new Error('Unknown capture command');
+      return captureCodexEvent(room, args.productId, args.event);
+    },
     core: async (method, args = {}, actor = 'user') => {
       const engine = getEngine();
       if (!coreMethods.has(method)) throw new Error(t('지원하지 않는 작업입니다.'));
@@ -46,12 +51,18 @@ export function createCommands({ room, getEngine, getBroker, publications, publi
           publicationDestinations: room.store.list('publication-destination'),
           publicationAccount: publishVault.status(),
           publications: room.store.list('publication').map(({ html, ...p }) => p),
+          reviewPackages: room.store.list('review-package').map(({ evidence, args, ...p }) => ({
+            ...p,
+            targetId: args.id || args.productId || args.portfolioId,
+          })),
+          reviewRecords: room.store.list('review-record'),
+          executionDecisions: room.store.list('execution-decision'),
         };
       const result = await room[method](args, actor);
       if (method === 'resolveDecision') engine?.recovery.tick();
       return result;
     },
-    runtime: async (method, args = {}) => {
+    runtime: async (method, args = {}, _actor, context = {}) => {
       const engine = getEngine(),
         broker = getBroker();
       if (!engine) throw new Error(t('내장 실행기를 준비하고 있습니다.'));
@@ -68,7 +79,8 @@ export function createCommands({ room, getEngine, getBroker, publications, publi
       if (method === 'start') return engine.start(args);
       if (method === 'resume') return engine.resume(args);
       if (method === 'stop') return engine.stop(args);
-      if (method === 'applyChange') return engine.changes.apply(args);
+      if (method === 'applyChange') return engine.changes.apply(args, context);
+      if (method === 'tick') return engine.operations.tick();
       if (method === 'restart') {
         if (broker.child) throw new Error(t('실행기가 연결되어 있습니다.'));
         await broker.start();
@@ -94,15 +106,21 @@ export function createCommands({ room, getEngine, getBroker, publications, publi
       if (method === 'verify') args = { modelId: engine.settings.modelId };
       return broker.request(method, args);
     },
+    external: async (method, args, _actor, context) => {
+      if (method !== 'submit') throw new Error('Unknown external command');
+      return getEngine().changes.submitExternal(args, context);
+    },
     publication: async (method, args = {}) => {
       if (method === 'credentials') {
         if (typeof args.token !== 'string' || args.token.length < 10 || args.token.length > 1000)
           throw new Error(t('유효한 Vercel 토큰을 입력하세요.'));
         publishVault.write({ type: 'oauth', access: args.token, refresh: '' });
+        room.store.log('공개 계정 변경', 'publication');
         return { saved: true };
       }
       if (method === 'disconnect') {
         publishVault.write(null);
+        room.store.log('공개 계정 변경', 'publication');
         return { saved: false };
       }
       if (method === 'configure') return publications.configure(args);

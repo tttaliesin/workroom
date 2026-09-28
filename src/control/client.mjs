@@ -2,9 +2,19 @@ import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { controlRequest } from './transport.mjs';
 const require = createRequire(import.meta.url);
+const connection = (status) => ({
+  ...status,
+  compatible: status.protocol === 2,
+  ...(status.protocol === 2
+    ? {}
+    : {
+        recovery:
+          'Close the older Workroom normally, then connect with start:true. Protocol 2 is required.',
+      }),
+});
 export async function connectControl(directory, root, { start = false } = {}) {
   try {
-    return await controlRequest(directory, 'status');
+    return connection(await controlRequest(directory, 'status'));
   } catch (error) {
     if (!start)
       return {
@@ -33,7 +43,7 @@ export async function connectControl(directory, root, { start = false } = {}) {
       throw new Error('Unable to start Workroom executor. Check the Electron installation.');
     await new Promise((resolve) => setTimeout(resolve, 250));
     try {
-      return await controlRequest(directory, 'status');
+      return connection(await controlRequest(directory, 'status'));
     } catch {}
   }
   throw new Error(

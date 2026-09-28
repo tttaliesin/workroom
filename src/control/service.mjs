@@ -1,38 +1,57 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { writeFile } from 'node:fs/promises';
 import { z } from 'zod';
-import { catalog, entityKinds, secretCommands } from './catalog.mjs';
+import { catalog, entityKinds } from './catalog.mjs';
+import {
+  commandSchemas,
+  reviewCommands,
+  secretCommands,
+  commandResultSchema,
+  ControlError,
+  failure,
+} from './contracts.mjs';
+import { Reviews, fingerprint, publicEntity } from './reviews.mjs';
 import { getLanguage, setLanguage } from '../shared/i18n.mjs';
 import { portfolioHTML } from '../core/export.mjs';
 import { redact } from '../runtime/errors.mjs';
+import { sourceTree } from '../runtime/change-files.mjs';
+export { fingerprint } from './reviews.mjs';
 
-const canonical = (value) =>
-  JSON.stringify(value, (_key, v) =>
-    v && typeof v === 'object' && !Array.isArray(v)
-      ? Object.fromEntries(
-          Object.keys(v)
-            .sort()
-            .map((key) => [key, v[key]]),
-        )
-      : v,
-  );
-export const fingerprint = (value) => createHash('sha256').update(canonical(value)).digest('hex');
-const commandSchema = z
-  .object({ command: z.string(), args: z.record(z.string(), z.unknown()).default({}) })
+const envelope = z
+  .object({
+    command: z.string(),
+    args: z.record(z.string(), z.unknown()).default({}),
+    requestId: z.string().uuid(),
+    reviewHash: z
+      .string()
+      .regex(/^[a-f0-9]{64}$/)
+      .optional(),
+    reviewId: z.string().uuid().optional(),
+    decisionId: z.string().uuid().optional(),
+    protocol: z.literal(2).optional(),
+  })
   .strict();
-const publicEntity = ({ owner, html, manifest, ...value }) => value;
+const callerSchema = z
+  .object({ channel: z.enum(['mcp', 'app', 'scheduler']), sessionId: z.string().min(1).max(200) })
+  .strict();
 
 export class ControlService {
   constructor({ room, commands, getEngine, languageFile, dataDirectory }) {
     Object.assign(this, { room, commands, getEngine, languageFile, dataDirectory });
     this.instanceId = randomUUID();
     this.pending = new Map();
-    for (const op of room.store.list('control-operation').filter((o) => o.status === 'running'))
+    this.reviews = new Reviews(room);
+    for (const op of room.store
+      .list('control-operation')
+      .filter((o) => ['accepted', 'running'].includes(o.status)))
       this.save(op, {
-        status: 'uncertain',
-        error:
-          'Executor stopped before a durable result. Inspect task, apply journal or publication before creating a new request.',
+        status: op.status === 'accepted' ? 'cancelled' : 'uncertain',
+        error: 'Executor stopped. Inspect recorded effects before issuing a new request.',
+        errorCode: 'EXECUTOR_INTERRUPTED',
       });
+  }
+  caller(value) {
+    return callerSchema.parse(value || { channel: 'mcp', sessionId: this.instanceId });
   }
   save(op, patch) {
     const current = this.room.store.get('control-operation', op.id);
@@ -43,7 +62,7 @@ export class ControlService {
   }
   status() {
     return {
-      protocol: 1,
+      protocol: 2,
       liveConnection: true,
       instanceId: this.instanceId,
       dataDirectory: this.dataDirectory,
@@ -54,125 +73,158 @@ export class ControlService {
     };
   }
   validate(input) {
-    const parsed = commandSchema.parse(input);
-    if (!Object.hasOwn(catalog, parsed.command))
-      throw new Error('Unknown control command. Read the command catalog.');
-    return parsed;
-  }
-  review(input) {
-    const { command, args } = this.validate(input);
-    const references = new Set(
-      Object.entries(args)
-        .filter(([key, value]) => /(?:^id$|Id$)/.test(key) && typeof value === 'string')
-        .map(([, value]) => value),
-    );
-    const rows = [];
-    // Follow source identities so reviewed changes bind their target, tests and destination too.
-    for (let pass = 0; pass < 3; pass++) {
-      for (const kind of entityKinds) {
-        for (const item of this.room.store.list(kind)) {
-          if (!references.has(item.id) || rows.some((r) => r.id === item.id)) continue;
-          rows.push({ kind, ...publicEntity(item) });
-          for (const [key, value] of Object.entries(item))
-            if (/(?:Id)$/.test(key) && typeof value === 'string') references.add(value);
-          for (const source of item.sourceVersions || []) references.add(source.id);
-        }
-      }
-    }
-    const guards = rows
-      .map(({ id, revision }) => ({ id, revision }))
-      .sort((a, b) => a.id.localeCompare(b.id));
-    const runtimeRevision = this.getEngine()?.settings.revision || 0;
-    const hash = fingerprint({ command, args, guards, runtimeRevision });
-    return {
-      command,
-      args: secretCommands.has(command) ? { redacted: true } : args,
-      reviewHash: hash,
-      guards,
-      reviewRequired: catalog[command].reviewRequired,
-      effects:
-        command === 'publication.publish'
-          ? 'Publishes the frozen HTML to the reviewed production project.'
-          : command === 'runtime.applyChange'
-            ? 'Writes reviewed changes to the original product files.'
-            : command === 'core.createProduct'
-              ? 'Registers the specified folder for Workroom access.'
-              : command.startsWith('runtime.configure')
-                ? 'Changes execution scope, schedule or code execution settings.'
-                : 'Runs the requested Workroom command.',
-      evidence: rows,
-      approval:
-        'The caller applies user instructions or delegated review authority. This hash binds content; it is not proof of user consent.',
-    };
-  }
-  async invoke(command, args) {
-    if (command === 'settings.language') {
-      const { language } = z
-        .object({ language: z.enum(['ko', 'en']) })
-        .strict()
-        .parse(args);
-      await writeFile(this.languageFile, JSON.stringify(language), 'utf8');
-      setLanguage(language);
-      this.room.store.log('앱 언어 변경', 'settings', language);
-      return { language };
-    }
-    const [domain, method] = command.split('.');
-    return this.commands[domain](method, args, 'mcp');
-  }
-  execute(input) {
-    const { requestId, reviewHash, ...request } = z
-      .object({
-        command: z.string(),
-        args: z.record(z.string(), z.unknown()).default({}),
-        requestId: z.string().uuid(),
-        reviewHash: z
-          .string()
-          .regex(/^[a-f0-9]{64}$/)
-          .optional(),
-      })
+    const { command, args = {} } = z
+      .object({ command: z.string(), args: z.record(z.string(), z.unknown()).optional() })
       .strict()
       .parse(input);
-    const { command, args } = this.validate(request);
-    const hash = fingerprint({ command, args, reviewHash });
-    const previous = this.room.store
-      .list('control-operation')
-      .find((op) => op.requestId === requestId);
+    if (!Object.hasOwn(commandSchemas, command))
+      throw new ControlError(
+        'UNKNOWN_COMMAND',
+        'Unknown control command. Read the command catalog.',
+      );
+    const parsed = commandSchemas[command].parse(args);
+    if (!secretCommands.has(command) && redact(JSON.stringify(parsed)) !== JSON.stringify(parsed))
+      throw new ControlError(
+        'SECRET_IN_INPUT',
+        'Remove credential values from ordinary command arguments.',
+      );
+    return { command, args: parsed };
+  }
+  review(input, caller) {
+    const { command, args } = this.validate(input);
+    if (secretCommands.has(command))
+      return { command, args: { redacted: true }, reviewRequired: false };
+    return {
+      ...this.reviews.prepare(command, args, this.caller(caller)),
+      reviewRequired: reviewCommands.has(command),
+      approval:
+        'This package fixes content. Submit review.submit and review.decide; a hash is not consent.',
+    };
+  }
+  async invoke(command, args, context) {
+    if (command === 'review.submit') return this.reviews.submit(args, context.caller);
+    if (command === 'review.decide') return this.reviews.decide(args, context.caller);
+    if (command === 'operation.reconcile') return this.reconcile(args.requestId, context.caller);
+    if (command === 'operation.cancel') {
+      const op = this.room.store.operation(args.requestId);
+      if (!op || op.status !== 'accepted')
+        throw new ControlError(
+          'NOT_CANCELLABLE',
+          'Only an accepted command can be cancelled; stop the underlying task separately.',
+        );
+      this.save(op, { status: 'cancelled' });
+      return this.operation(args.requestId);
+    }
+    if (command === 'artifact.export') return this.export(args);
+    if (command === 'artifact.recordExport') {
+      const a = this.room.store.get('export-artifact', args.artifactId);
+      return this.room.recordExport(a.portfolioId, a.snapshot, args.filename);
+    }
+    if (command === 'settings.language') {
+      await writeFile(this.languageFile, JSON.stringify(args.language), 'utf8');
+      setLanguage(args.language);
+      this.room.store.log('앱 언어 변경', 'settings', args.language);
+      return args;
+    }
+    const [domain, method] = command.split('.');
+    return this.commands[domain](
+      method,
+      args,
+      context.caller.channel === 'app' ? 'user' : context.caller.channel,
+      context,
+    );
+  }
+  execute(input, callerValue) {
+    const {
+      requestId,
+      reviewHash,
+      reviewId,
+      decisionId,
+      protocol: ignored,
+      ...request
+    } = envelope.parse(input);
+    const caller = this.caller(callerValue),
+      { command, args } = this.validate(request);
+    if (command === 'runtime.tick' && caller.channel !== 'scheduler')
+      throw new ControlError(
+        'FORBIDDEN_COMMAND',
+        'Scheduler commands cannot be invoked by clients.',
+      );
+    const hash = fingerprint({ command, args, reviewHash, reviewId, decisionId });
+    const previous = this.room.store.operation(requestId);
     if (previous) {
       if (previous.fingerprint !== hash)
-        throw new Error('Request ID was already used for different content.');
+        throw new ControlError(
+          'REQUEST_ID_CONFLICT',
+          'Request ID was already used for different content.',
+        );
       return this.operation(requestId);
     }
-    if (catalog[command].reviewRequired && !reviewHash)
-      throw new Error('Prepare and review this command first, then supply reviewHash.');
-    if (reviewHash && this.review(request).reviewHash !== reviewHash)
-      throw new Error('Reviewed content or state changed. Prepare and review again.');
+    const authorize = () => {
+      const auth =
+        reviewCommands.has(command) || reviewId || decisionId
+          ? this.reviews.authorize(command, args, reviewId, decisionId)
+          : {};
+      if (
+        reviewHash &&
+        (auth.package?.packageHash || this.reviews.snapshot(command, args).packageHash) !==
+          reviewHash
+      )
+        throw new ControlError('REVIEW_STALE', 'Reviewed content or state changed.');
+      return auth;
+    };
+    authorize();
+    const targets = Object.fromEntries(
+      ['id', 'productId', 'portfolioId', 'revision', 'artifactHash']
+        .filter((k) => args[k] !== undefined)
+        .map((k) => [k, args[k]]),
+    );
     const op = this.room.store.create('control-operation', {
       requestId,
       command,
       fingerprint: hash,
-      status: 'running',
+      status: 'accepted',
       instanceId: this.instanceId,
+      caller,
+      targets,
+      reviewId,
+      decisionId,
     });
-    // No command arguments are persisted: in particular no OAuth codes or provider tokens.
     const promise = Promise.resolve().then(async () => {
+      if (this.room.store.operation(requestId).status !== 'accepted') {
+        this.pending.delete(requestId);
+        return;
+      }
       let invoked = false;
       try {
-        // A prior queued command may have changed the review after admission.
-        if (reviewHash && this.review(request).reviewHash !== reviewHash)
-          throw new Error('Reviewed state changed before execution. Prepare again.');
+        const authorization = authorize();
+        this.save(op, { status: 'running' });
         invoked = true;
-        const result = await this.invoke(command, args);
-        this.save(op, {
-          status: 'completed',
-          result: secretCommands.has(command) ? { saved: true } : (result ?? null),
+        const result = await this.invoke(command, args, {
+          ...authorization,
+          assertCurrent: authorize,
+          caller,
+          requestId,
+          onTarget: (patch) => this.save(op, { targets: { ...targets, ...patch } }),
         });
+        const safeResult = commandResultSchema.parse(
+          JSON.parse(
+            JSON.stringify(secretCommands.has(command) ? { saved: true } : (result ?? null)),
+          ),
+        );
+        this.save(op, { status: 'completed', result: safeResult });
       } catch (error) {
+        const info = secretCommands.has(command)
+          ? {
+              code: 'CREDENTIAL_FAILURE',
+              message: 'Credential operation failed. Check protected storage or account status.',
+            }
+          : failure(error);
         this.save(op, {
           status: 'failed',
           effectMayHaveOccurred: invoked,
-          error: secretCommands.has(command)
-            ? 'Credential operation failed. Check protected storage or account status.'
-            : redact(error.message),
+          error: redact(info.message),
+          errorCode: info.code,
         });
       } finally {
         this.pending.delete(requestId);
@@ -181,14 +233,105 @@ export class ControlService {
     this.pending.set(requestId, promise);
     return this.operation(requestId);
   }
+  async run(command, args, { caller, requestId = randomUUID(), reviewId, decisionId } = {}) {
+    this.execute({ command, args, requestId, reviewId, decisionId }, caller);
+    await this.pending.get(requestId);
+    const op = this.operation(requestId);
+    if (op.status !== 'completed')
+      throw new ControlError(op.errorCode || 'OPERATION_UNRESOLVED', op.error || op.status, {
+        requestId,
+        status: op.status,
+      });
+    return op.result;
+  }
+  async fromApp(command, args, requestId = randomUUID()) {
+    const caller = { channel: 'app', sessionId: this.instanceId };
+    const previous = this.room.store.operation(requestId);
+    let reviewId = previous?.reviewId,
+      decisionId = previous?.decisionId;
+    if (reviewCommands.has(command) && !previous) {
+      const p = this.review({ command, args }, caller);
+      const changes = p.evidence.find((e) => e.kind === 'change-set')?.changes || [];
+      const review = await this.run(
+        'review.submit',
+        {
+          packageId: p.id,
+          verdict: 'supported',
+          assessment: '사용자가 앱에서 표시된 내용의 실행 액션을 선택했습니다.',
+          limitations: '앱 액션 기록이며 독립적인 AI 검사 결과가 아닙니다.',
+          files: changes.map((f) => ({ path: f.path, hash: f.afterHash })),
+        },
+        { caller },
+      );
+      const decision = await this.run(
+        'review.decide',
+        {
+          reviewId: review.id,
+          choice: 'execute',
+          authority: { basis: 'user_instruction', reference: 'Workroom 앱의 명시적 실행 액션' },
+        },
+        { caller },
+      );
+      reviewId = review.id;
+      decisionId = decision.id;
+    }
+    return this.run(command, args, { caller, requestId, reviewId, decisionId });
+  }
   operation(requestId) {
     z.string().uuid().parse(requestId);
-    const found = this.room.store
-      .list('control-operation')
-      .find((op) => op.requestId === requestId);
-    if (!found) throw new Error('Unknown request ID.');
+    const found = this.room.store.operation(requestId);
+    if (!found) throw new ControlError('REQUEST_NOT_FOUND', 'Unknown request ID.');
     const { fingerprint: ignored, ...result } = found;
     return result;
+  }
+  async reconcile(requestId, caller) {
+    const op = this.room.store.operation(requestId);
+    if (!op) throw new ControlError('REQUEST_NOT_FOUND', 'Unknown request ID.');
+    if (!['uncertain', 'failed'].includes(op.status)) return this.operation(requestId);
+    let result, evidence;
+    if (op.command === 'runtime.applyChange') {
+      const t = this.room.store.get('task', op.targets.id);
+      const journal = this.room.store
+        .list('apply-journal')
+        .find(
+          (j) =>
+            j.taskId === t.id &&
+            j.artifactHash === op.targets.artifactHash &&
+            j.state === 'applied',
+        );
+      const product = this.room.store.get('product', t.productId);
+      if (
+        journal &&
+        t.appliedAt &&
+        (await sourceTree(product.folder)).hash === op.targets.artifactHash
+      ) {
+        result = t;
+        evidence = { kind: 'apply-journal', id: journal.id, revision: journal.revision };
+      }
+    } else if (op.command === 'publication.publish') {
+      const p = await this.commands.publication('reconcile', { id: op.targets.id });
+      if (p.deploymentId) {
+        result = p;
+        evidence = { kind: 'publication', id: p.id, revision: p.revision };
+      }
+    } else if (op.command === 'external.submit' && op.targets.taskId) {
+      const t = this.room.store.get('task', op.targets.taskId);
+      if (['awaiting_review', 'check_failed', 'accepted'].includes(t.status)) {
+        result = t;
+        evidence = { kind: 'task', id: t.id, revision: t.revision };
+      }
+    }
+    const resolution = this.room.store.create('operation-resolution', {
+      requestId,
+      operationId: op.id,
+      caller,
+      outcome: evidence ? 'confirmed' : 'unresolved',
+      evidence: evidence || null,
+    });
+    this.room.store.log('중단 요청 대조', op.id, resolution.outcome);
+    if (evidence)
+      this.save(op, { status: 'completed', result, resolutionId: resolution.id, recovered: true });
+    return { operation: this.operation(requestId), resolution };
   }
   read(input) {
     const { kind, id, productId, offset, limit } = z
@@ -215,33 +358,49 @@ export class ControlService {
     };
   }
   export(input) {
-    const { id, revision, language } = z
-      .object({
-        id: z.string().uuid(),
-        revision: z.number().int(),
-        language: z.enum(['ko', 'en']).default('ko'),
-      })
-      .strict()
-      .parse(input);
-    const snapshot = this.room.prepareExport(id, revision);
-    const html = portfolioHTML(snapshot, { language });
+    const { id, revision, language } = commandSchemas['artifact.export'].parse(input);
+    const snapshot = this.room.prepareExport(id, revision),
+      html = portfolioHTML(snapshot, { language });
+    const artifactHash = createHash('sha256').update(html).digest('hex');
+    const artifact = this.room.store.create('export-artifact', {
+      portfolioId: id,
+      revision,
+      language,
+      snapshot,
+      artifactHash,
+    });
     return {
       id,
+      artifactId: artifact.id,
       revision,
       language,
       html,
-      artifactHash: createHash('sha256').update(html).digest('hex'),
+      artifactHash,
       savedToFile: false,
     };
   }
-  handle({ action, input = {} }) {
+  handle({ action, input = {} }, caller) {
     if (action === 'status') return this.status();
-    if (action === 'catalog') return { protocol: 1, commands: catalog, entityKinds };
+    if (action === 'catalog') return { protocol: 2, commands: catalog, entityKinds };
     if (action === 'read') return this.read(input);
-    if (action === 'prepare') return this.review(input);
-    if (action === 'execute') return this.execute(input);
+    if (action === 'prepare') return this.review(input, caller);
+    if (action === 'execute') return this.execute(input, caller);
     if (action === 'operation') return this.operation(input.requestId);
-    if (action === 'export') return this.export(input);
-    throw new Error('Unknown control action.');
+    if (action === 'export') return this.run('artifact.export', input, { caller });
+    if (action === 'legacy') {
+      const { command, args, requestId } = input;
+      if (
+        ![
+          'core.context',
+          'core.inspect',
+          'core.requestDecision',
+          'core.reportWork',
+          'core.addRecord',
+        ].includes(command)
+      )
+        throw new ControlError('FORBIDDEN_COMMAND', 'Unknown legacy command.');
+      return this.run(command, args, { caller, requestId });
+    }
+    throw new ControlError('UNKNOWN_ACTION', 'Unknown control action.');
   }
 }

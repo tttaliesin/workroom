@@ -8,6 +8,9 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { Workroom } from '../src/core/service.mjs';
 import { projectRoot } from '../src/core/paths.mjs';
 import { readProductFile } from '../src/runtime/files.mjs';
+import { createCommands } from '../src/control/commands.mjs';
+import { ControlService } from '../src/control/service.mjs';
+import { listenControl } from '../src/control/transport.mjs';
 
 test('real MCP stdio preserves records and advertises explicit reviewed control separately', async (t) => {
   const parent = path.join(projectRoot, 'work/tests');
@@ -18,6 +21,10 @@ test('real MCP stdio preserves records and advertises explicit reviewed control 
   mkdirSync(repo);
   const room = new Workroom(path.join(dir, 'workroom.sqlite'));
   const product = await room.createProduct({ name: 'MCP 제품', folder: repo });
+  const commands = createCommands({ room, getEngine: () => null });
+  const control = new ControlService({ room, commands, getEngine: () => null });
+  const socket = await listenControl(dir, (message) => control.handle(message));
+  t.after(() => new Promise((resolve) => socket.close(resolve)));
   const client = new Client({ name: 'workroom-test', version: '1.0.0' });
   const transport = new StdioClientTransport({
     command: process.execPath,

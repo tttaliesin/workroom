@@ -7,6 +7,7 @@ const progressStates = ['running', 'queued', 'stopping', 'applying'];
 const attentionStates = [
   'needs_decision',
   'awaiting_apply',
+  'awaiting_review',
   'check_failed',
   'changes_requested',
   'apply_partial',
@@ -30,6 +31,7 @@ const stages = localizedLabels({
 const actions = localizedLabels({
   needs_decision: '방침 선택',
   awaiting_apply: '변경 검토',
+  awaiting_review: '외부 검토 대기',
   check_failed: '실패한 검사 확인',
   changes_requested: '보완 의견 확인',
   apply_partial: '반영 상태 확인',
@@ -466,10 +468,12 @@ export function taskJourney(task) {
           const done =
             key === 'apply'
               ? !!task.appliedAt
-              : !!task.outputs?.[key] &&
-                (key !== 'check' || task.outputs[key].result.status !== 'failed') &&
-                (!['review', 'change_review'].includes(key) ||
-                  task.outputs[key].result.verdict === 'supported');
+              : (key === 'change_review' && !!task.appliedReviewId) ||
+                (key === 'knowledge' && task.executor === 'external' && !!task.resultTaskId) ||
+                (!!task.outputs?.[key] &&
+                  (key !== 'check' || task.outputs[key].result.status !== 'failed') &&
+                  (!['review', 'change_review'].includes(key) ||
+                    task.outputs[key].result.verdict === 'supported'));
           const current =
             (key === task.stage && !done) ||
             (key === 'apply' &&

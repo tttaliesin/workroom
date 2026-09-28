@@ -152,6 +152,7 @@ export class AgentEngine {
       testFiles = [],
       allowTests = false,
       sourceTaskId,
+      reviewMode = 'builtin',
     } = z
       .object({
         productId: z.string().uuid(),
@@ -160,6 +161,7 @@ export class AgentEngine {
         testFiles: z.array(z.string().max(1024)).max(8).optional(),
         allowTests: z.boolean().optional(),
         sourceTaskId: z.string().uuid().optional(),
+        reviewMode: z.enum(['builtin', 'external']).optional(),
       })
       .strict()
       .parse(input);
@@ -198,6 +200,7 @@ export class AgentEngine {
             t.goal === goal &&
             t.sourceTaskId === sourceTaskId &&
             (t.mode || 'investigation') === mode &&
+            (t.reviewMode || 'builtin') === reviewMode &&
             JSON.stringify(t.testFiles || []) === JSON.stringify(selectedTests) &&
             [...waitingStates, 'running', 'stopping'].includes(t.status),
         );
@@ -206,6 +209,7 @@ export class AgentEngine {
         kind: 'agent',
         recoveryVersion: 1,
         mode,
+        reviewMode,
         testFiles: selectedTests,
         verificationProfile:
           mode === 'change' && this.profiles.current(productId)?.enabled
@@ -253,6 +257,10 @@ export class AgentEngine {
       .strict()
       .parse(input);
     const task = this.store.get('task', id);
+    if (task.executor === 'external')
+      throw new Error(
+        '외부 수정안은 최신 기준으로 다시 제출하세요. 내장 AI로 자동 전환하지 않습니다.',
+      );
     if (['operation', 'portfolio'].includes(task.mode) && !recovery && !decision)
       throw new Error(
         '제품의 지금 확인 또는 포트폴리오의 AI로 초안 만들기에서 새 기준으로 요청하세요.',
@@ -359,7 +367,9 @@ export class AgentEngine {
     const ready = this.canRun();
     const tasks = this.store
       .list('task')
-      .filter((t) => t.kind === 'agent' && waitingStates.includes(t.status))
+      .filter(
+        (t) => t.kind === 'agent' && t.executor !== 'external' && waitingStates.includes(t.status),
+      )
       .reverse()
       .sort(
         (a, b) => Number(!!(a.automation || a.automatic)) - Number(!!(b.automation || b.automatic)),
@@ -463,10 +473,12 @@ export class AgentEngine {
           this.active.delete(task.id);
           if (!this.closed) this.store.log('실행 종료 확인', task.id);
           this.pump();
-          void this.operations.tick().catch((error) => {
-            if (!this.closed)
-              this.store.log('운영 진행 확인 필요', 'runtime', redact(error.message));
-          });
+          void (this.scheduleOperations ? this.scheduleOperations() : this.operations.tick()).catch(
+            (error) => {
+              if (!this.closed)
+                this.store.log('운영 진행 확인 필요', 'runtime', redact(error.message));
+            },
+          );
         });
     }
   }

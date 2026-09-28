@@ -4,9 +4,11 @@ import { z } from 'zod';
 import { Workroom, schemas } from '../core/service.mjs';
 import { databaseFile, dataDirectory, projectRoot } from '../core/paths.mjs';
 import { registerControlTools } from './control-tools.mjs';
-import { runtimeEmbeddings } from '../runtime/local-embeddings.mjs';
+import { randomUUID } from 'node:crypto';
+import { controlRequest } from '../control/transport.mjs';
+import { failure } from '../control/contracts.mjs';
 
-const room = new Workroom(databaseFile, { embedding: runtimeEmbeddings(dataDirectory) });
+const room = new Workroom(databaseFile);
 const server = new McpServer({ name: 'workroom-local', version: '0.1.0' });
 registerControlTools(server, { directory: dataDirectory, root: projectRoot });
 function tool(name, description, schema, readOnly, handler) {
@@ -14,7 +16,8 @@ function tool(name, description, schema, readOnly, handler) {
     name,
     {
       description,
-      inputSchema: schema.shape,
+      inputSchema: (readOnly ? schema : schema.extend({ requestId: z.string().uuid().optional() }))
+        .shape,
       annotations: {
         readOnlyHint: readOnly,
         destructiveHint: false,
@@ -24,9 +27,38 @@ function tool(name, description, schema, readOnly, handler) {
     },
     async (args) => {
       try {
+        if (!readOnly) {
+          const { requestId = randomUUID(), ...input } = args;
+          const command = {
+            workroom_product_context: 'core.context',
+            workroom_inspect_repository: 'core.inspect',
+            workroom_request_decision: 'core.requestDecision',
+            workroom_report_work: 'core.reportWork',
+            workroom_add_knowledge: 'core.addRecord',
+          }[name];
+          try {
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: JSON.stringify(
+                    await controlRequest(dataDirectory, 'legacy', {
+                      command,
+                      args: input,
+                      requestId,
+                    }),
+                  ),
+                },
+              ],
+            };
+          } catch (error) {
+            error.details = { ...error.details, requestId };
+            throw error;
+          }
+        }
         return { content: [{ type: 'text', text: JSON.stringify(await handler(args)) }] };
       } catch (error) {
-        return { isError: true, content: [{ type: 'text', text: error.message }] };
+        return { isError: true, content: [{ type: 'text', text: JSON.stringify(failure(error)) }] };
       }
     },
   );
@@ -69,7 +101,6 @@ tool(
   'Pi와 같은 검색·근거 검증으로 한 제품의 활성 기록을 최대 8개 조회하고 제공 버전을 기록합니다. 준비된 로컬 의미 색인과 단어 검색을 결합하며, 준비·실패 시 단어 검색을 사용합니다. 실제 검색 방식은 retrieval.mode에 표시됩니다. 변경·삭제된 파일 근거와 제외·재확인 보류 기록은 반환하지 않습니다. 파일 근거 없는 보고는 독립 검증된 사실이 아니며 조회 이력은 실제 활용 확인이 아닙니다.',
   schemas.context,
   false,
-  (args) => room.context(args),
 );
 tool(
   'workroom_list_work',
@@ -86,14 +117,12 @@ tool(
   '등록된 폴더의 Git 상태, README 유무, package.json 스크립트 이름을 읽고 점검 결과를 저장합니다. 코드를 실행하거나 수정하지 않습니다.',
   schemas.inspect,
   false,
-  (args) => room.inspect(args),
 );
 tool(
   'workroom_request_decision',
   '제품 방침이 없어 진행할 수 없을 때 판단 요청을 만듭니다. 사용자 선택을 받으면 workroom_control의 core.resolveDecision으로 답변할 수 있습니다.',
   schemas.requestDecision,
   false,
-  (args) => room.requestDecision(args, 'mcp'),
 );
 tool(
   'workroom_list_decisions',
@@ -112,19 +141,16 @@ tool(
   '같은 문제의 새 실행은 workTaskId에 workroom_list_work의 독립 작업 ID를 지정해 연결합니다. 별개 실행은 별개 externalId를 사용합니다. 사용자가 정정한 연결은 수정 보고로 되돌리지 않습니다. 수행한 작업의 결과·근거·한계·기여를 기록하고 앱에서 구독한 로컬 초안에 반영합니다. externalId에 제품 안에서 안정적인 작업 식별자(예: 세션 ID+작업 ID)를 넣으세요. 동일 externalId와 sourceVersion(기본 1)의 같은 보고는 중복 생성하지 않습니다. 수정 보고는 같은 externalId에 sourceVersion을 높여 전체 내용을 보내세요. 누락하거나 비운 선택 필드도 해당 버전의 전체 내용으로 처리됩니다. changedFiles는 파일·설명, checks는 이름·결과(passed/failed/unconfirmed)·근거입니다. 독립 검증이 아닌 에이전트 보고입니다. 비공개 근거를 공개용 요약에 넣지 마세요. 웹 공개는 하지 않습니다.',
   schemas.reportWork,
   false,
-  (args) => room.reportWork(args, 'mcp'),
 );
 tool(
   'workroom_add_knowledge',
   '다음 작업에 재사용할 지식을 출처와 적용 조건과 함께 저장합니다. 비밀값은 넣지 마세요. MCP 보고라는 출처가 유지됩니다.',
   schemas.addRecord,
   false,
-  (args) => room.addRecord(args, 'mcp'),
 );
 
 const transport = new StdioServerTransport();
 await server.connect(transport);
-room.knowledge.index?.start();
 process.stdin.on('end', async () => {
   await server.close();
   room.close();

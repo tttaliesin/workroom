@@ -23,6 +23,8 @@ export class Store {
         payload TEXT NOT NULL, not_before INTEGER NOT NULL, status TEXT NOT NULL DEFAULT 'pending'
       );
       CREATE INDEX IF NOT EXISTS wakeups_due ON wakeups(status, not_before);`);
+    this.db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS control_request_id
+      ON entities(json_extract(body, '$.requestId')) WHERE kind='control-operation'`);
     initializeKnowledgeIndex(this.db);
   }
   decode(row) {
@@ -51,6 +53,15 @@ export class Store {
       .prepare('SELECT * FROM entities WHERE kind=? ORDER BY updated DESC, rowid DESC')
       .all(kind)
       .map((r) => this.decode(r));
+  }
+  operation(requestId) {
+    return this.decode(
+      this.db
+        .prepare(
+          "SELECT * FROM entities WHERE kind='control-operation' AND json_extract(body, '$.requestId')=?",
+        )
+        .get(requestId),
+    );
   }
   create(kind, body) {
     const id = randomUUID(),

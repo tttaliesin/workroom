@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { realpathSync } from 'node:fs';
 import { z } from 'zod';
 
-const eventSchema = z.object({
+export const eventSchema = z.object({
   hook_event_name: z.enum(['PostToolUse', 'Stop', 'Interrupt']),
   session_id: z.string().min(1).max(300),
   turn_id: z.string().min(1).max(300),

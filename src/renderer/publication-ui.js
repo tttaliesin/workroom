@@ -1,5 +1,6 @@
 import { html, button, e } from './html.js';
 import { t as tr } from '../shared/i18n.mjs';
+import { controlReviewHistory } from './control-review-ui.js';
 export async function publicationCall(method, args) {
   const result = await window.workroom.publication(method, args);
   if (!result.ok) throw new Error(result.error);
@@ -67,6 +68,7 @@ export function publicationPanel(p, data) {
       ${v.message ? `<p>${e(tr(v.message))}</p>` : ''}
       <details class="gap" ${v.status === 'prepared' ? 'open' : ''}><summary>전송할 공개 내용</summary>
       <p>${e(v.snapshot.intro)}</p>${v.snapshot.entries.map((x) => `<article><h4>${e(x.title)}</h4><p>${e(x.description)}</p><p>${e(x.contribution)}</p></article>`).join('')}</details>
+      ${controlReviewHistory(data, 'publication.publish', v.id)}
       <div class="actions">
         ${v.status === 'prepared' ? button(tr('이 내용과 대상으로 공개'), `publication-publish:${v.id}`, 'class="primary"') : button(tr('공개 상태 조회'), `publication-reconcile:${v.id}`)}
         ${v.url ? button(tr('공개 주소 열기'), `publication-open:${v.id}`) : ''}

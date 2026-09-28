@@ -1301,4 +1301,14 @@ export default {
   'Pi 실행기를 시작하지 못했습니다.': 'The Pi runner could not be started.',
   '운영체제의 보호 저장소를 사용할 수 없습니다. 로그인 정보를 저장하지 않았습니다.':
     'The operating system’s protected storage is unavailable. The sign-in was not saved.',
+  '반영 가능 의견': 'Supported for application',
+  '보완 요청': 'Changes requested',
+  '판단 유보': 'Inconclusive',
+  '실행 결정': 'Execute decision',
+  '보완 결정': 'Revise decision',
+  '실행 거절': 'Execution rejected',
+  '검토 의견과 실행 결정': 'Reviews and execution decisions',
+  '앱 사용자 액션': 'App user action',
+  '연결 클라이언트': 'Connected client',
+  '외부 검토 대기': 'Awaiting external review',
 };

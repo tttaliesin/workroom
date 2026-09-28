@@ -10,6 +10,7 @@ import { runNode } from '../src/runtime/node-process.mjs';
 import { createCommands } from '../src/control/commands.mjs';
 import { ControlService } from '../src/control/service.mjs';
 import { randomUUID } from 'node:crypto';
+import { authorize } from './control-support.mjs';
 
 const pause = () => new Promise((r) => setTimeout(r, 15));
 async function until(fn) {
@@ -26,6 +27,7 @@ async function fixture(
     code = 'export const add = (a,b) => a + b;\n',
     hold = false,
     extraFile = false,
+    reviewMode = 'builtin',
   } = {},
 ) {
   const directory = await mkdtemp(path.join(os.tmpdir(), 'workroom-change-')),
@@ -147,6 +149,7 @@ async function fixture(
     productId: product.id,
     goal: 'repair add',
     mode: 'change',
+    reviewMode,
     testFiles,
     allowTests: true,
   });
@@ -160,7 +163,7 @@ async function fixture(
 async function ready(f) {
   await until(
     () =>
-      ['awaiting_apply', 'check_failed', 'needs_review', 'failed'].includes(
+      ['awaiting_apply', 'awaiting_review', 'check_failed', 'needs_review', 'failed'].includes(
         f.room.store.get('task', f.task.id).status,
       ) && f.engine.active.size === 0,
   );
@@ -202,7 +205,11 @@ test('real Node before/after tests and reviewed control apply the exact isolated
   };
   const review = control.review(request);
   assert.ok(review.evidence.some((r) => r.kind === 'change-set' && r.changes.length));
-  const execute = { ...request, requestId: randomUUID(), reviewHash: review.reviewHash };
+  const execute = {
+    ...request,
+    requestId: randomUUID(),
+    ...(await authorize(control, request.command, request.args)),
+  };
   control.execute(execute);
   await control.pending.get(execute.requestId);
   assert.equal(control.operation(execute.requestId).status, 'completed');
@@ -228,6 +235,32 @@ test('real Node before/after tests and reviewed control apply the exact isolated
   await f.engine.prepareContext(done);
   assert.equal(f.room.store.get('record', record.id).validity, 'needs_review');
 });
+test('built-in development can wait for external review and apply without another model reviewer', async (t) => {
+  const f = await fixture(t, { reviewMode: 'external' });
+  const task = await ready(f);
+  assert.equal(task.status, 'awaiting_review');
+  assert.deepEqual(f.calls, ['develop']);
+  const commands = createCommands({
+    room: f.room,
+    getEngine: () => f.engine,
+    getBroker: () => f.broker,
+  });
+  const control = new ControlService({ room: f.room, commands, getEngine: () => f.engine });
+  const args = {
+    id: task.id,
+    revision: task.revision,
+    artifactHash: task.outputs.check.result.artifactHash,
+  };
+  await control.run(
+    'runtime.applyChange',
+    args,
+    await authorize(control, 'runtime.applyChange', args),
+  );
+  assert.equal(f.calls.includes('change_review'), false);
+  await until(() => f.engine.active.size === 0);
+  assert.match(await readFile(path.join(f.folder, 'math.mjs'), 'utf8'), /a \+ b/);
+});
+
 test('original edits made during review are preserved and block apply', async (t) => {
   const f = await fixture(t);
   assert.equal((await ready(f)).status, 'awaiting_apply');

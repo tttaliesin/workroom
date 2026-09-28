@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { rm } from 'node:fs/promises';
-import { execFileSync } from 'node:child_process';
+import { execFile, execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { Workroom } from '../src/core/service.mjs';
 import { projectRoot } from '../src/core/paths.mjs';
@@ -11,7 +11,26 @@ import { prepareCodexSetup, installCodexSetup } from '../src/integrations/codex-
 
 async function fixture(t) {
   const dir = mkdtempSync(path.join(projectRoot, 'work/capture-'));
-  t.after(() => rm(dir, { recursive: true, force: true }));
+  t.after(async () => {
+    // Only this freshly created profile can own this endpoint; never stop the user's app.
+    const endpoint = path.join(dir, 'auth.control.json');
+    if (existsSync(endpoint)) {
+      const { pid } = JSON.parse(readFileSync(endpoint, 'utf8'));
+      if (Number.isInteger(pid) && pid !== process.pid) {
+        try {
+          if (process.platform === 'win32')
+            execFileSync('taskkill.exe', ['/PID', String(pid), '/T', '/F'], {
+              windowsHide: true,
+              stdio: 'ignore',
+            });
+          else process.kill(-pid);
+        } catch {
+          /* The isolated executor may already have exited. */
+        }
+      }
+    }
+    await rm(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+  });
   const folder = path.join(dir, '한글 프로젝트');
   mkdirSync(folder);
   const database = path.join(dir, 'workroom.sqlite');
@@ -173,20 +192,29 @@ test(
       const handler = plan.config.hooks.Stop[0].hooks[0];
       const encoded = handler.commandWindows.split(' ').at(-1);
       const run = (event) =>
-        JSON.parse(
-          execFileSync(
+        new Promise((resolve, reject) => {
+          const child = execFile(
             'powershell.exe',
             ['-NoProfile', '-NonInteractive', '-EncodedCommand', encoded],
-            { input: JSON.stringify(event), encoding: 'utf8', windowsHide: true, timeout: 15000 },
-          ),
-        );
-      assert.deepEqual(run(patchEvent(base)), {});
-      assert.deepEqual(run(stopEvent(base)), {});
+            { encoding: 'utf8', windowsHide: true, timeout: 15000 },
+            (error, stdout) => {
+              if (error) return reject(error);
+              try {
+                resolve(JSON.parse(stdout));
+              } catch (error) {
+                reject(error);
+              }
+            },
+          );
+          child.stdin.end(JSON.stringify(event));
+        });
+      assert.deepEqual(await run(patchEvent(base)), {});
+      assert.deepEqual(await run(stopEvent(base)), {});
       assert.equal(room.snapshot().tasks.length, 1);
       assert.match(room.snapshot().tasks[0].evidence, /입력 보존/);
-      assert.deepEqual(run(stopEvent(base)), {});
+      assert.deepEqual(await run(stopEvent(base)), {});
       assert.equal(room.snapshot().tasks.length, 1);
-      const invalid = run({ ...stopEvent(base), turn_id: '' });
+      const invalid = await run({ ...stopEvent(base), turn_id: '' });
       assert.ok(invalid.systemMessage);
       assert.ok(!invalid.decision);
       assert.ok(!invalid.continue);
