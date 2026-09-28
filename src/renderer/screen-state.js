@@ -2,7 +2,7 @@ import { t as tr } from '../shared/i18n.mjs';
 // Re-rendering replaces #app wholesale. These helpers carry what the user had on screen
 // (scroll, open sections, typed values, focus) from the old DOM to the new one.
 import { button, e } from './html.js';
-import { app, locationKey, ui } from './state.js';
+import { app, formKey, locationKey, ui } from './state.js';
 const openSections = () =>
   [...app.querySelectorAll('details[open]')].map((d) => d.querySelector('summary')?.textContent);
 function openDetails(summaries) {
@@ -66,6 +66,7 @@ function markUnsaved(form) {
   unsaved.innerHTML =
     tr('<span>저장하지 않은 입력이 있습니다.</span>') + button(tr('수정 취소'), 'discard-form');
   form.before(unsaved);
+  return unsaved;
 }
 function showRequestDialog(requestScroll) {
   const dialog = app.querySelector('.request-dialog');
@@ -132,13 +133,35 @@ export function restoreScreen(before) {
   }
   const taskList = app.querySelector('.tasknav');
   if (taskList) taskList.scrollTop = remembered ? remembered.list : before.taskScroll;
-  if (!ui.resetForm && sameLocation) restoreForms(before.forms);
+  // Keep typed values on the same screen, except for forms that were just saved or discarded.
+  if (!ui.resetForm && sameLocation)
+    restoreForms(before.forms.filter((f) => !ui.resetForms.includes(`${f.name}|${f.id || ''}`)));
   ui.resetForm = false;
-  if (ui.formDirty && newForm && before.formName !== 'delegation') markUnsaved(newForm);
+  ui.resetForms = [];
+  const notices = markDirtyForms();
+  if (!notices.length && ui.formDirty && newForm && before.formName !== 'delegation')
+    notices.push(markUnsaved(newForm));
   if (ui.requestOpen) showRequestDialog(before.requestScroll);
   if (ui.busy) disableBusyControls();
   restoreFocus(before);
+  // Navigation was refused because of unsaved input: bring the discard control into view.
+  if (ui.revealUnsaved && notices[0]) {
+    notices[0].scrollIntoView({ block: 'center' });
+    notices[0].querySelector('button')?.focus({ preventScroll: true });
+  }
+  ui.revealUnsaved = false;
   ui.languageChanged = false;
+}
+// Put the unsaved-input notice right above each form being edited. A tracked form that is no
+// longer on screen cannot hold edits any more, so it stops blocking navigation.
+function markDirtyForms() {
+  const forms = [...app.querySelectorAll('form[data-form]')];
+  const present = ui.dirtyForms.filter((key) => forms.some((form) => formKey(form) === key));
+  if (present.length !== ui.dirtyForms.length) {
+    ui.dirtyForms = present;
+    ui.formDirty = present.length > 0 || !!ui.requestSaveFailed;
+  }
+  return forms.filter((form) => present.includes(formKey(form))).map(markUnsaved);
 }
 
 // Only stable screens are remembered; forms and dialogs are transient.

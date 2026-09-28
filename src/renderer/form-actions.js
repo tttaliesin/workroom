@@ -1,7 +1,15 @@
 import { t as tr } from '../shared/i18n.mjs';
 import { publicationCall } from './publication-ui.js';
 import { call, flash, refresh, rememberRequest, run, runtimeCall } from './controller.js';
-import { data, loadDraft, persistRequests, product, requestDraft, ui } from './state.js';
+import {
+  data,
+  loadDraft,
+  persistRequests,
+  product,
+  requestDraft,
+  settleForm,
+  ui,
+} from './state.js';
 const formActions = {
   'job-source': async (form, values) => {
     await call('saveJobSource', {
@@ -118,8 +126,7 @@ const formActions = {
       });
       flash(tr('검토한 수정본을 반영했습니다. 결과와 기록을 이어서 정리합니다.'));
     } finally {
-      ui.formDirty = false;
-      ui.resetForm = true;
+      settleForm(form);
       await refresh();
     }
   },
@@ -138,8 +145,7 @@ const formActions = {
       allowTests: !!values.allowTests,
       maxRepairs: values.repairOnce ? 1 : 0,
     });
-    ui.formDirty = false;
-    ui.resetForm = true;
+    settleForm(form);
     await refresh();
     flash(tr('운영 범위를 저장했습니다. 다음 일정부터 이 범위로 진행합니다.'));
   },
@@ -233,8 +239,7 @@ const formActions = {
       ...(parentId ? { parentRevision: ui.linkBase.parents[parentId] } : {}),
       reason: values.reason,
     });
-    ui.formDirty = false;
-    ui.resetForm = true;
+    settleForm(form);
     await refresh();
     if (ui.draft) loadDraft(ui.portfolioId);
     const previous = ui.history.pop();
@@ -290,6 +295,6 @@ export function handleSubmit(event) {
     ui.message = '';
     const submitForm = form.dataset.form;
     if (Object.hasOwn(formActions, submitForm)) await formActions[submitForm](form, values);
-    ui.formDirty = false;
+    settleForm(form);
   });
 }

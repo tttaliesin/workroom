@@ -10,7 +10,9 @@ export const ui = {
   draft: null,
   dirty: false,
   formDirty: false,
+  dirtyForms: [],
   resetForm: false,
+  resetForms: [],
   message: '',
   error: false,
   busy: false,
@@ -77,6 +79,28 @@ export function requestDraft() {
       allowTests: false,
     }
   );
+}
+// Unsaved-input protection is tracked per form, so saving or failing one form on a screen
+// never releases or resets the edits in another. `ui.formDirty` stays the single flag that
+// navigation checks; the request dialog also sets it directly when its draft cannot be stored.
+export const formKey = (form) => `${form.dataset.form}|${form.dataset.id || ''}`;
+export function markFormDirty(form) {
+  const key = formKey(form);
+  if (!ui.dirtyForms.includes(key)) ui.dirtyForms.push(key);
+  ui.formDirty = true;
+}
+// A form was saved: stop protecting it and show its stored values on the next render.
+export function settleForm(form) {
+  const key = formKey(form);
+  ui.dirtyForms = ui.dirtyForms.filter((k) => k !== key);
+  ui.resetForms.push(key);
+  ui.formDirty = ui.dirtyForms.length > 0 || !!ui.requestSaveFailed;
+}
+// The user discarded their input: every form returns to its stored values.
+export function discardForms() {
+  ui.dirtyForms = [];
+  ui.formDirty = false;
+  ui.resetForm = true;
 }
 export function persistRequests() {
   try {

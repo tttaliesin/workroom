@@ -17,7 +17,17 @@ import {
   saveDraft,
   startRequest,
 } from './controller.js';
-import { app, data, loadDraft, persistRequests, requestDraft, rootTasks, ui } from './state.js';
+import {
+  app,
+  data,
+  discardForms,
+  loadDraft,
+  markFormDirty,
+  persistRequests,
+  requestDraft,
+  rootTasks,
+  ui,
+} from './state.js';
 async function codexConnection(action, value) {
   const response = await window.workroom.codexConnection(action, ui.productId, value);
   if (!response.ok) throw new Error(response.error);
@@ -373,8 +383,7 @@ const clickActions = {
     ui.recordEditing = true;
   },
   'record-cancel': async (id) => {
-    ui.formDirty = false;
-    ui.resetForm = true;
+    discardForms();
     ui.recordEditing = false;
   },
   'record-source': async (id) => {
@@ -401,8 +410,7 @@ const clickActions = {
     ui.source = null;
   },
   'link-cancel': async (id) => {
-    ui.formDirty = false;
-    ui.resetForm = true;
+    discardForms();
     returnLocation();
   },
   'source-keep': sourceReviewAction,
@@ -437,8 +445,7 @@ const clickActions = {
     flash(tr('기본 점검 완료. 확인한 내용과 미확인 범위를 함께 저장했습니다.'));
   },
   'discard-form': async (id) => {
-    ui.formDirty = false;
-    ui.resetForm = true;
+    discardForms();
     flash(tr('저장하지 않은 입력을 취소했습니다.'));
   },
   defer: async (id) => {
@@ -584,8 +591,9 @@ export async function handleClick(event) {
   if (action === 'folder') {
     const response = await window.workroom.chooseFolder();
     if (response.ok && response.value) {
-      document.getElementById('folder').value = response.value;
-      ui.formDirty = true;
+      const folder = document.getElementById('folder');
+      folder.value = response.value;
+      markFormDirty(folder.closest('form[data-form]'));
     } else if (!response.ok) {
       flash(response.error, true);
       render();

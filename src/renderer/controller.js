@@ -184,6 +184,7 @@ export async function refresh() {
 export function canLeave() {
   if (!ui.dirty && !ui.formDirty) return true;
   flash(tr('작성 중인 내용이 있습니다. 먼저 저장하거나 수정 취소를 선택하세요.'), true);
+  ui.revealUnsaved = true;
   return false;
 }
 export function go(view) {

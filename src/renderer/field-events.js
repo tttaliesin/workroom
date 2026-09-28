@@ -2,7 +2,7 @@ import { t as tr, setLanguage, getLanguage } from '../shared/i18n.mjs';
 import { closeRequest, rememberRequest, render, run } from './controller.js';
 import { preview } from './portfolio-views.js';
 import { recordResults } from './record-views.js';
-import { data, ui } from './state.js';
+import { data, markFormDirty, ui } from './state.js';
 import { taskRows } from './work-views.js';
 export function handleInput(event) {
   if (ui.rendering || !event.target.isConnected) return;
@@ -11,7 +11,7 @@ export function handleInput(event) {
     rememberRequest(el.closest('form'));
     return;
   }
-  if (el.closest('form[data-form]')) ui.formDirty = true;
+  if (el.closest('form[data-form]')) markFormDirty(el.closest('form[data-form]'));
   if (el.id === 'task-query') {
     ui.taskQuery = el.value;
     document.querySelector('.tasknav').innerHTML = taskRows();
@@ -72,7 +72,8 @@ export async function handleChange(event) {
     }
     return;
   }
-  if (event.target.closest('form[data-form]')) ui.formDirty = true;
+  if (event.target.closest('form[data-form]'))
+    markFormDirty(event.target.closest('form[data-form]'));
   if (event.target.id === 'link-parent') {
     ui.linkParent = event.target.value;
     render();
