@@ -1,11 +1,13 @@
 const workDir=require('node:path').resolve(__dirname,'../../work');require('node:fs').mkdirSync(workDir,{recursive:true});require('node:fs').mkdirSync(require('node:path').resolve(__dirname,'../../outputs'),{recursive:true});
 const {_electron}=require('./lib/playwright.cjs');
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict'),{pathToFileURL}=require('node:url');
-const root=path.resolve(__dirname,'../..'),previous=JSON.parse(fs.readFileSync(path.join(workDir,'visible-runtime-session.json'),'utf8'));
+const {liveDataDirectory,assertLiveData}=require('./lib/live-data.cjs');
+// Runs against the live-check data folder only (sign in there with open-live-app.cjs).
+const root=path.resolve(__dirname,'../..'),previous={dataDirectory:liveDataDirectory};
 (async()=>{
  const {Workroom}=await import(pathToFileURL(path.join(root,'src/core/service.mjs'))),room=new Workroom(path.join(previous.dataDirectory,'workroom.sqlite'));
  assert(!room.store.list('task').some(t=>['running','queued','stopping','applying'].includes(t.status)),'existing app work must be idle');
- const manifest=JSON.parse(fs.readFileSync(path.join(workDir,'live-operations-session.json'),'utf8'));
+ const manifest=JSON.parse(fs.readFileSync(path.join(workDir,'live-operations-session.json'),'utf8'));assertLiveData(manifest.dataDirectory);
  const {folder,modelId}=manifest,product=room.store.get('product',manifest.productId);
  let portfolio=room.store.get('portfolio',manifest.portfolioId);
  if(!manifest.repairTarget){portfolio=room.createPortfolio({target:'개발 도구 팀 · 근거 편집 검증',requirements:portfolio.requirements,autoProductIds:[product.id]});manifest.previousPortfolioId=manifest.portfolioId;manifest.portfolioId=portfolio.id;manifest.repairTarget=true;fs.writeFileSync(path.join(workDir,'live-operations-session.json'),JSON.stringify(manifest,null,2));}room.close();

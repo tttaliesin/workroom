@@ -1,8 +1,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
+import { assertLiveData } from './lib/live-data.cjs';
 const root=process.cwd();
 const manifest=JSON.parse(fs.readFileSync(path.join(root,'work/live-check-session.json'),'utf8'));
+assertLiveData(manifest.dataDirectory);
 const db=new DatabaseSync(path.join(manifest.dataDirectory,'workroom.sqlite'),{readOnly:true});
 const list=kind=>db.prepare('SELECT * FROM entities WHERE kind=?').all(kind).map(r=>({...JSON.parse(r.body),id:r.id,updated:r.updated}));
 const tasks=list('task').filter(t=>t.productId===manifest.productId && t.kind==='agent');
