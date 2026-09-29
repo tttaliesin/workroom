@@ -2,24 +2,29 @@
 
 [← README](../../README.md)
 
-이 폴더의 PNG는 실제 Electron 앱의 렌더러를 촬영한 화면입니다. 사용자 데이터와 계정을 쓰지 않고, `scripts/capture-readme.cjs`가 만든 소개용 제품·작업·기록·포트폴리오를 사용합니다. 표시된 작업 결과는 실제 제품의 성과나 검사 결과를 의미하지 않습니다.
+PNG는 격리된 프로필로 실행한 실제 Electron 앱의 다크 모드 캡처입니다. 소개용 프로젝트·작업·기록·포트폴리오이며 실제 사용자 성과가 아닙니다. 사용자 계정과 자료를 사용하지 않습니다.
 
 ```sh
 pnpm docs:screenshots
 pnpm docs:screenshots --english
+node scripts/checks/check-project-management.cjs
 ```
 
-프로젝트 의존성과 Electron을 설치한 뒤 저장소 루트에서 실행하세요. 화면은 1280 × 900 CSS 픽셀, 포트폴리오는 템플릿 선택기와 Studio 미리보기가 보이는 위치로 스크롤해 1280 × 1080으로 촬영합니다. 모델 호출과 다운로드를 끄고, 새 실행을 일시 정지한 별도 데이터 디렉터리를 `work/readme-capture-*`에 만듭니다. 촬영이 끝나면 해당 Electron 프로세스는 종료됩니다. `assets/readme/*.png`를 갱신하므로 문서용 촬영에만 사용하세요.
+첫 두 명령은 `assets/readme/`와 `assets/readme/en/`의 작업·기록·포트폴리오 화면을 갱신합니다. 크기는 1280×900이며, 포트폴리오 템플릿 미리보기는 1280×1080입니다. 실행을 일시 정지한 상태도 실제 UI 그대로 보입니다. DOM이나 CSS를 촬영용으로 바꾸지 않습니다.
 
-성공한 촬영의 임시 데이터 디렉터리는 자동 삭제하며, 실패했거나 `WORKROOM_KEEP_FIXTURES=1`로 실행하면 보존합니다. 촬영 결과 JSON은 `work/readme-capture-ko.json` 또는 `work/readme-capture-en.json`에 남고, PNG는 유지됩니다.
+프로젝트 화면은 세 번째 명령의 `outputs/project-management/` 캡처 중 아래 파일을 복사합니다. 1440×900이며 한국어 예제 원문을 유지한 영어 UI 캡처도 포함됩니다.
 
-| 파일 | 화면 |
+| 원본 | README 이미지 |
 |---|---|
-| `overview-dark.png` | 제품 개요 |
-| `decision.png` | 판단 요청과 방침 선택 |
-| `portfolio.png` | 대상별 포트폴리오 초안과 작업 사례 |
-| `records.png` | 재사용 기록, 출처, 적용 조건 |
+| `overview-dark.png` | `assets/readme/project-overview-dark.png` |
+| `projects-dark.png` | `assets/readme/projects-dark.png` |
+| `report-dark.png` | `assets/readme/project-report-dark.png` |
+| `overview-en-dark.png` | `assets/readme/en/project-overview-dark.png` |
+| `projects-en-dark.png` | `assets/readme/en/projects-dark.png` |
+| `report-en-dark.png` | `assets/readme/en/project-report-dark.png` |
 
-모든 화면은 다크 모드로 촬영하며 README를 보는 사람의 테마와 관계없이 동일하게 표시합니다. 테마 전환과 화면 이동·스크롤만 사용하며, 촬영용으로 앱 DOM이나 CSS를 수정하지 않습니다.
+`check-project-management.cjs`는 저장·취소·미저장 보호·고정 보고서 내보내기와 작은 창 배치를 함께 검사합니다. 네이티브 파일 대화상자와 클립보드 출력 경계만 격리된 대역으로 처리하며, 실제 파일 저장과 보고서 생성은 앱 코드로 실행합니다. 사용자의 클립보드는 건드리지 않습니다.
 
-`--english`는 영어 UI와 영어 예제 데이터로 같은 네 화면을 `assets/readme/en/`에 촬영합니다. 한국어판은 이 폴더의 이미지를, 영어 README는 `en/` 이미지를 사용합니다.
+프로젝트 0·1·여러 개, 긴 한영 제목, 라이트·다크 및 1440×900·1280×800·900×700·760×600은 `node scripts/checks/check-design-layout.cjs`로 촬영합니다. 결과는 로컬 전용 `outputs/design-layout/`에 있습니다. 본문·보조 글씨·주요 버튼의 대비와 키보드 포커스도 확인합니다. 이 자동 검사는 이미지의 시각 검토를 대신하지 않습니다.
+
+각 명령은 자신이 만든 Electron 프로세스만 종료합니다. 성공한 임시 프로필은 자동 삭제하며 실패하거나 `WORKROOM_KEEP_FIXTURES=1`이면 보존합니다. README 촬영 결과 JSON은 `work/readme-capture-ko.json` 또는 `work/readme-capture-en.json`에 남습니다.

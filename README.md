@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <a href="#현재-단계"><img src="https://img.shields.io/badge/status-local_alpha-C56A3C?style=flat-square" alt="Status: local alpha"></a>
+  <a href="#현재-단계"><img src="https://img.shields.io/badge/status-local_alpha-2563EB?style=flat-square" alt="Status: local alpha"></a>
   <a href="#시작하기"><img src="https://img.shields.io/badge/Node.js-24%2B-5B7054?style=flat-square" alt="Node.js 24 이상"></a>
   <a href="#내-도구와-연결하기"><img src="https://img.shields.io/badge/connect-MCP-716B64?style=flat-square" alt="MCP 연결 지원"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-716B64?style=flat-square" alt="MIT License"></a>
@@ -67,11 +67,11 @@ Windows에서는 설치 후 `start-workroom.cmd`로도 열 수 있습니다.
 
 ### 팀에 설명할 수 있는 프로젝트 현황
 
-**전체 현황**에서 프로젝트별 진행 상태와 기한이 지난 계획, 확인할 일을 비교하세요. 프로젝트 **개요**에는 목표·담당자·목표일·현재 상황·다음 초점·마일스톤이 함께 표시됩니다.
+**전체 현황**에서 프로젝트명·상태·담당자·목표일·마일스톤 완료·확인할 일을 표에서 비교하세요. 프로젝트 **개요**는 현황·위험·다음 단계와 오른쪽 속성을 나누어 보여줍니다. 작은 창에서는 속성이 본문 위로 이동하며, 계획이 없으면 **계획 미등록**으로 표시합니다.
 
 ![전체 프로젝트 현황](assets/readme/projects-dark.png)
 
-**계획**에서 현황과 마일스톤을 작성합니다. 담당자, 기한, 진행·막힘·완료·범위 제외를 관리하고 실제 작업을 근거로 연결할 수 있습니다. 완료와 막힘에는 메모가 필요합니다. 완료율은 등록한 마일스톤 기준의 작성자 보고이며, 코드 검사·반영·배포 완료를 뜻하지 않습니다.
+**계획**에서 현황 편집이나 마일스톤 추가를 열고, 저장·취소로 편집을 마칩니다. 담당자, 기한, 진행·막힘·완료·범위 제외를 관리하고 실제 작업을 근거로 연결할 수 있습니다. 완료와 막힘에는 메모가 필요합니다. 완료율은 등록한 마일스톤 기준의 작성자 보고이며, 코드 검사·반영·배포 완료를 뜻하지 않습니다.
 
 **보고**에서 최근 7일·30일·전체 기간의 성과, 위험, 후속 계획을 검토하고 **Markdown 복사 / HTML 저장**으로 공유 자료를 만드세요. 내보내기는 미리 본 버전을 유지하며 외부로 자동 전송하지 않습니다.
 
@@ -163,10 +163,12 @@ pnpm format:check
 
 앱 검사는 격리된 예제 데이터를 사용합니다. 성공한 검사의 임시 폴더는 자동 삭제하고, 실패한 검사는 진단을 위해 보존합니다. 화면 HTML 비교 등에 예제 DB가 필요하면 `WORKROOM_KEEP_FIXTURES=1`로 실행하세요.
 
+앱 화면은 [Linear의 2026년 UI 개편](https://linear.app/now/behind-the-latest-design-refresh)을 주 기준으로, 파란 브랜드와 중립색 선택 상태를 사용합니다. 공개 포트폴리오는 기존 세 가지 템플릿을 유지합니다.
+
 README 스크린샷은 `pnpm docs:screenshots`(영어는 `--english`)로 예제 데이터에서 다시 촬영합니다. [촬영 방법](assets/readme/README.md)
 
 ## 라이선스
 
-[MIT](LICENSE). Pretendard, Radix Colors, 사용 모델 등 외부 구성 요소는 [Third-party notices](THIRD_PARTY_NOTICES.md)를 참고하세요.
+[MIT](LICENSE). Pretendard, 사용 모델 등 외부 구성 요소는 [Third-party notices](THIRD_PARTY_NOTICES.md)를 참고하세요.
 
 <p align="center"><sub>Electron · SQLite · Pi · MCP</sub></p>

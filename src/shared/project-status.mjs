@@ -106,6 +106,15 @@ export function projectReport(data, product, { days = 7, language = 'ko', now = 
   const en = language === 'en',
     l = (ko, english) => (en ? english : ko);
   const fallback = l('미작성', 'Not provided');
+  const displayDate = (value) =>
+    new Date(value).toLocaleString(en ? 'en-US' : 'ko-KR', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+  const generatedLabel = displayDate(now);
   const title = `${product.name} · ${l('프로젝트 현황 보고', 'Project status report')}`;
   const sections = [
     [
@@ -115,7 +124,7 @@ export function projectReport(data, product, { days = 7, language = 'ko', now = 
         `${l('담당', 'Lead')}: ${p.management.lead || fallback} · ${l('목표일', 'Target date')}: ${p.management.targetDate || fallback}`,
         `${l('진행 단계', 'Phase')}: ${projectLabel(p.management.phase, language)} · ${l('작성자 보고', 'Author-reported health')}: ${projectLabel(p.management.health, language)}`,
         p.management.summary || fallback,
-        `${l('현황 갱신', 'Status updated')}: ${p.management.updatedAt || fallback}`,
+        `${l('현황 갱신', 'Status updated')}: ${p.management.updatedAt ? displayDate(p.management.updatedAt) : fallback}`,
       ],
     ],
     [
@@ -168,8 +177,8 @@ export function projectReport(data, product, { days = 7, language = 'ko', now = 
     '마일스톤 완료는 작성자의 보고입니다. 검사 통과·원본 반영·실제 배포는 서로 다른 상태입니다. 원본 경로·전체 도구 출력·계정 필드는 자동 첨부하지 않습니다. 작성한 메모와 작업 설명은 공유 전에 확인하세요.',
     'Milestone completion is author-reported. Passing checks, applying source changes and deploying are separate states. Source path, full tool output and account fields are not attached automatically. Review written notes and task descriptions before sharing.',
   );
-  const markdown = `# ${plain(title)}\n\n${period} · ${now.toISOString()}\n\n${sections.map(([heading, lines]) => `## ${heading}\n\n${lines.map((line) => `- ${plain(line)}`).join('\n')}`).join('\n\n')}\n\n---\n${note}\n`;
-  const html = `<!doctype html><html lang="${language}"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'"><title>${escapeHTML(title)}</title><style>body{font:16px/1.7 system-ui,sans-serif;color:#17212b;background:#f3f5f7;margin:0;padding:48px 24px}main{max-width:880px;margin:auto;background:white;padding:48px;border:1px solid #dce2e7;border-radius:16px}h1{font-size:32px;line-height:1.25}h2{font-size:19px;margin-top:32px;border-top:1px solid #e0e5ea;padding-top:24px}p,footer{color:#5b6776}li{margin:10px 0;overflow-wrap:anywhere;white-space:pre-wrap}footer{font-size:12px;margin-top:40px}@media print{body{padding:0;background:white}main{border:0;padding:0}section{break-inside:avoid}}@media(max-width:600px){body{padding:12px}main{padding:24px}}</style><main><p>WORKROOM / ${escapeHTML(period)}</p><h1>${escapeHTML(title)}</h1><p>${escapeHTML(now.toISOString())}</p>${sections.map(([heading, lines]) => `<section><h2>${escapeHTML(heading)}</h2><ul>${lines.map((line) => `<li>${escapeHTML(line)}</li>`).join('')}</ul></section>`).join('')}<footer>${escapeHTML(note)}</footer></main></html>`;
+  const markdown = `# ${plain(title)}\n\n${period} · ${generatedLabel}\n\n${sections.map(([heading, lines]) => `## ${heading}\n\n${lines.map((line) => `- ${plain(line)}`).join('\n')}`).join('\n\n')}\n\n---\n${note}\n`;
+  const html = `<!doctype html><html lang="${language}"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'"><title>${escapeHTML(title)}</title><style>body{font:16px/1.7 system-ui,sans-serif;color:#17212b;background:#f3f5f7;margin:0;padding:48px 24px}main{max-width:880px;margin:auto;background:white;padding:48px;border:1px solid #dce2e7;border-radius:16px}h1{font-size:32px;line-height:1.25}h2{font-size:19px;margin-top:32px;border-top:1px solid #e0e5ea;padding-top:24px}p,footer{color:#5b6776}li{margin:10px 0;overflow-wrap:anywhere;white-space:pre-wrap}footer{font-size:12px;margin-top:40px}@media print{body{padding:0;background:white}main{border:0;padding:0}section{break-inside:avoid}}@media(max-width:600px){body{padding:12px}main{padding:24px}}</style><main><p>Workroom · ${escapeHTML(period)}</p><h1>${escapeHTML(title)}</h1><p>${escapeHTML(generatedLabel)}</p>${sections.map(([heading, lines]) => `<section><h2>${escapeHTML(heading)}</h2><ul>${lines.map((line) => `<li>${escapeHTML(line)}</li>`).join('')}</ul></section>`).join('')}<footer>${escapeHTML(note)}</footer></main></html>`;
   return {
     projectId: product.id,
     projectRevision: product.revision,

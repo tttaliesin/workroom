@@ -19,7 +19,7 @@ export function taskNav(p) {
   return button(
     `${icon('product')}<span>${e(p.name)}</span>`,
     `product:${p.id}`,
-    `class="product-button" ${ui.productId === p.id && !portfolioArea() ? 'aria-current="page"' : ''}`,
+    `class="product-button" title="${e(p.name)}" ${ui.productId === p.id && !portfolioArea() && !['dashboard', 'new-product', 'settings', 'account', 'connection', 'publish-account'].includes(ui.view) ? 'aria-current="page"' : ''}`,
   );
 }
 export function observation(p) {

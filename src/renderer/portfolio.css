@@ -46,7 +46,7 @@
 }
 .template-option input:checked + .template-card {
   border-color: var(--text);
-  box-shadow: 0 0 0 1px var(--text);
+  outline: 1px solid var(--text);
 }
 .template-option input:focus-visible + .template-card {
   outline: 2px solid var(--text);

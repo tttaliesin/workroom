@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
   <title>작업실</title>
-  <rect x="8" y="8" width="240" height="240" rx="52" fill="#C56A3C"/>
-  <path d="M48 76h35l17 67 18-52h20l18 52 17-67h35l-31 108h-34l-15-44-15 44H79Z" fill="#FDFDFC"/>
+  <rect x="8" y="8" width="240" height="240" rx="52" fill="#2563EB"/>
+  <path d="M48 76h35l17 67 18-52h20l18 52 17-67h35l-31 108h-34l-15-44-15 44H79Z" fill="#FFFFFF"/>
 </svg>

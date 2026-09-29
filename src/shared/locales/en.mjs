@@ -1,5 +1,14 @@
 // UI source strings only; user-authored content is never translated.
 export default {
+  상태: 'Status',
+  '계획 미등록': 'No milestones',
+  '프로젝트 속성': 'Project properties',
+  '현황 갱신': 'Status updated',
+  '등록 프로젝트 {0}개': '{0} projects',
+  '프로젝트별 현황': 'Status by project',
+  '확인할 일': 'Needs attention',
+  프로젝트: 'Project',
+  현황: 'Status update',
   '전체 현황': 'All projects',
   계획: 'Plan',
   보고: 'Report',

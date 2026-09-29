@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <a href="#current-status"><img src="https://img.shields.io/badge/status-local_alpha-C56A3C?style=flat-square" alt="Status: local alpha"></a>
+  <a href="#current-status"><img src="https://img.shields.io/badge/status-local_alpha-2563EB?style=flat-square" alt="Status: local alpha"></a>
   <a href="#getting-started"><img src="https://img.shields.io/badge/Node.js-24%2B-5B7054?style=flat-square" alt="Node.js 24 or later"></a>
   <a href="#connect-your-tools"><img src="https://img.shields.io/badge/connect-MCP-716B64?style=flat-square" alt="MCP support"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-716B64?style=flat-square" alt="MIT License"></a>
@@ -67,9 +67,11 @@ Workroom starts empty. You can prepare requests before signing in, browse existi
 
 ### Project status you can present to your team
 
-**All projects** compares health updates, overdue milestones and tasks that need attention. Each project's **Overview** brings together its goal, lead, target date, current status, next steps and milestones.
+**All projects** aligns project, health, owner, target date, completed milestones and attention items in a table. **Overview** separates status, risks and next steps from a properties column. On smaller windows, properties move above the content. Projects without a plan show **No milestones**.
 
-Use **Plan** to maintain status updates and milestones with owners, due dates, progress, blockers and linked work evidence. Done and blocked milestones require notes. Completion is based on registered milestones and is author-reported; it does not prove checks passed, source changes were applied or deployment completed.
+![All projects in the English interface; example project text retains its original language](assets/readme/en/projects-dark.png)
+
+Use **Plan** to explicitly open, save or cancel status and milestone edits with owners, due dates, progress, blockers and linked work evidence. Done and blocked milestones require notes. Completion is based on registered milestones and is author-reported; it does not prove checks passed, source changes were applied or deployment completed.
 
 Under **Report**, review the last 7 days, 30 days or all recorded outcomes, risks and next steps. **Copy Markdown / Save HTML** exports the exact previewed version without sending anything externally.
 
@@ -172,10 +174,12 @@ pnpm format:check
 
 App checks use isolated example data. Temporary directories are deleted after successful checks and retained on failure for diagnosis. Set `WORKROOM_KEEP_FIXTURES=1` when you need the example databases for comparisons of rendered HTML.
 
+The app interface follows [Linear’s 2026 design refresh](https://linear.app/now/behind-the-latest-design-refresh), with blue branding and neutral selection surfaces. The three existing public portfolio templates are retained.
+
 README screenshots are recaptured from example data with `pnpm docs:screenshots` (`--english` for English). [How to capture (Korean)](assets/readme/README.md)
 
 ## License
 
-[MIT](LICENSE). See [Third-party notices](THIRD_PARTY_NOTICES.md) for Pretendard, Radix Colors, models and other external components.
+[MIT](LICENSE). See [Third-party notices](THIRD_PARTY_NOTICES.md) for Pretendard, models and other external components.
 
 <p align="center"><sub>Electron · SQLite · Pi · MCP</sub></p>

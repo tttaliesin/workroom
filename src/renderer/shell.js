@@ -79,8 +79,9 @@ function workspaceNavigation() {
 }
 function workspaceToolbar() {
   const canDelegate =
-    product() && ['home', 'ops', 'records', 'record-detail', 'scope', 'plan'].includes(ui.view);
-  return html`<div class="workspace-toolbar">${workspaceNavigation()}<div class="toolbar-actions">
+    product() &&
+    ['home', 'ops', 'records', 'record-detail', 'scope', 'plan', 'report'].includes(ui.view);
+  return html`<div class="workspace-toolbar">${product() && !settingsArea() && ui.view !== 'dashboard' && !portfolioArea() ? html`<span class="workspace-location" title="${e(product().name)}">${e(product().name)}</span>` : ''}${workspaceNavigation()}<div class="toolbar-actions">
         ${ui.history.length ? button('←', 'return-location', tr('class="plain history-back" aria-label="이전 화면으로 돌아가기" title="이전 화면으로 돌아가기"')) : ''}
         ${
           hasTaskPane()

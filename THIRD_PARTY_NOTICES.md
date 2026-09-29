@@ -6,9 +6,13 @@ The following bundled components keep their original licenses.
 | Component | Files | License |
 |---|---|---|
 | [Pretendard](https://github.com/orioncactus/pretendard) v1.3.9 variable font, © 2021 Kil Hyung-jin, Reserved Font Name "Pretendard" | `src/renderer/assets/fonts/PretendardVariable.woff2` | SIL Open Font License 1.1, `src/renderer/assets/fonts/OFL.txt` |
-| [Radix Colors](https://github.com/radix-ui/colors) Sand scale values, © 2021-2022 Modulz | `src/renderer/palette.css` | MIT, `src/renderer/assets/RADIX-COLORS-LICENSE.txt` |
+
 
 The font is redistributed unmodified. Under the OFL it stays under that license and may not be sold by itself; the MIT License of this project does not apply to it.
+
+## App design references
+
+Workroom independently implements the compact navigation, neutral selection surfaces and project overview layout referenced in [Linear’s 2026 design refresh](https://linear.app/now/behind-the-latest-design-refresh) and [project overview](https://linear.app/docs/project-overview). [Plane](https://plane.so/open-source) is a secondary reference for aligned project and task lists. No code, logos or product assets from these references are bundled. The app uses its own blue brand and neutral palette. The license notice for the previously used Radix Colors Sand values is retained in `src/renderer/assets/RADIX-COLORS-LICENSE.txt`.
 
 ## Portfolio design references
 

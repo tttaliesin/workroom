@@ -19,6 +19,8 @@ const formActions = {
     });
     await refresh();
     flash(tr('현황을 저장했습니다.'));
+    ui.projectStatusEditor = false;
+    form.closest('details')?.removeAttribute('open');
   },
   milestone: async (form, values) => {
     const { milestoneDate, ...fields } = values;

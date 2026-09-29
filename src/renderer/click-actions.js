@@ -26,6 +26,7 @@ import {
   persistRequests,
   requestDraft,
   rootTasks,
+  settleForm,
   ui,
 } from './state.js';
 async function codexConnection(action, value) {
@@ -165,17 +166,40 @@ async function outputReport(action) {
     flash(action === 'copy' ? tr('보고서를 복사했습니다.') : tr('보고서를 저장했습니다.'));
 }
 const clickActions = {
+  'project-status-edit': async () => {
+    if (!canLeave()) return;
+    go('plan');
+    ui.projectStatusEditor = true;
+    ui.focusAfterRender = 'pm-summary';
+    ui.scrollToFocus = true;
+  },
+  'planning-cancel': async (name) => {
+    const form = app.querySelector(`form[data-form="${name}"]`);
+    if (form) settleForm(form);
+    if (name === 'milestone') {
+      ui.milestoneEditor = false;
+      ui.milestoneId = null;
+    }
+    if (name === 'project-status') {
+      ui.projectStatusEditor = false;
+      form?.closest('details')?.removeAttribute('open');
+    }
+  },
   'milestone-new': async () => {
     if (!canLeave()) return;
     go('plan');
     ui.milestoneId = null;
     ui.milestoneEditor = true;
+    ui.focusAfterRender = 'pm-title';
+    ui.scrollToFocus = true;
   },
   'milestone-edit': async (id) => {
     if (!canLeave()) return;
     go('plan');
     ui.milestoneId = id;
     ui.milestoneEditor = true;
+    ui.focusAfterRender = 'pm-title';
+    ui.scrollToFocus = true;
   },
   'milestone-close': async () => {
     if (!canLeave()) return;

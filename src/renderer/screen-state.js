@@ -92,7 +92,10 @@ function disableBusyControls() {
 }
 function restoreFocus({ focusId, focusAction }) {
   if (ui.focusAfterRender) {
-    document.getElementById(ui.focusAfterRender)?.focus({ preventScroll: true });
+    const target = document.getElementById(ui.focusAfterRender);
+    target?.focus({ preventScroll: true });
+    if (ui.scrollToFocus) target?.scrollIntoView({ block: 'center' });
+    ui.scrollToFocus = false;
     ui.focusAfterRender = null;
     return;
   }

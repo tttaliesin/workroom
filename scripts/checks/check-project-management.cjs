@@ -122,9 +122,10 @@ const root = path.resolve(__dirname, '../..');
   const client = new Client({ name: 'planning-check', version: '1.0' });
   try {
     await application.evaluate(({ clipboard }) => {
-      globalThis.planningClipboard = clipboard
-        .availableFormats()
-        .map((format) => [format, clipboard.readBuffer(format)]);
+      // Capture the export boundary without touching the user's clipboard.
+      clipboard.writeText = (text) => {
+        globalThis.planningCopiedText = text;
+      };
     });
     const page = await application.firstWindow();
     page.setDefaultTimeout(15000);
@@ -178,16 +179,24 @@ const root = path.resolve(__dirname, '../..');
       productId: product.id,
     });
     assert(JSON.stringify(milestones).includes(operation.result.id));
+    await page.waitForFunction(
+      async () => (await window.workroom.call('snapshot')).value.runtime.state !== 'starting',
+      null,
+      { timeout: 60000 },
+    );
     await click('refresh');
+    await page
+      .getByRole('button', { name: '실행기 준비 중', exact: true })
+      .waitFor({ state: 'hidden' });
     await application.evaluate(({ BrowserWindow }) =>
-      BrowserWindow.getAllWindows()[0].setSize(1440, 1000),
+      BrowserWindow.getAllWindows()[0].setContentSize(1440, 900),
     );
     await page.emulateMedia({ colorScheme: 'dark' });
     await page.evaluate(() => document.fonts.ready);
-    assert.match(await page.locator('.pm-metrics').innerText(), /1\s*\/\s*4/);
+    assert.match(await page.locator('.pm-properties .pm-progress').innerText(), /1\s*\/\s*4/);
     await capture('overview-dark');
     await click('nav:dashboard');
-    assert.equal(await page.locator('.pm-project-card').count(), 2);
+    assert.equal(await page.locator('.pm-project-table tbody tr').count(), 2);
     await capture('projects-dark');
     await click(`product:${product.id}`);
     await click('nav:plan');
@@ -200,6 +209,16 @@ const root = path.resolve(__dirname, '../..');
       .fill('분류 기준을 확정했고 담당자 배정 화면을 구현 중입니다.');
     await page.locator('form[data-form="project-status"] button[type="submit"]').click();
     await page.getByText('현황을 저장했습니다.', { exact: true }).waitFor();
+    await page.locator('.pm-editor summary').click();
+    await page.locator('#pm-summary').fill('취소할 입력');
+    await click('planning-cancel:project-status');
+    await page.locator('.pm-editor summary').click();
+    assert.match(await page.locator('#pm-summary').inputValue(), /분류 기준을 확정/);
+    await click('planning-cancel:project-status');
+    await click('milestone-new');
+    await page.locator('#pm-title').fill('취소할 마일스톤');
+    await click('planning-cancel:milestone');
+    assert.equal(await page.locator('#pm-title').count(), 0);
     await click('milestone-new');
     await page.locator('#pm-title').fill('접근성 검토');
     await page.locator('#pm-assignee').fill('지수');
@@ -215,14 +234,13 @@ const root = path.resolve(__dirname, '../..');
     await page.getByText('마일스톤을 저장했습니다.', { exact: true }).waitFor();
     assert.equal(await page.locator('.pm-milestone-row').count(), 6);
     await page.locator('.main').evaluate((el) => (el.scrollTop = 0));
-    await page.locator('.pm-editor summary').click();
     await capture('plan-dark');
     await click('nav:report');
     await page.locator('.pm-report-paper').waitFor();
     const preview = await page.locator('.pm-report-paper').innerText();
     assert.match(preview, /접근성 검토/);
     await capture('report-dark');
-    // The native dialog is stubbed only in this isolated Electron fixture; file I/O and clipboard are real.
+    // Only the native save dialog and clipboard boundary are stubbed; report generation and file I/O are real.
     const filename = path.join(directory, 'report.html');
     await application.evaluate(({ dialog }, file) => {
       dialog.showSaveDialog = async () => ({ canceled: false, filePath: file });
@@ -245,10 +263,8 @@ const root = path.resolve(__dirname, '../..');
     }, before);
     await click('report-copy');
     await page.getByText('보고서를 복사했습니다.', { exact: true }).waitFor();
-    const copied = await application.evaluate(({ clipboard }) => clipboard.readText());
-    await application.evaluate(({ clipboard }) => {
-      globalThis.planningCopiedText = clipboard.readText();
-    });
+    const copied = await application.evaluate(() => globalThis.planningCopiedText);
+    assert.match(copied, /접근성 검토/);
     assert(!copied.includes('CHANGED AFTER PREVIEW'));
     await page.evaluate(async (p) => {
       await window.workroom.call('updateProjectStatus', {
@@ -266,24 +282,39 @@ const root = path.resolve(__dirname, '../..');
     await capture('report-en-dark');
     await click('nav:home');
     await capture('overview-en-dark');
-    await page.emulateMedia({ colorScheme: 'light' });
-    await application.evaluate(({ BrowserWindow }) =>
-      BrowserWindow.getAllWindows()[0].setSize(900, 700),
-    );
-    for (const view of ['home', 'dashboard', 'plan', 'report']) {
-      if (view === 'plan') await click(`product:${product.id}`);
-      await click('nav:' + view);
-      assert.equal(
-        await page.evaluate(() => document.documentElement.scrollWidth > innerWidth),
-        false,
-      );
-      assert.equal(
-        await page.locator('.main').evaluate((el) => el.scrollWidth > el.clientWidth),
-        false,
-        view + ' overflow',
-      );
+    await click('nav:dashboard');
+    await capture('projects-en-dark');
+    // Real renderer matrix; screenshots retain the actual chrome and data.
+    for (const colorScheme of ['dark', 'light']) {
+      await page.emulateMedia({ colorScheme });
+      for (const [width, height] of [
+        [1440, 900],
+        [1280, 800],
+        [900, 700],
+        [760, 600],
+      ]) {
+        await application.evaluate(
+          ({ BrowserWindow }, [w, h]) => BrowserWindow.getAllWindows()[0].setContentSize(w, h),
+          [width, height],
+        );
+        for (const view of ['home', 'dashboard', 'plan', 'report']) {
+          if (view === 'plan' || view === 'home') await click(`product:${product.id}`);
+          await click('nav:' + view);
+          assert.equal(
+            await page.evaluate(() => document.documentElement.scrollWidth > innerWidth),
+            false,
+          );
+          for (const selector of ['.main', '.workspace-toolbar']) {
+            assert.equal(
+              await page.locator(selector).evaluate((el) => el.scrollWidth > el.clientWidth),
+              false,
+              `${view} ${selector} overflow ${width} ${colorScheme}`,
+            );
+          }
+          await capture(`${view}-${colorScheme}-${width}`);
+        }
+      }
     }
-    await capture('report-light-narrow');
     assert.deepEqual(errors, []);
     console.log(
       JSON.stringify({
@@ -294,26 +325,14 @@ const root = path.resolve(__dirname, '../..');
           'completion evidence required',
           'cross-project overview',
           'real stdio MCP milestone registration and duplicate request',
-          'immutable preview export and clipboard',
+          'immutable preview file export and isolated clipboard boundary',
           'Korean/English and dark/light layouts',
-          '900px no horizontal overflow',
+          '1440/1280/900/760px actual renderer matrix without horizontal overflow',
         ],
         output,
       }),
     );
   } finally {
-    await application
-      .evaluate(({ clipboard }) => {
-        if (
-          globalThis.planningCopiedText &&
-          clipboard.readText() === globalThis.planningCopiedText
-        ) {
-          clipboard.clear();
-          for (const [format, buffer] of globalThis.planningClipboard || [])
-            clipboard.writeBuffer(format, buffer);
-        }
-      })
-      .catch(() => {});
     await client.close().catch(() => {});
     await application.evaluate(({ app }) => app.exit(0)).catch(() => {});
   }
