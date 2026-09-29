@@ -7,6 +7,7 @@ import { randomUUID } from 'node:crypto';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { CodexRPC } from './codex-rpc.mjs';
+import { mcpServerConfig } from './mcp-config.mjs';
 
 const exec = promisify(execFile);
 export class CodexConnection {
@@ -123,11 +124,7 @@ export class CodexConnection {
   }
   server() {
     if (!this.paths.node) throw new Error('Node.js 실행 파일을 먼저 선택하세요.');
-    return {
-      command: this.paths.node,
-      args: [path.join(this.root, 'src/mcp/server.mjs')],
-      env: { WORKROOM_DATA_DIR: this.directory },
-    };
+    return mcpServerConfig({ node: this.paths.node, root: this.root, directory: this.directory });
   }
   async prepare(cwd) {
     const rpc = await this.connect(cwd);
@@ -237,6 +234,16 @@ export class CodexConnection {
       const checked = (async () => {
         await client.connect(transport);
         const { tools } = await client.listTools();
+        const guide = await client.callTool({
+          name: 'workroom_guide',
+          arguments: { topic: 'start' },
+        });
+        if (
+          guide.isError ||
+          !JSON.parse(guide.content[0].text).guidanceVersion ||
+          !client.getInstructions()
+        )
+          throw new Error('MCP 사용 지침을 읽지 못했습니다. 연결을 갱신하세요.');
         const products = await client.callTool({ name: 'workroom_list_products', arguments: {} });
         if (products.isError) throw new Error('MCP 제품 조회에 실패했습니다.');
         const list = JSON.parse(products.content[0].text);

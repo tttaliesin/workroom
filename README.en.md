@@ -112,6 +112,12 @@ Each record includes applicability, sources and delivery history. The built-in a
 
 ## Connect your tools
 
+**Usage guidance is built into MCP.** In Codex or Claude Desktop, ask: “Read the Workroom guide and summarize this project’s status and next steps.” The `workroom_guide` tool explains connection, planning, records, review, application and recovery without installing a separate Skill. Korean is the default; English is supported.
+
+For Claude Desktop, use **Settings → External tools → Other MCP clients → View connection settings → Copy MCP configuration**, then merge the workroom entry into the existing `mcpServers` in Developer settings. Codex and Claude use the same executable, server and explicit data directory. [Connection and guidance documentation](MCP.md#english-workflow)
+
+Diagnostics distinguish the MCP adapter from the executor. Refresh the client MCP connection for `ADAPTER_OUTDATED`; check active work and unsaved input before restarting an `EXECUTOR_OUTDATED` executor. Set `expectedDataDirectory` to verify the intended profile. **MCP connection alone does not collect conversations.** Automatic capture uses separate Codex hooks and does not collect Claude conversations.
+
 The built-in runner uses [Pi](https://www.npmjs.com/package/@earendil-works/pi-coding-agent). External MCP clients can query the same products and records and report work results. Codex hooks can collect responses that involved file changes or check commands.
 
 **You can also operate Workroom from Codex through MCP:** register products, answer decisions, start/stop/resume AI work, configure automation, edit portfolios and publish. Review changes and checks in Codex, then request application or publication of that exact version. No separate approval screen in the app is required.
@@ -157,7 +163,7 @@ The built-in agent sends investigation and change requests to the connected mode
 
 Closing the window exits by default. Enable tray execution in **Settings → General** to keep running, then use **Quit Workroom** in the tray to stop.
 
-**Latest local validation · 2026-09-29:** **134 unit/integration tests** and **18 actual Electron app checks** passed, along with lint and formatting checks. An actual MCP client and Electron executor in an isolated profile completed reading → external submission → Node checks → review and decision → source application → result retrieval without a built-in AI account. Checks cover matching app/MCP contracts and errors, duplicate prevention after result-validation or persistence failure, concurrent requests, lost responses and recovery after actual process termination. Partial-application interruption points and publication provider responses were simulated. These results do not establish connectivity in your current Codex conversation, live paid-model calls or Vercel account deployment. Verify the current connection separately.
+**Latest MCP validation · 2026-09-29:** Actual stdio checks cover instructions, guides, resources, prompts and filtered contracts. Isolated MCP/Electron completed account-free project status, milestones and report export, plus external submission → actual Node checks → review and decision → source application → result retrieval. Related regressions cover duplicate requests, lost responses, real process termination and partial-effect recovery. Partial-application interruption points and publication providers were simulated. **Discovery and end-to-end execution in the user’s current Codex and Claude conversations remain unverified.** Separate SDK client success does not prove live conversation success. No paid model calls or actual public deployment were performed.
 
 The latest cleanup removes a circular dependency in verification, reduces redundant persisted state and automatically cleans up temporary profiles after successful checks.
 

@@ -315,5 +315,5 @@ test('real MCP stdio controls a single live executor through its authenticated l
     await client.close();
     await new Promise((resolve) => server.close(resolve));
   }
-  await assert.rejects(() => controlRequest(f.directory, 'status'), /unreachable/);
+  await assert.rejects(() => controlRequest(f.directory, 'status'), { code: 'EXECUTOR_OFFLINE' });
 });

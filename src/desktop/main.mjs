@@ -31,6 +31,7 @@ import { RuntimeBroker } from '../runtime/broker.mjs';
 import { AgentEngine } from '../runtime/engine.mjs';
 import { runtimeEmbeddings } from '../runtime/local-embeddings.mjs';
 import { CodexConnection } from '../integrations/codex-connection.mjs';
+import { mcpServerConfig } from '../integrations/mcp-config.mjs';
 import { codexTerminal } from './codex-terminal.mjs';
 import { t, getLanguage, setLanguage } from '../shared/i18n.mjs';
 
@@ -185,19 +186,23 @@ handle('workroom:export', async (id, revision) => {
   });
   return { filename: result.filePath };
 });
-handle('workroom:connection', () => ({
-  dataDirectory,
-  nodeRequired: t('Node.js 24 이상'),
-  config: {
-    mcpServers: {
-      workroom: {
-        command: process.env.WORKROOM_NODE || 'node',
-        args: [path.join(projectRoot, 'src/mcp/server.mjs')],
-        env: { WORKROOM_DATA_DIR: dataDirectory },
+handle('workroom:connection', async (action) => {
+  const info = {
+    dataDirectory,
+    nodeRequired: t('Node.js 24 이상'),
+    config: {
+      mcpServers: {
+        workroom: mcpServerConfig({
+          node: (await codex.detect()).node?.path || process.env.WORKROOM_NODE || 'node',
+          root: projectRoot,
+          directory: dataDirectory,
+        }),
       },
     },
-  },
-}));
+  };
+  if (action === 'copy') clipboard.writeText(JSON.stringify(info.config, null, 2));
+  return info;
+});
 const hookRuntime = {
   database: databaseFile,
   node: process.env.WORKROOM_NODE || 'node',

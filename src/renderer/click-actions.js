@@ -573,6 +573,12 @@ const clickActions = {
     if (!response.ok) throw new Error(response.error);
     ui.connection = response.value;
   },
+  'connection-copy': async () => {
+    const response = await window.workroom.connectionInfo('copy');
+    if (!response.ok) throw new Error(response.error);
+    ui.connection = response.value;
+    flash(tr('MCP 설정을 복사했습니다.'));
+  },
   'connection-status': async () => {
     await connectionStatus();
     await refresh();

@@ -203,11 +203,13 @@ export function connectionPage() {
         </div>
         ${
           ui.connection
-            ? html`<h2>stdio 연결 설정</h2>
-          <p class="muted">Node.js 24 이상이 필요합니다. 아래 형식을 지원하는 MCP 클라이언트에 등록하세요. 제품별 연결 방식은 클라이언트에 따라 다릅니다.</p>
+            ? html`<h2>Claude Desktop · stdio 연결 설정</h2>
+          <p class="muted">Node.js 24 이상이 필요합니다. Claude Desktop의 개발자 설정에서 설정 파일을 열고, 기존 mcpServers에 workroom 항목을 병합하세요. 다른 서버 설정은 보존하세요.</p>
+          ${button(tr('MCP 설정 복사'), 'connection-copy')}
           <pre>
             ${e(JSON.stringify(ui.connection.config, null, 2))}
           </pre>
+          <p class="small muted">연결을 갱신한 새 대화에서 “Workroom 사용 지침을 읽고 연결 상태를 확인해줘”라고 요청하세요. MCP 연결은 자동 수집 설정과 별개입니다.</p>
           <p class="small muted">앱 데이터 위치<br>${e(ui.connection.dataDirectory)}</p>`
             : button(tr('연결 설정 보기'), 'connection-load', 'class="primary"')
         }

@@ -1,4 +1,4 @@
-# Control Workroom from Codex
+# Control Workroom from Codex and Claude Desktop
 
 [한국어 README](README.md) · [English README](README.en.md)
 
@@ -6,7 +6,47 @@ Workroom 앱과 MCP는 같은 명령·검토·실행 규칙을 사용합니다. 
 
 ## 연결과 계약 버전
 
-`workroom_control_catalog`에서 명령별 입력·결과·오류 스키마와 `reviewRequired`를 확인합니다. 도구는 기존 조회·보고 10개와 제어 7개, 총 17개입니다. 명령 계약은 **protocol 2**입니다.
+`workroom_control_catalog`에서 명령별 입력·결과·오류 스키마와 `reviewRequired`를 확인합니다. 기존 조회·보고와 제어 도구를 유지하며 `workroom_guide`가 업무 절차를 제공합니다. 명령 계약은 **protocol 2**, 지침은 **guidanceVersion 1**입니다.
+
+### MCP에 포함된 사용 지침
+
+별도 Skill 설치 없이 다음과 같이 요청할 수 있습니다.
+
+> Workroom 사용 지침을 읽고 연결 상태를 확인해줘. 이 저장소의 프로젝트 현황과 다음 할 일을 정리해줘.
+
+MCP 초기화 `instructions`, `workroom_guide`, `workroom://guides/{language}/{topic}` 리소스, `workroom_workflow` 프롬프트가 같은 지침 원본을 사용합니다. 호스트가 리소스나 프롬프트를 노출하지 않아도 조회 도구로 읽을 수 있습니다. instructions의 전달과 모델의 준수 여부는 호스트에 따라 달라질 수 있으며 업무 제한은 서버에서 검증합니다.
+
+| topic | 내용 |
+|---|---|
+| `start` (기본) | 연결·프로필·버전 확인과 지침 목차 |
+| `projects` | 현황·마일스톤·고정 보고서 |
+| `records` | 기록·맥락·작업 보고·사용자 판단 |
+| `development` | 외부 수정안·검사·검토·결정·원본 반영 |
+| `portfolio` | 초안·고정 HTML·내보내기·공개 |
+| `capture` | Codex 훅 자동 수집 설정과 수신 확인 |
+| `recovery` | 충돌·중복·응답 유실·부분 효과 복구 |
+
+`language`는 `ko`(기본) 또는 `en`입니다. 예를 들어 다음 도구 호출로 영어 개발 지침과 필요한 계약만 읽습니다.
+
+```json
+{"name":"workroom_guide","arguments":{"topic":"development","language":"en"}}
+```
+
+```json
+{"name":"workroom_control_catalog","arguments":{"commands":["external.submit","runtime.applyChange","review.submit","review.decide"]}}
+```
+
+catalog의 선택적 `commands`는 1~20개 명령을 받습니다. 생략하면 기존 전체 응답을 반환합니다. `usage`는 명령 목적과 지침 URI를 연결하고, 입력·결과·오류·reviewRequired는 기존 계약 정의를 사용합니다. 지침 문구는 업무 계약 `schemaHash`에 포함하지 않습니다.
+
+`workroom_workflow` 프롬프트 인수는 `workflow`(topic 중 하나), `goal`, 선택적 `productId`와 `language`입니다. 프롬프트는 안내만 생성하며 명령을 실행하거나 승인하지 않습니다. 사용자 지시와 권한은 실제 대화에서 확인합니다.
+
+### Claude Desktop 연결
+
+앱의 **설정 → 외부 도구 → 다른 MCP 클라이언트 연결 → 연결 설정 보기 → MCP 설정 복사**에서 JSON을 복사합니다. Codex 설치와 동일한 Node 실행 파일·서버 경로·명시적 자료 폴더를 사용합니다. Node.js 24 이상이 필요합니다.
+
+Claude Desktop의 개발자 설정에서 설정 파일을 열고 기존 `mcpServers`에 `workroom` 항목만 병합하세요. Windows 설정 파일은 `%APPDATA%\Claude\claude_desktop_config.json`이며 설치 방식에 따라 개발자 설정에 표시된 실제 경로를 우선합니다. 기존 서버와 다른 환경 변수는 보존하세요. 작업을 마친 뒤 Claude 연결을 갱신하고 새 대화에서 위 요청을 실행합니다. MCP 확장 패키지나 별도 Skill 설치는 필요하지 않습니다. [공식 로컬 MCP 연결 안내](https://modelcontextprotocol.io/docs/develop/connect-local-servers)
+
+MCP 연결은 자동 수집과 별개입니다. 자동 수집은 별도 Codex 훅을 사용하며 Claude 대화를 자동 수집하지 않습니다. 일반 조회·편집·외부 검토는 Workroom 내장 AI 계정 없이 가능합니다.
 
 `workroom_control_connect`는 실행기와 실제로 통신합니다. 앱이 꺼져 있으면 `start:true`로 같은 프로필의 실행기를 백그라운드에서 시작합니다. `liveConnection:true`와 `compatible:true`를 확인하세요. `compatible:false`는 구버전 실행기를 정상 종료하고 다시 시작해야 한다는 뜻입니다. 새 계약이 현재 대화에 없으면 MCP도 재연결합니다.
 
@@ -36,16 +76,21 @@ recovery는 action, 가능한 requestId, `automaticRetry:false`를 담습니다.
 
 ### 연결 갱신과 확인
 
-1. 기존 Workroom 앱에서 진행 중 작업과 미저장 입력을 확인하고 저장합니다. 구버전 프로세스가 켜져 있으면 정상 종료한 뒤 최신 코드로 다시 실행합니다. 다른 도구가 작업 상태를 확인할 수 없을 때 임의로 종료하지 않습니다.
-2. Codex **Settings → MCP servers → Restart**로 MCP 어댑터를 갱신합니다. 설정 파일의 경로가 최신이어도 이미 실행 중인 어댑터는 이전 코드를 유지할 수 있습니다. [Codex 공식 MCP 문서](https://learn.chatgpt.com/docs/extend/mcp?surface=cli)
-3. 현재 대화에서 `workroom_control_connect`를 직접 호출해 liveConnection/compatible/contractCompatible과 dataDirectory를 확인하고, catalog의 contractVersion/schemaHash가 일치하는지 확인합니다. 앱을 종료한 상태라면 `start:true`로 창 없이 실행기를 시작할 수 있습니다.
+1. 현재 대화에서 `workroom_control_connect(start:false)`를 호출합니다. 선택적 `expectedDataDirectory`에 의도한 절대 자료 경로를 넣으면 다른 프로필의 실행을 시작하지 않습니다.
+2. `adapter`, `executor`, `installed`의 소스 식별과 계약을 비교합니다. `ADAPTER_OUTDATED`이면 Codex **Settings → MCP servers → Restart** 등 해당 클라이언트의 MCP 연결을 갱신합니다. 설정 파일이 최신이어도 이미 실행 중인 어댑터는 이전 코드를 유지할 수 있습니다. [Codex 공식 MCP 문서](https://learn.chatgpt.com/docs/extend/mcp)
+3. `EXECUTOR_OUTDATED`이면 Workroom의 진행 중 작업과 미저장 입력을 확인·저장한 뒤 정상 종료하고 다시 시작합니다. 상태를 확인할 수 없으면 임의 종료하지 않습니다. `runtime.restart`는 내장 AI 런타임 명령이며 이 실행기 갱신 절차를 대신하지 않습니다.
+4. 현재 대화에서 다시 조회해 `liveConnection`, `compatible`, `contractCompatible`, `profileCompatible`, `readyForControl`과 자료 경로를 확인합니다. 구형 실행기의 소스 식별은 `unknown`일 수 있으며 이를 최신 버전의 증거로 사용하지 않습니다. 계약 해시가 다르다는 이유만으로 어느 쪽이 오래됐는지 추정하지 않습니다.
+
+엔드포인트가 없거나 실행기가 듣고 있지 않을 때만 `start:true`로 창 없이 시작합니다. 접근 거부·설정 파일 손상·프로토콜 오류는 시작으로 해결하지 않으며 `failure.code/details`와 복구 안내를 따릅니다. 연결 확인 자체는 AI 로그인이나 공개 배포를 수행하지 않습니다.
+
+호환성: 기존 도구명·입력·명령 결과와 protocol 2/contractVersion 1을 유지합니다. catalog 필터, guide와 진단 필드는 추가 기능입니다. 접속 전 `ENOENT`/`ECONNREFUSED`는 이제 `EXECUTOR_OFFLINE`으로 구분하고, 파일 접근·JSON 손상은 `EXECUTOR_UNREACHABLE`에 `details.causeCode`를 보존합니다. 전송 후 불확실성 처리와 요청 ID 조회 규칙은 유지합니다.
 
 별도 테스트 MCP 클라이언트나 직접 소켓 호출 성공은 현재 Codex 대화의 도구 연결 성공이 아닙니다. 사용자 자료를 변경하는 검증에는 실제 프로필 대신 격리된 프로필이 필요합니다. 현재 대화가 그 프로필을 가리키지 않으면 연결 검증과 격리 흐름 검증을 따로 기록하세요.
 
 ## 검토·결정·실행
 
 1. `workroom_control_read`로 대상과 최신 revision을 조회합니다. `kind`, `id` 또는 `productId`, `offset`, `limit`를 사용합니다.
-2. 실행할 `{command,args}`를 `workroom_control_prepare`에 보냅니다. 고정된 검토 자료와 `packageId`, `packageHash`, 관련 버전·근거가 저장됩니다. 이 호출은 승인하지 않습니다.
+2. 실행할 `{command,args}`를 `workroom_control_prepare`에 보냅니다. 응답의 `id`를 다음 호출의 `packageId`로 사용합니다. `packageHash`, 관련 버전·근거가 함께 저장되며 이 호출은 승인하지 않습니다.
 3. `workroom_control_execute`에서 `review.submit`을 실행합니다. `packageId`, `verdict` (`supported/changes_requested/inconclusive`), `assessment`, `limitations`를 전달합니다. 코드 반영의 긍정적인 검토에는 **변경한 모든 파일의 `path`와 수정 후 `hash`**를 `files`에 넣어야 합니다. 결과의 `id`가 reviewId입니다.
 4. 같은 도구로 `review.decide`를 실행합니다. `reviewId`, `choice` (`execute/revise/reject`), `authority:{basis,reference}`를 전달합니다. basis는 `user_instruction` 또는 `delegated`이고 reference에는 해당 지시·위임의 근거를 적습니다. 결과의 `id`가 decisionId입니다.
 5. 원래 명령과 **같은 args**, `reviewId`, `decisionId`, 새 UUID `requestId`를 `workroom_control_execute`에 전달합니다. `reviewHash`만으로는 실행할 수 없습니다.
@@ -70,6 +115,8 @@ allowTests: true  // testFiles를 실행하도록 사용자가 허용한 경우
 ```
 
 기존 파일의 beforeHash는 현재 원문 바이트의 SHA256이고 새 파일은 null입니다. 최대 16개 텍스트 파일, 파일당 48,000자, 명시적인 Node 테스트 파일 최대 8개를 지원합니다. 기존 경로·비밀값·검사 파일 보호 규칙을 적용합니다. 외부에서 이미 수정한 원본을 사전 검토 후 반영한 것으로 꾸미지 마세요.
+
+수정안 작성에는 실제 원문·기준 해시·검사 파일이 필요합니다. 클라이언트의 파일 도구 또는 제공된 원본 자료를 사용하세요. 현재 Workroom MCP의 엔티티 조회는 임의 저장소 파일 탐색 API가 아니므로 자료에 접근할 수 없으면 필요한 원본을 요청하고 추측으로 채우지 않습니다.
 
 Workroom이 기준 복사본과 수정 복사본을 만들고, 전달받은 파일 내용을 적용한 뒤 실제 검사를 수행합니다. 외부의 ‘검사 통과’ 주장으로 결과를 채우지 않습니다. 실패한 검사는 반영을 차단합니다. 검사가 미확인인 경우에만 `acceptUnconfirmed:true`를 포함한 정확한 명령을 검토·결정할 수 있습니다.
 
@@ -141,6 +188,16 @@ Workroom이 기준 복사본과 수정 복사본을 만들고, 전달받은 파�
 명령 이력은 요청 ID·지문·출처·안전한 대상 참조·상태·결과를 보관합니다. 비밀 명령의 원문·오류·결과에 토큰이나 수동 인증 코드를 남기지 않습니다. 검토 자료에는 검토에 필요한 비밀을 제외한 인수와 근거가 저장됩니다. 브라우저 인증은 사용자가 해당 인증 시스템에서 완료합니다.
 
 ## English workflow
+
+External proposal authoring requires actual source contents, base hashes and test files from client file tools or supplied material. Workroom entity reads do not expose arbitrary repository browsing. Request missing source material rather than inventing it.
+
+Start with “Read the Workroom guide, check the connection and summarize this repository’s project status and next steps.” No separate Skill is needed. The server provides initialization instructions, the read-only `workroom_guide` tool, `workroom://guides/en/{topic}` resources and a `workroom_workflow` prompt from one source. Topics are start, projects, records, development, portfolio, capture and recovery. Guidance remains available without a live executor or built-in AI account.
+
+Use `language:"en"`; the default is Korean. Filter catalog with `commands:["external.submit","runtime.applyChange"]`, or omit it for the existing full response. `usage` links commands to guides; `guidanceVersion` is independent of the business schema hash. Prompts generate instructions only and cannot grant authority.
+
+For Claude Desktop, copy JSON from **Settings → External tools → Other MCP clients → View connection settings → Copy MCP configuration**, merge only the workroom entry into the existing mcpServers in Developer settings, then refresh the connection after existing work finishes. Node.js 24+ is required. The same server path and explicit data directory are used for Codex and Claude. Automatic capture is a separate Codex hook feature, not automatic capture of Claude conversations.
+
+Connect optionally accepts `expectedDataDirectory`. Compare adapter/executor/installed identities, profileCompatible and readyForControl. Refresh the MCP client for ADAPTER_OUTDATED; inspect active work and unsaved state before restarting an EXECUTOR_OUTDATED process. Unknown build identity is not proof of freshness. Access/configuration errors preserve their causes and must not trigger blind startup. Separate SDK probes do not prove live conversation connectivity.
 
 Protocol 2 adds persistent review packages, review records and execution decisions. Discover schemas with `workroom_control_catalog`; connect with `workroom_control_connect` and check both `liveConnection` and `compatible`. `start:true` starts the shared local executor without opening its window.
 

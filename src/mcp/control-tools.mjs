@@ -3,6 +3,7 @@ import { catalog, entityKinds, schemaHash } from '../control/catalog.mjs';
 import { controlRequest } from '../control/transport.mjs';
 import { connectControl } from '../control/client.mjs';
 import { failure, contractVersion } from '../control/contracts.mjs';
+import { commandUsage, guideUri, guidanceVersion } from './guidance.mjs';
 export function registerControlTools(server, { directory, root }) {
   const args = z.record(z.string(), z.unknown()).default({});
   const command = { command: z.enum(Object.keys(catalog)), args };
@@ -10,7 +11,7 @@ export function registerControlTools(server, { directory, root }) {
     server.registerTool(
       name,
       {
-        description,
+        description: `${description} 업무 절차와 복구: workroom_guide(topic:start 또는 recovery).`,
         inputSchema,
         annotations: {
           readOnlyHint: readOnly,
@@ -39,21 +40,42 @@ export function registerControlTools(server, { directory, root }) {
   register(
     'workroom_control_catalog',
     '앱과 공유하는 제어 명령·입력 계약을 조회합니다. core=제품/판단/기록/초안, runtime=작업/계정/자동화, publication=공개. 먼저 계약을 읽으세요. MCP에서 검토·실행하며 앱 승인 화면은 필요 없습니다.',
-    {},
+    {
+      commands: z
+        .array(z.enum(Object.keys(catalog)))
+        .min(1)
+        .max(20)
+        .optional(),
+    },
     true,
-    () => ({
+    ({ commands }) => ({
       protocol: 2,
       contractVersion,
       schemaHash,
       source: 'mcp-adapter',
-      commands: catalog,
+      commands: commands
+        ? Object.fromEntries([...new Set(commands)].map((name) => [name, catalog[name]]))
+        : catalog,
+      guidanceVersion,
+      usage: Object.fromEntries(
+        (commands || Object.keys(catalog)).map((name) => [
+          name,
+          {
+            ...commandUsage[name],
+            guides: {
+              ko: guideUri('ko', commandUsage[name].topic),
+              en: guideUri('en', commandUsage[name].topic),
+            },
+          },
+        ]),
+      ),
       entityKinds,
     }),
   );
   register(
     'workroom_control_connect',
-    '실행기 실시간 연결과 AI 준비 상태를 확인합니다. start:true면 앱 창 없이 같은 단일 실행기를 시작합니다. 기존 구버전 앱은 정상 종료 후 다시 연결해야 합니다. DB 조회 성공과 실행기 연결은 다릅니다.',
-    { start: z.boolean().default(false) },
+    '실행기·어댑터·디스크 버전과 프로필을 진단합니다. expectedDataDirectory로 의도한 프로필을 확인하세요. start:true는 미실행일 때만 창 없이 같은 단일 실행기를 시작합니다. 진단에 따라 MCP 갱신 또는 작업·미저장 입력 확인 후 실행기 갱신을 구분하세요. DB 조회 성공과 실시간 연결은 다릅니다.',
+    { start: z.boolean().default(false), expectedDataDirectory: z.string().min(1).optional() },
     false,
     (input) => connectControl(directory, root, input),
   );

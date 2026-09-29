@@ -1,5 +1,14 @@
 // UI source strings only; user-authored content is never translated.
 export default {
+  'MCP 사용 지침을 읽지 못했습니다. 연결을 갱신하세요.':
+    'Could not read MCP guidance. Refresh the connection.',
+  'Claude Desktop · stdio 연결 설정': 'Claude Desktop · stdio configuration',
+  'Node.js 24 이상이 필요합니다. Claude Desktop의 개발자 설정에서 설정 파일을 열고, 기존 mcpServers에 workroom 항목을 병합하세요. 다른 서버 설정은 보존하세요.':
+    'Node.js 24 or later is required. Open the configuration file in Claude Desktop Developer settings and merge workroom into the existing mcpServers. Preserve other servers.',
+  'MCP 설정 복사': 'Copy MCP configuration',
+  'MCP 설정을 복사했습니다.': 'MCP configuration copied.',
+  '연결을 갱신한 새 대화에서 “Workroom 사용 지침을 읽고 연결 상태를 확인해줘”라고 요청하세요. MCP 연결은 자동 수집 설정과 별개입니다.':
+    'After refreshing the connection, ask in a new conversation: “Read the Workroom guide and check the connection.” MCP connection and automatic capture are separate settings.',
   상태: 'Status',
   '계획 미등록': 'No milestones',
   '프로젝트 속성': 'Project properties',

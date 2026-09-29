@@ -98,15 +98,22 @@ export async function controlRequest(directory, action, input = {}) {
   let config;
   try {
     config = JSON.parse(await readFile(endpointFile(directory), 'utf8'));
-  } catch {
+  } catch (cause) {
     const error = new ControlError(
-      'EXECUTOR_OFFLINE',
-      'Workroom executor is offline or an older app is running. Use workroom_control_connect with start:true, or restart the old app.',
+      cause.code === 'ENOENT' ? 'EXECUTOR_OFFLINE' : 'EXECUTOR_UNREACHABLE',
+      cause.code === 'ENOENT'
+        ? 'No Workroom control endpoint in this profile. Check the intended profile, then connect with start:true.'
+        : 'Cannot read the Workroom control endpoint. Check file access and configuration; do not restart blindly.',
+      {
+        causeCode:
+          cause.code ||
+          (cause instanceof SyntaxError ? 'INVALID_ENDPOINT_JSON' : 'ENDPOINT_READ_FAILED'),
+      },
     );
     error.controlFailure = failure(error, { phase: 'transport', requestId: input.requestId });
     throw error;
   }
-  if (config.protocol !== 1 || typeof config.token !== 'string')
+  if (!config || config.protocol !== 1 || typeof config.token !== 'string')
     throw new ControlError(
       'PROTOCOL_MISMATCH',
       'Unsupported Workroom control endpoint. Restart the updated app.',
@@ -140,11 +147,24 @@ export async function controlRequest(directory, action, input = {}) {
     socket.setTimeout(15000, () =>
       fail('Control response timed out. Query the same request ID before retrying.'),
     );
-    socket.on('error', () =>
+    socket.on('error', (cause) => {
+      const offline = !sent && ['ENOENT', 'ECONNREFUSED'].includes(cause.code);
+      const error = new ControlError(
+        offline ? 'EXECUTOR_OFFLINE' : 'EXECUTOR_UNREACHABLE',
+        offline
+          ? 'No executor is listening for this profile. Check the profile before starting it.'
+          : 'Control connection failed. Inspect the cause and query the request ID before retrying.',
+        { causeCode: cause.code || 'SOCKET_ERROR' },
+      );
       fail(
-        'Workroom executor is unreachable. Start or restart the updated app; do not assume a command failed.',
-      ),
-    );
+        failure(error, {
+          phase: 'transport',
+          requestId: input.requestId,
+          effectMayHaveOccurred:
+            sent && !['status', 'catalog', 'read', 'operation'].includes(action),
+        }),
+      );
+    });
     socket.on('connect', () => {
       const message =
         JSON.stringify({ token: config.token, sessionId: clientSession, action, input }) + '\n';

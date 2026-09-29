@@ -35,7 +35,7 @@ test('real MCP stdio preserves records and advertises explicit reviewed control 
   try {
     await client.connect(transport);
     const { tools } = await client.listTools();
-    assert.equal(tools.length, 17);
+    assert.ok(tools.some((t) => t.name === 'workroom_guide' && t.annotations.readOnlyHint));
     assert.ok(tools.some((t) => t.name === 'workroom_list_work'));
     assert.ok(tools.some((t) => t.name === 'workroom_control_execute'));
     const catalog = await client.callTool({ name: 'workroom_control_catalog', arguments: {} });

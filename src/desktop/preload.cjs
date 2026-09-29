@@ -12,7 +12,7 @@ contextBridge.exposeInMainWorld(
     exportPortfolio: (id, revision) => ipcRenderer.invoke('workroom:export', id, revision),
     projectReportOutput: (requestId, action) =>
       ipcRenderer.invoke('workroom:project-report', requestId, action),
-    connectionInfo: () => ipcRenderer.invoke('workroom:connection'),
+    connectionInfo: (action) => ipcRenderer.invoke('workroom:connection', action),
     language: (value) => ipcRenderer.invoke('workroom:language', value),
     codexSetup: (productId, revision) =>
       ipcRenderer.invoke('workroom:codex-setup', productId, revision),

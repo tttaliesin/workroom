@@ -7,20 +7,26 @@ import { registerControlTools } from './control-tools.mjs';
 import { randomUUID } from 'node:crypto';
 import { controlRequest } from '../control/transport.mjs';
 import { failure } from '../control/contracts.mjs';
+import { registerGuidance, serverInstructions } from './guidance.mjs';
+import { loadedBuild } from '../core/build-info.mjs';
 
 const room = new Workroom(databaseFile);
-const server = new McpServer({ name: 'workroom-local', version: '0.1.0' });
+const server = new McpServer(
+  { name: 'workroom-local', version: loadedBuild.version },
+  { instructions: serverInstructions },
+);
+registerGuidance(server);
 registerControlTools(server, { directory: dataDirectory, root: projectRoot });
 function tool(name, description, schema, readOnly, handler) {
   server.registerTool(
     name,
     {
-      description,
+      description: `${description} 절차: workroom_guide. 기존 쓰기 도구도 안정적인 requestId를 전달하고 응답 유실 시 operation으로 조회하세요.`,
       inputSchema: (readOnly ? schema : schema.extend({ requestId: z.string().uuid().optional() }))
         .shape,
       annotations: {
         readOnlyHint: readOnly,
-        destructiveHint: false,
+        destructiveHint: !readOnly,
         idempotentHint: readOnly,
         openWorldHint: false,
       },

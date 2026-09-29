@@ -224,6 +224,9 @@ test('account-free real MCP submits, checks, reviews, decides and applies an ext
       return { command, args, reviewId: r.id, decisionId: d.id, requestId: randomUUID() };
     };
     const request = await reviewed('external.submit', f.submit());
+    const usage = await call('workroom_guide', { topic: 'development', language: 'en' });
+    assert(usage.commands.some((c) => c.name === 'external.submit' && c.reviewRequired));
+    assert.match(client.getInstructions(), /hashes are not consent/);
     const accepted = await call('workroom_control_execute', request);
     assert.equal((await call('workroom_control_execute', request)).id, accepted.id);
     const task = (await settle(accepted)).result;

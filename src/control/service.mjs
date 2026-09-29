@@ -17,6 +17,7 @@ import { getLanguage, setLanguage } from '../shared/i18n.mjs';
 import { portfolioHTML } from '../core/export.mjs';
 import { redact } from '../runtime/errors.mjs';
 import { sourceTree } from '../runtime/change-files.mjs';
+import { loadedBuild } from '../core/build-info.mjs';
 export { fingerprint } from './reviews.mjs';
 
 const envelope = z
@@ -78,6 +79,7 @@ export class ControlService {
       protocol: 2,
       contractVersion,
       schemaHash,
+      build: loadedBuild,
       startedAt: this.startedAt,
       pid: process.pid,
       liveConnection: true,

@@ -49,7 +49,7 @@ const { _electron } = require('./lib/playwright.cjs');
     await click('connection-install');
     await page.getByText('현재 제품에 작업실 MCP 설정이 적용되어 있습니다.').waitFor();
     await click('connection-probe');
-    await page.getByText(/서버 응답 · 도구 17개/).waitFor({ timeout: 25000 });
+    await page.getByText(/서버 응답 · 도구 \d+개/).waitFor({ timeout: 25000 });
     await click('nav:scope');
     await page.getByRole('heading', { name: '제품 설정', exact: true }).waitFor();
     await click(`codex-prepare:${product.id}`);
