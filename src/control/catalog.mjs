@@ -1,19 +1,22 @@
 import { z } from 'zod';
-import { commandSchemas, reviewCommands, commandResultSchema, errorSchema } from './contracts.mjs';
+import { commandContracts, contractVersion } from './contracts.mjs';
+import { createHash } from 'node:crypto';
 export { secretCommands } from './contracts.mjs';
 export const catalog = Object.fromEntries(
-  Object.entries(commandSchemas)
+  Object.entries(commandContracts)
     .filter(([name]) => name !== 'runtime.tick')
-    .map(([name, input]) => [
+    .map(([name, contract]) => [
       name,
       {
-        input: z.toJSONSchema(input),
-        output: z.toJSONSchema(commandResultSchema),
-        error: z.toJSONSchema(errorSchema),
-        reviewRequired: reviewCommands.has(name),
+        contractVersion,
+        input: z.toJSONSchema(contract.input),
+        output: z.toJSONSchema(contract.output),
+        error: z.toJSONSchema(contract.error),
+        reviewRequired: contract.reviewRequired,
       },
     ]),
 );
+export const schemaHash = createHash('sha256').update(JSON.stringify(catalog)).digest('hex');
 export const entityKinds = [
   'product',
   'task',

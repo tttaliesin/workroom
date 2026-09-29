@@ -18,6 +18,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createCommands } from '../control/commands.mjs';
 import { ControlService } from '../control/service.mjs';
+import { failure } from '../control/contracts.mjs';
 import { listenControl } from '../control/transport.mjs';
 import { Workroom } from '../core/service.mjs';
 import { Publications } from '../core/publication.mjs';
@@ -107,11 +108,11 @@ function handle(channel, fn) {
       checkSender(event);
       return { ok: true, value: await fn(...args) };
     } catch (error) {
+      const problem = failure(error);
       return {
         ok: false,
-        error: t(error.message),
-        code: error.code || 'DOMAIN_REJECTED',
-        details: error.details,
+        ...problem,
+        error: t(problem.message),
       };
     }
   });

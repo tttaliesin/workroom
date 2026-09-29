@@ -118,6 +118,8 @@ You do not need to edit configuration files or open a separate terminal. Initial
 
 Generic stdio settings for other MCP clients are available in **Settings → External tools → Other MCP clients · Recent record changes → View connection settings**. Workroom and the MCP server use the same local SQLite data.
 
+Command results are validated against **contractVersion 1**. Check that **liveConnection, compatible and contractCompatible** are all true in `workroom_control_connect`. An invalid result or completion-storage failure leaves the request `uncertain`; inspect effects using the original request ID before taking further action. Seeing tools in a list does not establish executor connectivity. [Connection refresh and recovery](MCP.md#연결-갱신과-확인)
+
 ### Use alongside Jev Context
 
 Workroom manages work and results; [Jev Context](https://github.com/tttaliesin/jev-context) manages long-term memory. **Register each app's MCP server independently in Codex or Claude Desktop.** The agent can read Workroom results and use Jev's memory tools when needed. There is no direct connection or transfer screen between the apps.
@@ -140,7 +142,7 @@ The built-in agent sends investigation and change requests to the connected mode
 
 Closing the window exits by default. Enable tray execution in **Settings → General** to keep running, then use **Quit Workroom** in the tray to stop.
 
-**Latest local validation · 2026-09-28:** **127 unit/integration tests** and **18 actual Electron app checks** passed, along with lint and formatting checks. Actual MCP completed external submission → Node checks → review and decision → source application → result retrieval without a built-in AI account. Checks also cover review history in the app, unsaved input, concurrent retries and duplicate prevention after forcibly terminating an actual executor process. Partial-application interruption points and publication provider responses were simulated; these results do not establish live paid-model calls or Vercel account deployment.
+**Latest local validation · 2026-09-29:** **134 unit/integration tests** and **18 actual Electron app checks** passed, along with lint and formatting checks. An actual MCP client and Electron executor in an isolated profile completed reading → external submission → Node checks → review and decision → source application → result retrieval without a built-in AI account. Checks cover matching app/MCP contracts and errors, duplicate prevention after result-validation or persistence failure, concurrent requests, lost responses and recovery after actual process termination. Partial-application interruption points and publication provider responses were simulated. These results do not establish connectivity in your current Codex conversation, live paid-model calls or Vercel account deployment. Verify the current connection separately.
 
 The latest cleanup removes a circular dependency in verification, reduces redundant persisted state and automatically cleans up temporary profiles after successful checks.
 

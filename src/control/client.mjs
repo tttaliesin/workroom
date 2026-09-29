@@ -1,10 +1,15 @@
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { controlRequest } from './transport.mjs';
+import { contractVersion } from './contracts.mjs';
+import { schemaHash } from './catalog.mjs';
 const require = createRequire(import.meta.url);
 const connection = (status) => ({
   ...status,
   compatible: status.protocol === 2,
+  contractCompatible:
+    status.contractVersion === contractVersion && status.schemaHash === schemaHash,
+  expectedContract: { contractVersion, schemaHash },
   ...(status.protocol === 2
     ? {}
     : {
@@ -19,6 +24,7 @@ export async function connectControl(directory, root, { start = false } = {}) {
     if (!start)
       return {
         liveConnection: false,
+        dataDirectory: directory,
         error: error.message,
         recovery: 'Call workroom_control_connect with start:true.',
       };

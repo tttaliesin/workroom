@@ -41,8 +41,10 @@ export async function listenControl(directory, handler) {
       buffer += chunk;
       if (!buffer.includes('\n')) return;
       handled = true;
+      let message,
+        responding = false;
       try {
-        const message = JSON.parse(buffer.slice(0, buffer.indexOf('\n')));
+        message = JSON.parse(buffer.slice(0, buffer.indexOf('\n')));
         if (!validToken(message.token, token))
           throw new Error('Local control authentication failed.');
         const value = await handler(
@@ -55,12 +57,27 @@ export async function listenControl(directory, handler) {
                 : 'local-client',
           },
         );
+        responding = true;
         const response = JSON.stringify({ ok: true, value }) + '\n';
         if (Buffer.byteLength(response) > MAX_BYTES)
-          throw new Error('Response too large. Read fewer entities or a specific entity ID.');
+          throw new ControlError(
+            'EXECUTOR_UNREACHABLE',
+            'Response too large. Inspect the original request or read a specific entity ID.',
+          );
         socket.end(response);
       } catch (error) {
-        socket.end(JSON.stringify({ ok: false, error: failure(error) }) + '\n');
+        const context = {
+          requestId: message?.input?.requestId,
+          ...(responding
+            ? {
+                phase: 'transport',
+                effectMayHaveOccurred: !['status', 'catalog', 'read', 'operation'].includes(
+                  message.action,
+                ),
+              }
+            : {}),
+        };
+        socket.end(JSON.stringify({ ok: false, error: failure(error, context) }) + '\n');
       }
     });
   });
@@ -82,10 +99,12 @@ export async function controlRequest(directory, action, input = {}) {
   try {
     config = JSON.parse(await readFile(endpointFile(directory), 'utf8'));
   } catch {
-    throw new ControlError(
+    const error = new ControlError(
       'EXECUTOR_OFFLINE',
       'Workroom executor is offline or an older app is running. Use workroom_control_connect with start:true, or restart the old app.',
     );
+    error.controlFailure = failure(error, { phase: 'transport', requestId: input.requestId });
+    throw error;
   }
   if (config.protocol !== 1 || typeof config.token !== 'string')
     throw new ControlError(
@@ -96,16 +115,26 @@ export async function controlRequest(directory, action, input = {}) {
     const socket = net.createConnection(address(directory));
     let text = '',
       size = 0;
-    let settled = false;
+    let settled = false,
+      sent = false;
     const fail = (message) => {
       if (settled) return;
       settled = true;
       socket.destroy();
-      reject(
+      const error =
         typeof message === 'object'
           ? new ControlError(message.code, message.message, message.details)
-          : new ControlError('EXECUTOR_UNREACHABLE', message),
-      );
+          : new ControlError('EXECUTOR_UNREACHABLE', message);
+      error.controlFailure =
+        typeof message === 'object'
+          ? message
+          : failure(error, {
+              phase: 'transport',
+              effectMayHaveOccurred:
+                sent && !['status', 'catalog', 'read', 'operation'].includes(action),
+              requestId: input.requestId,
+            });
+      reject(error);
     };
     socket.setEncoding('utf8');
     socket.setTimeout(15000, () =>
@@ -120,6 +149,7 @@ export async function controlRequest(directory, action, input = {}) {
       const message =
         JSON.stringify({ token: config.token, sessionId: clientSession, action, input }) + '\n';
       if (Buffer.byteLength(message) > MAX_BYTES) return fail('Control request too large.');
+      sent = true;
       socket.write(message);
     });
     socket.on('data', (chunk) => {

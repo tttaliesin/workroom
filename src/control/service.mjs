@@ -1,12 +1,14 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { writeFile } from 'node:fs/promises';
 import { z } from 'zod';
-import { catalog, entityKinds } from './catalog.mjs';
+import { catalog, entityKinds, schemaHash } from './catalog.mjs';
 import {
   commandSchemas,
   reviewCommands,
   secretCommands,
-  commandResultSchema,
+  secretResultSchemas,
+  commandContracts,
+  contractVersion,
   ControlError,
   failure,
 } from './contracts.mjs';
@@ -39,6 +41,8 @@ export class ControlService {
   constructor({ room, commands, getEngine, languageFile, dataDirectory }) {
     Object.assign(this, { room, commands, getEngine, languageFile, dataDirectory });
     this.instanceId = randomUUID();
+    this.startedAt = new Date().toISOString();
+    this.persistenceFailures = new Map();
     this.pending = new Map();
     this.reviews = new Reviews(room);
     for (const op of room.store
@@ -48,6 +52,15 @@ export class ControlService {
         status: op.status === 'accepted' ? 'cancelled' : 'uncertain',
         error: 'Executor stopped. Inspect recorded effects before issuing a new request.',
         errorCode: 'EXECUTOR_INTERRUPTED',
+        failure: failure(
+          new ControlError('EXECUTOR_INTERRUPTED', 'Executor stopped. Inspect recorded effects.'),
+          {
+            phase: 'execution',
+            effectMayHaveOccurred: op.status === 'running',
+            requestId: op.requestId,
+          },
+        ),
+        effectMayHaveOccurred: op.status === 'running',
       });
   }
   caller(value) {
@@ -63,6 +76,10 @@ export class ControlService {
   status() {
     return {
       protocol: 2,
+      contractVersion,
+      schemaHash,
+      startedAt: this.startedAt,
+      pid: process.pid,
       liveConnection: true,
       instanceId: this.instanceId,
       dataDirectory: this.dataDirectory,
@@ -82,7 +99,7 @@ export class ControlService {
         'UNKNOWN_COMMAND',
         'Unknown control command. Read the command catalog.',
       );
-    const parsed = commandSchemas[command].parse(args);
+    const parsed = commandContracts[command].input.parse(args);
     if (!secretCommands.has(command) && redact(JSON.stringify(parsed)) !== JSON.stringify(parsed))
       throw new ControlError(
         'SECRET_IN_INPUT',
@@ -185,6 +202,8 @@ export class ControlService {
       fingerprint: hash,
       status: 'accepted',
       instanceId: this.instanceId,
+      contractVersion,
+      schemaHash,
       caller,
       targets,
       reviewId,
@@ -195,11 +214,13 @@ export class ControlService {
         this.pending.delete(requestId);
         return;
       }
-      let invoked = false;
+      let invoked = false,
+        phase = 'admission';
       try {
         const authorization = authorize();
         this.save(op, { status: 'running' });
         invoked = true;
+        phase = 'execution';
         const result = await this.invoke(command, args, {
           ...authorization,
           assertCurrent: authorize,
@@ -207,25 +228,38 @@ export class ControlService {
           requestId,
           onTarget: (patch) => this.save(op, { targets: { ...targets, ...patch } }),
         });
-        const safeResult = commandResultSchema.parse(
-          JSON.parse(
-            JSON.stringify(secretCommands.has(command) ? { saved: true } : (result ?? null)),
-          ),
-        );
+        phase = 'result';
+        const safeResult = this.result(command, result ?? null);
+        phase = 'persistence';
         this.save(op, { status: 'completed', result: safeResult });
       } catch (error) {
-        const info = secretCommands.has(command)
-          ? {
-              code: 'CREDENTIAL_FAILURE',
-              message: 'Credential operation failed. Check protected storage or account status.',
-            }
-          : failure(error);
-        this.save(op, {
-          status: 'failed',
+        const problem =
+          phase === 'persistence'
+            ? new ControlError(
+                'RESULT_PERSISTENCE_FAILED',
+                'Result could not be saved. Inspect the same request before further action.',
+              )
+            : secretCommands.has(command) && phase !== 'result'
+              ? new ControlError(
+                  'CREDENTIAL_FAILURE',
+                  'Credential operation failed. Check protected storage or account status.',
+                )
+              : error;
+        const info = failure(problem, { phase, effectMayHaveOccurred: invoked, requestId });
+        const patch = {
+          status: ['result', 'persistence'].includes(phase) ? 'uncertain' : 'failed',
           effectMayHaveOccurred: invoked,
-          error: redact(info.message),
+          error: info.message,
           errorCode: info.code,
-        });
+          failure: info,
+        };
+        try {
+          this.save(op, patch);
+        } catch {
+          // The durable row remains running and becomes uncertain on restart.
+          // Keep current callers informed even while the database cannot save diagnostics.
+          this.persistenceFailures.set(requestId, patch);
+        }
       } finally {
         this.pending.delete(requestId);
       }
@@ -233,15 +267,36 @@ export class ControlService {
     this.pending.set(requestId, promise);
     return this.operation(requestId);
   }
+  result(command, value) {
+    try {
+      if (secretResultSchemas[command]) {
+        secretResultSchemas[command].parse(value);
+        value = { saved: true };
+      }
+      return commandContracts[command].output.parse(JSON.parse(JSON.stringify(value)));
+    } catch {
+      throw new ControlError(
+        'RESULT_CONTRACT_INVALID',
+        `Result does not satisfy the ${command} contract. Inspect recorded effects; do not repeat the command.`,
+      );
+    }
+  }
   async run(command, args, { caller, requestId = randomUUID(), reviewId, decisionId } = {}) {
     this.execute({ command, args, requestId, reviewId, decisionId }, caller);
     await this.pending.get(requestId);
     const op = this.operation(requestId);
-    if (op.status !== 'completed')
-      throw new ControlError(op.errorCode || 'OPERATION_UNRESOLVED', op.error || op.status, {
-        requestId,
-        status: op.status,
-      });
+    if (op.status !== 'completed') {
+      const error = new ControlError(
+        op.errorCode || 'OPERATION_UNRESOLVED',
+        op.error || op.status,
+        {
+          requestId,
+          status: op.status,
+        },
+      );
+      error.controlFailure = op.failure;
+      throw error;
+    }
     return op.result;
   }
   async fromApp(command, args, requestId = randomUUID()) {
@@ -282,11 +337,14 @@ export class ControlService {
     const found = this.room.store.operation(requestId);
     if (!found) throw new ControlError('REQUEST_NOT_FOUND', 'Unknown request ID.');
     const { fingerprint: ignored, ...result } = found;
-    return result;
+    return {
+      ...result,
+      ...this.persistenceFailures.get(requestId),
+      contractVersion: found.contractVersion ?? 0,
+    };
   }
   async reconcile(requestId, caller) {
-    const op = this.room.store.operation(requestId);
-    if (!op) throw new ControlError('REQUEST_NOT_FOUND', 'Unknown request ID.');
+    const op = this.operation(requestId);
     if (!['uncertain', 'failed'].includes(op.status)) return this.operation(requestId);
     let result, evidence;
     if (op.command === 'runtime.applyChange') {
@@ -321,16 +379,36 @@ export class ControlService {
         evidence = { kind: 'task', id: t.id, revision: t.revision };
       }
     }
+    let validationError;
+    if (evidence) {
+      try {
+        result = this.result(op.command, result);
+      } catch (error) {
+        evidence = null;
+        validationError = error.code;
+      }
+    }
     const resolution = this.room.store.create('operation-resolution', {
       requestId,
       operationId: op.id,
       caller,
       outcome: evidence ? 'confirmed' : 'unresolved',
       evidence: evidence || null,
+      ...(validationError ? { validationError } : {}),
     });
     this.room.store.log('중단 요청 대조', op.id, resolution.outcome);
-    if (evidence)
-      this.save(op, { status: 'completed', result, resolutionId: resolution.id, recovered: true });
+    if (evidence) {
+      this.save(op, {
+        status: 'completed',
+        result,
+        resolutionId: resolution.id,
+        recovered: true,
+        failure: null,
+        error: null,
+        errorCode: null,
+      });
+      this.persistenceFailures.delete(requestId);
+    }
     return { operation: this.operation(requestId), resolution };
   }
   read(input) {
@@ -381,7 +459,8 @@ export class ControlService {
   }
   handle({ action, input = {} }, caller) {
     if (action === 'status') return this.status();
-    if (action === 'catalog') return { protocol: 2, commands: catalog, entityKinds };
+    if (action === 'catalog')
+      return { protocol: 2, contractVersion, schemaHash, commands: catalog, entityKinds };
     if (action === 'read') return this.read(input);
     if (action === 'prepare') return this.review(input, caller);
     if (action === 'execute') return this.execute(input, caller);

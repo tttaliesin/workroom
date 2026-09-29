@@ -1,8 +1,8 @@
 import { z } from 'zod';
-import { catalog, entityKinds } from '../control/catalog.mjs';
+import { catalog, entityKinds, schemaHash } from '../control/catalog.mjs';
 import { controlRequest } from '../control/transport.mjs';
 import { connectControl } from '../control/client.mjs';
-import { failure } from '../control/contracts.mjs';
+import { failure, contractVersion } from '../control/contracts.mjs';
 export function registerControlTools(server, { directory, root }) {
   const args = z.record(z.string(), z.unknown()).default({});
   const command = { command: z.enum(Object.keys(catalog)), args };
@@ -25,7 +25,12 @@ export function registerControlTools(server, { directory, root }) {
         } catch (error) {
           return {
             isError: true,
-            content: [{ type: 'text', text: JSON.stringify(failure(error)) }],
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(failure(error, { requestId: input.requestId })),
+              },
+            ],
           };
         }
       },
@@ -36,7 +41,14 @@ export function registerControlTools(server, { directory, root }) {
     '앱과 공유하는 제어 명령·입력 계약을 조회합니다. core=제품/판단/기록/초안, runtime=작업/계정/자동화, publication=공개. 먼저 계약을 읽으세요. MCP에서 검토·실행하며 앱 승인 화면은 필요 없습니다.',
     {},
     true,
-    () => ({ protocol: 2, commands: catalog, entityKinds }),
+    () => ({
+      protocol: 2,
+      contractVersion,
+      schemaHash,
+      source: 'mcp-adapter',
+      commands: catalog,
+      entityKinds,
+    }),
   );
   register(
     'workroom_control_connect',

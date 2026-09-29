@@ -12,6 +12,36 @@ Workroom 앱과 MCP는 같은 명령·검토·실행 규칙을 사용합니다. 
 
 `runtime`은 내장 AI 계정·모델의 준비 상태입니다. 연결 성공은 모델 응답 성공을 의미하지 않습니다. **일반 조회·편집·외부 수정안 검사·검토·반영에는 내장 AI 계정이 필요하지 않습니다.** 내장 AI에 개발을 맡기는 `runtime.start` 등에는 계정과 모델이 필요합니다.
 
+### 명령별 결과 계약
+
+protocol 2의 입력과 반환 형태를 유지하면서 **contractVersion 1**의 명령별 결과 검증을 적용합니다. catalog의 output은 완료한 명령의 `operation.result` 스키마입니다. 제품·작업·초안 등의 ID와 revision, 명령별 상태와 핵심 필드를 검사하며, 외부 수정안 결과에는 검사 증거·산출물 해시·changeSetId, 반영 결과에는 appliedAt이 필요합니다. 확장 필드는 보존합니다. `runtime.stop`과 내부 스케줄러 등 기존에 결과가 없던 명령은 명시적인 null 계약을 유지하므로 대상 작업의 종료 상태를 따로 조회하세요.
+
+catalog는 MCP 어댑터가 로드한 계약입니다. connect는 실행기의 `contractVersion`, `schemaHash`, 시작 시각·PID·dataDirectory를 반환합니다. `compatible`는 protocol 호환성, **`contractCompatible`는 어댑터와 실행기의 계약 일치**입니다. 도구가 보이거나 catalog 조회가 성공해도 실행기 연결을 증명하지 않습니다. 새 필드가 없거나 contractCompatible이 false이면 실행 중인 구성 요소가 예전 코드일 수 있습니다.
+
+새 Operation에는 적용한 계약 버전·해시를 보관합니다. 이전 저장 결과는 `contractVersion:0`으로 조회하며 새 스키마를 소급 적용하지 않습니다. 같은 요청 ID는 당시 결과를 반환합니다. 향후 호환성을 깨는 입력·반환 형태 변경에는 별도 protocol 전환이 필요합니다.
+
+오류는 code/message 외에 phase, effectMayHaveOccurred, recovery를 제공합니다. 앱 IPC와 MCP, 저장된 Operation의 failure가 같은 계약을 사용합니다. 기존 error/errorCode 필드는 유지합니다. 알 수 없는 하위 시스템 오류는 DOMAIN_REJECTED로 분류하고 안전한 causeCode를 남깁니다.
+
+| 오류 단계·코드 | 의미와 후속 행동 |
+|---|---|
+| admission · INVALID_INPUT/REVIEW_STALE 등 | 실행 전에 거절. 자료와 요청을 수정 |
+| execution · DOMAIN_REJECTED 등 | 업무 처리 중 실패. 부분 효과 가능성을 확인하고 같은 requestId 조회 |
+| result · RESULT_CONTRACT_INVALID | 효과 발생 후 반환 형식이 계약과 불일치. uncertain으로 보존, 자동 재실행 금지 |
+| persistence · RESULT_PERSISTENCE_FAILED | 완료 결과 저장 실패. uncertain으로 응답. DB가 계속 실패하면 디스크의 running은 재시작 후 uncertain으로 복구 |
+| transport · EXECUTOR_UNREACHABLE | 전송 후 응답 유실이면 실행 실패로 단정하지 않고 같은 requestId 조회 |
+
+recovery는 action, 가능한 requestId, `automaticRetry:false`를 담습니다. 잘못된 결과 원문은 오류에 보관하지 않습니다. `operation.reconcile`도 결과 스키마를 통과한 증거만 confirmed로 기록하며, 입증 불가·형식 불일치는 unresolved로 유지합니다.
+
+명령 완료 뒤 응답이 전송 크기 제한을 넘는 경우에도 transport 오류에 효과 가능성과 원래 requestId를 제공합니다. 이는 저장된 명령의 실패를 뜻하지 않습니다. 큰 결과의 전체 조회가 다시 제한에 걸리면 알려진 대상 ID로 필요한 자료를 개별 조회하세요. 요청 인수가 잘못되어 접수 전 거절된 경우와 구분합니다.
+
+### 연결 갱신과 확인
+
+1. 기존 Workroom 앱에서 진행 중 작업과 미저장 입력을 확인하고 저장합니다. 구버전 프로세스가 켜져 있으면 정상 종료한 뒤 최신 코드로 다시 실행합니다. 다른 도구가 작업 상태를 확인할 수 없을 때 임의로 종료하지 않습니다.
+2. Codex **Settings → MCP servers → Restart**로 MCP 어댑터를 갱신합니다. 설정 파일의 경로가 최신이어도 이미 실행 중인 어댑터는 이전 코드를 유지할 수 있습니다. [Codex 공식 MCP 문서](https://learn.chatgpt.com/docs/extend/mcp?surface=cli)
+3. 현재 대화에서 `workroom_control_connect`를 직접 호출해 liveConnection/compatible/contractCompatible과 dataDirectory를 확인하고, catalog의 contractVersion/schemaHash가 일치하는지 확인합니다. 앱을 종료한 상태라면 `start:true`로 창 없이 실행기를 시작할 수 있습니다.
+
+별도 테스트 MCP 클라이언트나 직접 소켓 호출 성공은 현재 Codex 대화의 도구 연결 성공이 아닙니다. 사용자 자료를 변경하는 검증에는 실제 프로필 대신 격리된 프로필이 필요합니다. 현재 대화가 그 프로필을 가리키지 않으면 연결 검증과 격리 흐름 검증을 따로 기록하세요.
+
 ## 검토·결정·실행
 
 1. `workroom_control_read`로 대상과 최신 revision을 조회합니다. `kind`, `id` 또는 `productId`, `offset`, `limit`를 사용합니다.
@@ -97,6 +127,10 @@ Workroom이 기준 복사본과 수정 복사본을 만들고, 전달받은 파�
 ## English workflow
 
 Protocol 2 adds persistent review packages, review records and execution decisions. Discover schemas with `workroom_control_catalog`; connect with `workroom_control_connect` and check both `liveConnection` and `compatible`. `start:true` starts the shared local executor without opening its window.
+
+Contract version 1 adds command-specific result schemas while preserving protocol 2 inputs and result shapes. Compare the adapter catalog and executor `schemaHash`; `contractCompatible` must be true for matching result contracts. Old stored results retain their original shape with contractVersion 0. Result validation or completion-storage failure after execution becomes uncertain, with a structured failure phase, possible-effect flag and recovery instructions. Never treat it as permission to repeat the effect. Reconciled results are validated before confirmation.
+
+For an older running Workroom instance, check active work and save unsaved input before exiting normally and starting updated code. Refresh the adapter in Codex **Settings → MCP servers → Restart**, then call connect directly in the current conversation and verify the profile and all three compatibility/connection flags. A separate test MCP client's success does not prove that your current conversation has reconnected. [Official Codex MCP documentation](https://learn.chatgpt.com/docs/extend/mcp?surface=cli)
 
 Prepare the exact command and arguments, then execute `review.submit` with the packageId, verdict, assessment, limitations and every changed file's resulting hash. Execute `review.decide` with the reviewId, choice and the user's instruction or delegated authority reference. Finally execute the original command with unchanged arguments, reviewId, decisionId and a UUID requestId. A review hash alone never authorizes execution. Poll `workroom_control_operation`; task and deployment completion are separate.
 

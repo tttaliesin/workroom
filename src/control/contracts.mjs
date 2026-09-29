@@ -2,6 +2,10 @@ import { z } from 'zod';
 import { schemas } from '../core/service.mjs';
 import { eventSchema } from '../integrations/codex-capture.mjs';
 import { linkSchema, recordReviewSchema, sourceReviewSchema } from '../core/work-links.mjs';
+import { commandResultSchemas } from './results.mjs';
+import { redact } from '../runtime/errors.mjs';
+export { commandResultSchemas } from './results.mjs';
+export const contractVersion = 1;
 
 export const id = z.string().uuid();
 export const hash = z.string().regex(/^[a-f0-9]{64}$/);
@@ -146,22 +150,104 @@ export const reviewCommands = new Set([
   'external.submit',
 ]);
 export const secretCommands = new Set(['publication.credentials', 'runtime.manualCode']);
-export const commandResultSchema = z.json().nullable();
+export const secretResultSchemas = {
+  'publication.credentials': z.object({ saved: z.literal(true) }),
+  'runtime.manualCode': z.object({ accepted: z.literal(true) }),
+};
+export const errorCodes = [
+  'INVALID_INPUT',
+  'UNKNOWN_COMMAND',
+  'UNKNOWN_ACTION',
+  'FORBIDDEN_COMMAND',
+  'SECRET_IN_INPUT',
+  'DOMAIN_REJECTED',
+  'VERSION_CONFLICT',
+  'EXECUTOR_BUSY',
+  'EXECUTION_SCOPE',
+  'DECISION_REQUIRED',
+  'DECISION_MISMATCH',
+  'DECISION_SUPERSEDED',
+  'REVIEW_INCOMPLETE',
+  'REVIEW_NOT_SUPPORTED',
+  'REVIEW_STALE',
+  'REVIEW_SUPERSEDED',
+  'REQUEST_ID_CONFLICT',
+  'REQUEST_NOT_FOUND',
+  'NOT_CANCELLABLE',
+  'OPERATION_UNRESOLVED',
+  'EXECUTOR_INTERRUPTED',
+  'EXECUTOR_OFFLINE',
+  'EXECUTOR_UNREACHABLE',
+  'PROTOCOL_MISMATCH',
+  'CREDENTIAL_FAILURE',
+  'RESULT_CONTRACT_INVALID',
+  'RESULT_PERSISTENCE_FAILED',
+];
 export const errorSchema = object({
-  code: z.string(),
+  code: z.enum(errorCodes),
   message: z.string(),
   details: z.json().optional(),
+  phase: z.enum(['admission', 'execution', 'result', 'persistence', 'recovery', 'transport']),
+  effectMayHaveOccurred: z.boolean(),
+  recovery: object({
+    action: z.enum(['correct_request', 'query_request', 'inspect_effects', 'reconnect']),
+    requestId: id.optional(),
+    automaticRetry: z.literal(false),
+  }),
 });
+export const commandContracts = Object.fromEntries(
+  Object.entries(commandSchemas).map(([name, input]) => {
+    if (!commandResultSchemas[name]) throw new Error(`Missing result contract: ${name}`);
+    return [
+      name,
+      {
+        input,
+        output: commandResultSchemas[name],
+        error: errorSchema,
+        reviewRequired: reviewCommands.has(name),
+      },
+    ];
+  }),
+);
 export class ControlError extends Error {
   constructor(code, message, details) {
     super(message);
     Object.assign(this, { code, details });
   }
 }
-export function failure(error) {
-  return {
-    code: error instanceof z.ZodError ? 'INVALID_INPUT' : error.code || 'DOMAIN_REJECTED',
-    message: error.message,
-    ...(error.details ? { details: error.details } : {}),
-  };
+export function failure(error, context = {}) {
+  const previous = error.controlFailure || {};
+  const phase = context.phase || previous.phase || 'admission';
+  const effectMayHaveOccurred =
+    context.effectMayHaveOccurred ?? previous.effectMayHaveOccurred ?? false;
+  const parsedId = id.safeParse(context.requestId || previous.recovery?.requestId);
+  const requestId = parsedId.success ? parsedId.data : undefined;
+  const code =
+    error instanceof z.ZodError
+      ? 'INVALID_INPUT'
+      : errorCodes.includes(error.code)
+        ? error.code
+        : 'DOMAIN_REJECTED';
+  const details =
+    error.code && code !== error.code
+      ? { causeCode: String(error.code), ...(error.details ? { causeDetails: error.details } : {}) }
+      : error.details;
+  return errorSchema.parse({
+    code,
+    message: redact(error.message),
+    ...(details ? { details: JSON.parse(redact(JSON.stringify(details))) } : {}),
+    phase,
+    effectMayHaveOccurred,
+    recovery: {
+      action: effectMayHaveOccurred
+        ? requestId
+          ? 'query_request'
+          : 'inspect_effects'
+        : phase === 'transport'
+          ? 'reconnect'
+          : 'correct_request',
+      ...(requestId ? { requestId } : {}),
+      automaticRetry: false,
+    },
+  });
 }
