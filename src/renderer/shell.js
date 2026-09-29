@@ -3,6 +3,7 @@ import { t as tr } from '../shared/i18n.mjs';
 import { html, button, e, icon } from './html.js';
 import { newTarget, portfolioPage } from './portfolio-views.js';
 import { delegationPage, productHome } from './product-overview.js';
+import { projectDirectory, planPage, reportPage } from './project-management.js';
 import { newRecord, recordDetailPage, recordsPage } from './record-views.js';
 import { accountLabel, accountPage } from './runtime-ui.js';
 import {
@@ -46,10 +47,13 @@ function workspaceNavigation() {
           .join('')}
       </nav>`;
   if (ui.view === 'new-product') return html`<span class="view-label">${tr('제품 등록')}</span>`;
+  if (ui.view === 'dashboard') return html`<span class="view-label">전체 프로젝트 현황</span>`;
   if (portfolioArea()) return tr('<span class="view-label">포트폴리오 · 대상별 소개</span>');
   if (!data.products.length) return '';
   const routes = {
     home: ['home'],
+    plan: ['plan'],
+    report: ['report'],
     ops: ['ops', 'new-work', 'new-decision', 'work-link'],
     records: ['records', 'record-detail', 'new-record'],
     scope: ['scope', 'product'],
@@ -57,8 +61,10 @@ function workspaceNavigation() {
   return html`<nav class="product-tabs" aria-label="제품 화면">
       ${[
         ['home', tr('개요')],
+        ['plan', tr('계획')],
         ['ops', tr('작업')],
         ['records', tr('기록')],
+        ['report', tr('보고')],
         ['scope', tr('설정')],
       ]
         .map(([route, label]) =>
@@ -73,7 +79,7 @@ function workspaceNavigation() {
 }
 function workspaceToolbar() {
   const canDelegate =
-    product() && ['home', 'ops', 'records', 'record-detail', 'scope'].includes(ui.view);
+    product() && ['home', 'ops', 'records', 'record-detail', 'scope', 'plan'].includes(ui.view);
   return html`<div class="workspace-toolbar">${workspaceNavigation()}<div class="toolbar-actions">
         ${ui.history.length ? button('←', 'return-location', tr('class="plain history-back" aria-label="이전 화면으로 돌아가기" title="이전 화면으로 돌아가기"')) : ''}
         ${
@@ -98,6 +104,12 @@ export function pendingMessage() {
 }
 function view() {
   switch (ui.view) {
+    case 'dashboard':
+      return projectDirectory(data);
+    case 'plan':
+      return planPage(product(), data, ui);
+    case 'report':
+      return reportPage(product(), ui.projectReport);
     case 'home':
       return productHome(
         product(),
@@ -151,6 +163,7 @@ export function shellHTML() {
     </header>
     <div class="${shellClass()}">
       <aside class="sidebar">
+        <nav class="dashboard-nav" aria-label="프로젝트 현황">${button(html`${icon('page')}<span>전체 현황</span>`, 'nav:dashboard', ui.view === 'dashboard' ? 'aria-current="page"' : '')}</nav>
         <div class="nav-label">내 제품</div>
         <nav class="products" aria-label="등록한 제품">${data.products.map(taskNav).join('')}</nav>
         <nav class="portfolio-nav" aria-label="포트폴리오 탐색">
@@ -168,7 +181,8 @@ export function shellHTML() {
               ${
                 // Pausing blocks queued tasks, AI drafts and continuous operation everywhere, so the
                 // way back is shown on every screen rather than only in the AI settings.
-                data.runtime?.paused && ui.view !== 'account'
+                data.runtime?.paused &&
+                !['account', 'dashboard', 'plan', 'report'].includes(ui.view)
                   ? html`<div class="notice row between paused-banner" role="status">
                   <span>새 실행이 일시 정지되어 있습니다. 대기 중인 작업, AI 작성과 지속 운영이 시작되지 않습니다.</span>
                   ${button(tr('실행 재개'), 'runtime-pause', 'class="primary"')}

@@ -1,6 +1,7 @@
 import { t as tr, localizedLabels } from '../shared/i18n.mjs';
 import { operationOverview, operationIssues } from './operations-ui.js';
 import { html, date, e } from './html.js';
+import { projectDashboard } from './project-management.js';
 const button = (label, action, extra = '') =>
   `<button type="button" data-action="${action}" ${extra}>${label}</button>`;
 const progressStates = ['running', 'queued', 'stopping', 'applying'];
@@ -171,21 +172,7 @@ export function productHome(product, data, draft, otherDrafts = []) {
         </span>
         <span aria-hidden="true">›</span>
       </button>`;
-  return html`<header class="product-heading">
-      <h1>${e(product.name)}</h1>
-    </header>
-    <details class="product-goal">
-      <summary>
-        <span class="goal-label">목표</span>
-        <span class="goal-preview">${e(product.goal || tr('이 제품의 목표를 정해 주세요.'))}</span>
-        <span class="goal-disclosure" aria-hidden="true">
-        </span>
-      </summary>
-      <div>
-        <p>${e(product.goal || tr('아직 목표를 정하지 않았습니다.'))}</p>
-        ${button(tr('목표 수정'), 'nav:scope', 'class="link goal-edit"')}
-      </div>
-    </details>
+  return html`${projectDashboard(product, data)}
     <div class="operation-line">
       <span>
         <span class="inline-dot ${activeCount ? 'active' : ''}">

@@ -9,6 +9,7 @@ import {
   utilityProcess,
   Tray,
   Menu,
+  clipboard,
 } from 'electron';
 import { writeFile } from 'node:fs/promises';
 import { mkdirSync, readFileSync } from 'node:fs';
@@ -146,6 +147,24 @@ handle('workroom:publication', (method, args = {}, requestId) =>
     : control.fromApp(`publication.${method}`, args, requestId),
 );
 
+handle('workroom:project-report', async (requestId, action) => {
+  const operation = control.operation(requestId);
+  if (operation.command !== 'core.projectReport' || operation.status !== 'completed')
+    throw new Error(t('먼저 보고서를 생성하세요.'));
+  if (action === 'copy') {
+    clipboard.writeText(operation.result.markdown);
+    return { copied: true };
+  }
+  if (action !== 'save') throw new Error('Unknown report output action');
+  const selected = await dialog.showSaveDialog(window, {
+    title: t('프로젝트 현황 보고'),
+    defaultPath: 'project-status.html',
+    filters: [{ name: 'HTML', extensions: ['html'] }],
+  });
+  if (selected.canceled || !selected.filePath) return null;
+  await writeFile(selected.filePath, operation.result.html, 'utf8');
+  return { filename: selected.filePath };
+});
 handle('workroom:export', async (id, revision) => {
   const artifact = await control.fromApp('artifact.export', {
     id,

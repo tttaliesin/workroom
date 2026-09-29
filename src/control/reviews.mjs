@@ -55,6 +55,11 @@ export function dependencies(room, command, args) {
   if (args.workTaskId) task(args.workTaskId);
   if (args.portfolioId) portfolio(args.portfolioId);
   if (command === 'core.updateProduct') product(args.id);
+  if (command === 'core.updateProjectStatus') product(args.id);
+  if (command === 'core.saveMilestone') {
+    if (args.id) add('milestone', args.id);
+    for (const id of args.taskIds || []) task(id);
+  }
   if (['core.toggleRecord', 'core.reviewRecord'].includes(command)) {
     const r = add('record', args.id);
     product(r.productId);

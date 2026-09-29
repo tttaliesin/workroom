@@ -11,6 +11,29 @@ import {
   ui,
 } from './state.js';
 const formActions = {
+  'project-status': async (form, values) => {
+    await call('updateProjectStatus', {
+      id: form.dataset.id,
+      revision: Number(form.dataset.revision),
+      ...values,
+    });
+    await refresh();
+    flash(tr('현황을 저장했습니다.'));
+  },
+  milestone: async (form, values) => {
+    const { milestoneDate, ...fields } = values;
+    await call('saveMilestone', {
+      ...fields,
+      targetDate: milestoneDate,
+      productId: form.dataset.product,
+      taskIds: new FormData(form).getAll('taskIds'),
+      ...(form.dataset.id ? { id: form.dataset.id, revision: Number(form.dataset.revision) } : {}),
+    });
+    ui.milestoneEditor = false;
+    ui.milestoneId = null;
+    await refresh();
+    flash(tr('마일스톤을 저장했습니다.'));
+  },
   'job-source': async (form, values) => {
     await call('saveJobSource', {
       portfolioId: form.dataset.id,

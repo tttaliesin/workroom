@@ -79,6 +79,22 @@ Workroom이 기준 복사본과 수정 복사본을 만들고, 전달받은 파�
 
 ## 명령 영역
 
+### 프로젝트 현황·계획·보고
+
+다음 명령은 내장 AI 계정이나 별도 승인 화면 없이 `workroom_control_execute`로 실행합니다. `requestId`를 유지하고 `workroom_control_operation`에서 완료 결과를 확인합니다. 앱의 계획 화면도 동일한 명령과 버전 검사를 사용합니다.
+
+| 명령 | 입력과 결과 |
+|---|---|
+| `core.updateProjectStatus` | 제품 `id/revision`, `lead`, `targetDate`(YYYY-MM-DD 또는 빈 문자열), `phase`(planned/active/paused/completed), `health`(not_set/on_track/at_risk/off_track), `summary/risks/nextStep` → 새 revision과 management를 포함한 제품 |
+| `core.saveMilestone` | `productId/title/assignee/targetDate/status/note/taskIds`; 수정 시 `id/revision` 필수 → milestone ID·revision·저장 내용 |
+| `core.projectReport` | `productId`, `days`(7/30/0=전체), `language`(ko/en) → Markdown·독립 HTML·보고 섹션·생성 시각·원본 ID/revision 목록 |
+
+`workroom_control_read`의 `kind:"milestone"`과 `productId`로 계획을 조회합니다. milestone status는 planned/in_progress/blocked/done/cancelled입니다. done/blocked에는 근거 또는 사유 메모가 필요하며, taskIds에는 같은 제품의 작업만 연결할 수 있습니다. 오래된 revision은 거절합니다. 작성자의 완료 보고를 실제 검사·반영·배포 완료로 취급하지 않습니다.
+
+보고 생성은 현재 자료의 불변 결과를 요청 이력에 저장합니다. 해당 requestId를 조회하면 같은 보고서를 받습니다. Markdown 복사와 HTML 저장은 앱에서 사용자가 수행하며 MCP 결과 자체가 외부 발송이나 공개를 수행하지 않습니다. 보고서에는 자동으로 원본 경로·전체 도구 출력·계정 정보를 넣지 않지만 작성한 요약·메모는 포함되므로 공유 전에 확인하세요.
+
+이 명령은 기존 protocol 2 / contractVersion 1에 추가됩니다. 새 catalog 및 milestone 조회가 보이지 않으면 MCP 어댑터와 Workroom 실행기를 갱신해야 합니다. source만 갱신해도 이미 실행 중인 프로세스의 계약은 바뀌지 않습니다.
+
 | 영역 | 명령 예 |
 |---|---|
 | 제품·판단·기록 | `core.createProduct/updateProduct/resolveDecision/reportWork/reviewRecord` |

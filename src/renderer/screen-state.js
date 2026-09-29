@@ -27,6 +27,7 @@ export function captureScreen() {
       (form) => ({
         name: form.dataset.form,
         id: form.dataset.id,
+        revision: form.dataset.revision,
         fields: [...form.elements]
           .filter((field) => field.name && field.type !== 'file')
           .map((field) => ({
@@ -49,10 +50,14 @@ function restoreForms(snapshots) {
       (form) => form.dataset.form === snapshot.name && form.dataset.id === snapshot.id,
     );
     if (!form) continue;
+    // Restored planning inputs still describe the version the user edited.
+    if (['project-status', 'milestone'].includes(snapshot.name) && snapshot.revision)
+      form.dataset.revision = snapshot.revision;
     for (const saved of snapshot.fields) {
       const field = [...form.elements].find(
         (field) =>
-          field.name === saved.name && (saved.type !== 'radio' || field.value === saved.value),
+          field.name === saved.name &&
+          (!['radio', 'checkbox'].includes(saved.type) || field.value === saved.value),
       );
       if (!field) continue;
       if (['checkbox', 'radio'].includes(saved.type)) field.checked = saved.checked;

@@ -1,4 +1,4 @@
-import { t as tr } from '../shared/i18n.mjs';
+import { t as tr, getLanguage } from '../shared/i18n.mjs';
 import { publicationCall } from './publication-ui.js';
 import {
   call,
@@ -148,7 +148,45 @@ async function savePortfolioAction(id, action) {
   await saveDraft(action === 'save-portfolio-overwrite');
 }
 // Every data-action handled inside run(); actions without an entry still re-render.
+async function generateReport(days = 7) {
+  const requestId = crypto.randomUUID();
+  const report = await call(
+    'projectReport',
+    { productId: ui.productId, days, language: getLanguage() },
+    requestId,
+  );
+  ui.projectReport = report;
+  ui.projectReportRequest = requestId;
+}
+async function outputReport(action) {
+  const result = await window.workroom.projectReportOutput(ui.projectReportRequest, action);
+  if (!result.ok) throw new Error(result.error);
+  if (result.value)
+    flash(action === 'copy' ? tr('보고서를 복사했습니다.') : tr('보고서를 저장했습니다.'));
+}
 const clickActions = {
+  'milestone-new': async () => {
+    if (!canLeave()) return;
+    go('plan');
+    ui.milestoneId = null;
+    ui.milestoneEditor = true;
+  },
+  'milestone-edit': async (id) => {
+    if (!canLeave()) return;
+    go('plan');
+    ui.milestoneId = id;
+    ui.milestoneEditor = true;
+  },
+  'milestone-close': async () => {
+    if (!canLeave()) return;
+    ui.milestoneEditor = false;
+    ui.milestoneId = null;
+  },
+  'report-period': async (id) => {
+    await generateReport(Number(id));
+  },
+  'report-copy': async () => outputReport('copy'),
+  'report-save': async () => outputReport('save'),
   'dismiss-message': async () => {
     ui.message = '';
   },
@@ -263,6 +301,10 @@ const clickActions = {
     returnToRequest();
   },
   nav: async (id) => {
+    if (id === 'report') {
+      if (!canLeave()) return;
+      await generateReport();
+    }
     if (id === 'new-change' || id === 'new-investigation')
       startRequest(id === 'new-change' ? 'change' : 'investigation');
     else {

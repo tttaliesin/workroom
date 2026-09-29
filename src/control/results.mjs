@@ -219,6 +219,39 @@ const hooksPlan = object({
 });
 
 export const commandResultSchemas = {
+  'core.updateProjectStatus': product.extend({
+    management: object({
+      lead: z.string(),
+      targetDate: z.union([z.iso.date(), z.literal('')]),
+      phase: z.enum(['planned', 'active', 'paused', 'completed']),
+      health: z.enum(['not_set', 'on_track', 'at_risk', 'off_track']),
+      summary: z.string(),
+      risks: z.string(),
+      nextStep: z.string(),
+      updatedAt: z.iso.datetime(),
+    }),
+  }),
+  'core.saveMilestone': entity({
+    productId: id,
+    title: z.string(),
+    assignee: z.string(),
+    targetDate: z.union([z.iso.date(), z.literal('')]),
+    status: z.enum(['planned', 'in_progress', 'blocked', 'done', 'cancelled']),
+    note: z.string(),
+    taskIds: z.array(id),
+  }),
+  'core.projectReport': object({
+    projectId: id,
+    projectRevision: revision,
+    generatedAt: z.iso.datetime(),
+    days: z.union([z.literal(0), z.literal(7), z.literal(30)]),
+    language: z.enum(['ko', 'en']),
+    markdown: z.string(),
+    html: z.string(),
+    sections: z.array(z.tuple([z.string(), z.array(z.string())])),
+    note: z.string(),
+    sourceVersions: z.array(object({ id, revision })),
+  }),
   'capture.event': z.union([
     object({
       status: z.enum([

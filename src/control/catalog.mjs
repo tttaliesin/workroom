@@ -18,6 +18,7 @@ export const catalog = Object.fromEntries(
 );
 export const schemaHash = createHash('sha256').update(JSON.stringify(catalog)).digest('hex');
 export const entityKinds = [
+  'milestone',
   'product',
   'task',
   'record',

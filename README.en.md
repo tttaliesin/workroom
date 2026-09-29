@@ -8,7 +8,7 @@
 
 <p align="center">
   <strong>Turn assigned work into results, and results into your own record.</strong><br>
-  A local desktop app connecting development tasks, reusable knowledge and portfolio drafts.
+  A local desktop app for project status, plans, development results and shareable progress reports.
 </p>
 
 <p align="center">
@@ -25,7 +25,7 @@
   <a href="https://github.com/tttaliesin/workroom/issues">Report an issue</a>
 </p>
 
-<img src="assets/readme/en/overview-dark.png" alt="Workroom overview: pending decisions, queued tasks, recent results and collected records" width="1280">
+<img src="assets/readme/en/project-overview-dark.png" alt="Project briefing with lead, target date, status, next steps, milestones and risks" width="1440">
 
 <p align="center"><sub>All screenshots are captured from the actual Electron app in dark mode. Products, tasks and portfolio content are illustrative examples.</sub></p>
 
@@ -35,6 +35,7 @@ Connect a product folder and a goal, then describe the work you want done. The b
 
 | Flow | What Workroom does |
 | :--- | :--- |
+| **Status and planning** | Track leads, dates, status and risks. Link milestones to actual tasks and prepare Markdown or HTML progress reports for your team. |
 | **Work and review** | Connects investigation, proposed changes, before/after checks and independent review. Inspect the results and diff before applying changes to the source. |
 | **Records and evidence** | Keeps sources and applicability together. The built-in agent and MCP use the same records. |
 | **Experience and introduction** | Adds new results to target-specific drafts. Preserves your edits, exports standalone HTML and optionally publishes reviewed content through Vercel. |
@@ -63,6 +64,18 @@ Open **Settings → General → Interface language** at the bottom left and choo
 Workroom starts empty. You can prepare requests before signing in, browse existing records and use MCP collection without connecting the built-in agent account.
 
 ## A look inside
+
+### Project status you can present to your team
+
+**All projects** compares health updates, overdue milestones and tasks that need attention. Each project's **Overview** brings together its goal, lead, target date, current status, next steps and milestones.
+
+Use **Plan** to maintain status updates and milestones with owners, due dates, progress, blockers and linked work evidence. Done and blocked milestones require notes. Completion is based on registered milestones and is author-reported; it does not prove checks passed, source changes were applied or deployment completed.
+
+Under **Report**, review the last 7 days, 30 days or all recorded outcomes, risks and next steps. **Copy Markdown / Save HTML** exports the exact previewed version without sending anything externally.
+
+![Project status report in the English interface; user-authored example text keeps its original language](assets/readme/en/project-report-dark.png)
+
+Planning and reporting work without a built-in AI account and use the same contracts through MCP. Owners are display names. Team accounts, access roles and online collaborative editing are not available yet. Existing projects start without invented plans or owners: add them under **Plan**.
 
 ### Keep decisions visible
 

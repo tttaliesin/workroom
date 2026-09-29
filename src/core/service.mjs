@@ -8,10 +8,45 @@ import { WorkLinks } from './work-links.mjs';
 import { projectWork } from './work-projection.mjs';
 import { KnowledgeService } from './knowledge.mjs';
 import { normalizeTemplate, portfolioTemplates } from '../shared/portfolio.mjs';
+import { projectReport } from '../shared/project-status.mjs';
 
 const text = (max = 4000) => z.string().trim().min(1).max(max);
 const id = z.string().uuid();
+const targetDate = z.union([z.iso.date(), z.literal('')]);
 export const schemas = {
+  updateProjectStatus: z
+    .object({
+      id,
+      revision: z.number().int().positive(),
+      lead: z.string().trim().max(120),
+      targetDate,
+      phase: z.enum(['planned', 'active', 'paused', 'completed']),
+      health: z.enum(['not_set', 'on_track', 'at_risk', 'off_track']),
+      summary: z.string().trim().max(2000),
+      risks: z.string().trim().max(2000),
+      nextStep: z.string().trim().max(2000),
+    })
+    .strict(),
+  saveMilestone: z
+    .object({
+      productId: id,
+      id: id.optional(),
+      revision: z.number().int().positive().optional(),
+      title: text(200),
+      assignee: z.string().trim().max(120),
+      targetDate,
+      status: z.enum(['planned', 'in_progress', 'blocked', 'done', 'cancelled']),
+      note: z.string().trim().max(2000),
+      taskIds: z.array(id).max(30),
+    })
+    .strict(),
+  projectReport: z
+    .object({
+      productId: id,
+      days: z.union([z.literal(0), z.literal(7), z.literal(30)]).default(7),
+      language: z.enum(['ko', 'en']).default('ko'),
+    })
+    .strict(),
   createProduct: z
     .object({ name: text(100), folder: text(2048), goal: z.string().trim().max(2000).default('') })
     .strict(),
@@ -190,6 +225,7 @@ export class Workroom {
       verificationObservations: this.store.list('verification-observation').slice(0, 100),
       changeToken: this.changes(),
       products: this.store.list('product'),
+      milestones: this.store.list('milestone'),
       tasks: this.store.list('task'),
       records: this.store.list('record'),
       portfolios: this.store.list('portfolio'),
@@ -251,6 +287,45 @@ export class Workroom {
       this.store.log('제품 목표 수정', product.id, product.name);
       return product;
     });
+  }
+  updateProjectStatus(input) {
+    const { id, revision, ...management } = schemas.updateProjectStatus.parse(input);
+    return this.store.transaction(() => {
+      const product = this.store.get('product', id);
+      const result = this.store.update('product', id, revision, {
+        ...product,
+        management: { ...management, updatedAt: new Date().toISOString() },
+      });
+      this.store.log('프로젝트 현황 갱신', id, product.name);
+      return result;
+    });
+  }
+  saveMilestone(input) {
+    const { id, revision, ...body } = schemas.saveMilestone.parse(input);
+    if (!!id !== (revision !== undefined))
+      throw new Error('수정할 마일스톤의 ID와 버전이 필요합니다.');
+    if (['done', 'blocked'].includes(body.status) && !body.note.trim())
+      throw new Error('완료 근거나 막힌 이유를 메모에 작성하세요.');
+    return this.store.transaction(() => {
+      this.store.get('product', body.productId);
+      for (const taskId of body.taskIds) {
+        if (this.store.get('task', taskId).productId !== body.productId)
+          throw new Error('같은 제품의 작업만 마일스톤에 연결할 수 있습니다.');
+      }
+      const old = id ? this.store.get('milestone', id) : null;
+      if (old && old.productId !== body.productId)
+        throw new Error('마일스톤을 다른 제품으로 옮길 수 없습니다.');
+      const result = old
+        ? this.store.update('milestone', id, revision, body)
+        : this.store.create('milestone', body);
+      this.store.log('마일스톤 저장', result.id, body.title);
+      return result;
+    });
+  }
+  projectReport(input) {
+    const { productId, ...options } = schemas.projectReport.parse(input);
+    const product = this.store.get('product', productId);
+    return projectReport(this.snapshot(), product, options);
   }
   async inspect(input) {
     const { productId } = schemas.inspect.parse(input);

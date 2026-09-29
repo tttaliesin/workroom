@@ -114,8 +114,8 @@ function restoreRequestAfterSetup() {
     flash(tr('연결을 준비했습니다. 보관한 요청을 확인한 뒤 맡겨주세요.'));
   }
 }
-export async function call(method, args = {}) {
-  const response = await window.workroom.call(method, args);
+export async function call(method, args = {}, requestId) {
+  const response = await window.workroom.call(method, args, requestId);
   if (!response.ok) throw new Error(response.error);
   return response.value;
 }
