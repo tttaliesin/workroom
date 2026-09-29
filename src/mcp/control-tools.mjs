@@ -11,7 +11,7 @@ export function registerControlTools(server, { directory, root }) {
     server.registerTool(
       name,
       {
-        description: `${description} 업무 절차와 복구: workroom_guide(topic:start 또는 recovery).`,
+        description: `${description} 일반 작업 시작의 맥락 조회와 종료의 결과 기록·제외 조건: workroom_guide(topic:start). 복구: topic:recovery.`,
         inputSchema,
         annotations: {
           readOnlyHint: readOnly,

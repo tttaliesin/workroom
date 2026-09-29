@@ -1,4 +1,5 @@
 import { getLanguage } from './i18n.mjs';
+import { isExecutionEvidence, executionEvidence } from '../core/work-projection.mjs';
 
 const names = {
   not_set: ['현황 미작성', 'No status update'],
@@ -42,7 +43,13 @@ export function projectSummary(data, product, { days = 7, now = new Date() } = {
     data.tasks.filter((t) => t.kind === 'agent').map((t) => t.resultTaskId),
   );
   const tasks = data.tasks
-    .filter((t) => t.productId === product.id && !t.parentTaskId && !resultIds.has(t.id))
+    .filter(
+      (t) =>
+        t.productId === product.id &&
+        !t.parentTaskId &&
+        !resultIds.has(t.id) &&
+        !isExecutionEvidence(t, data.tasks),
+    )
     .sort((a, b) => (b.updated || b.created).localeCompare(a.updated || a.created));
   const milestones = (data.milestones || [])
     .filter((m) => m.productId === product.id)
@@ -144,12 +151,15 @@ export function projectReport(data, product, { days = 7, language = 'ko', now = 
     [
       l('최근 성과와 근거', 'Recent outcomes and evidence'),
       p.recentResults.length
-        ? p.recentResults
-            .slice(0, 20)
-            .map(
-              (t) =>
-                `${t.title} — ${t.appliedAt ? l('원본 반영 기록 있음', 'Source application recorded') : t.outputs?.check?.result?.status === 'passed' ? l('검사 통과 기록 있음 · 반영 별도', 'Checks passed; application is separate') : l('보고된 결과 · 독립 검증 아님', 'Reported result; not independently verified')} (${t.id})`,
-            )
+        ? p.recentResults.slice(0, 20).map(
+            (t) =>
+              `${t.title} — ${t.appliedAt ? l('원본 반영 기록 있음', 'Source application recorded') : t.outputs?.check?.result?.status === 'passed' ? l('검사 통과 기록 있음 · 반영 별도', 'Checks passed; application is separate') : l('보고된 결과 · 독립 검증 아님', 'Reported result; not independently verified')} (${t.id})${executionEvidence(
+                t,
+                data.tasks,
+              )
+                .map((h) => ` · ${l('공통 Codex 훅 근거', 'Shared Codex hook evidence')}: ${h.id}`)
+                .join('')}`,
+          )
         : [l('이 기간에 등록된 결과가 없습니다.', 'No recorded outcomes in this period.')],
     ],
     [

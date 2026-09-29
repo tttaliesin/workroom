@@ -2,6 +2,7 @@ import { t as tr, localizedLabels } from '../shared/i18n.mjs';
 import { operationOverview, operationIssues } from './operations-ui.js';
 import { html, date, e } from './html.js';
 import { projectDashboard } from './project-management.js';
+import { isExecutionEvidence } from '../core/work-projection.mjs';
 const button = (label, action, extra = '') =>
   `<button type="button" data-action="${action}" ${extra}>${label}</button>`;
 const progressStates = ['running', 'queued', 'stopping', 'applying'];
@@ -47,7 +48,13 @@ function productOverviewData(product, data) {
     data.tasks.filter((t) => t.kind === 'agent').map((t) => t.resultTaskId),
   );
   const tasks = data.tasks
-    .filter((t) => t.productId === product.id && !t.parentTaskId && !resultIds.has(t.id))
+    .filter(
+      (t) =>
+        t.productId === product.id &&
+        !t.parentTaskId &&
+        !resultIds.has(t.id) &&
+        !isExecutionEvidence(t, data.tasks),
+    )
     .sort((a, b) => (b.updated || b.created).localeCompare(a.updated || a.created));
   return {
     tasks,

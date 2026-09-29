@@ -6,7 +6,35 @@ Workroom 앱과 MCP는 같은 명령·검토·실행 규칙을 사용합니다. 
 
 ## 연결과 계약 버전
 
-`workroom_control_catalog`에서 명령별 입력·결과·오류 스키마와 `reviewRequired`를 확인합니다. 기존 조회·보고와 제어 도구를 유지하며 `workroom_guide`가 업무 절차를 제공합니다. 명령 계약은 **protocol 2**, 지침은 **guidanceVersion 1**입니다.
+`workroom_control_catalog`에서 명령별 입력·결과·오류 스키마와 `reviewRequired`를 확인합니다. 기존 조회·보고와 제어 도구를 유지하며 `workroom_guide`가 업무 절차를 제공합니다. 명령 계약은 **protocol 2 / contractVersion 1**, 지침은 **guidanceVersion 2**입니다. 선택적 실행 출처와 결과 연결 상태가 추가되어 `schemaHash`가 변경됐으므로 어댑터와 실행기를 함께 갱신해야 합니다. 과거 저장된 명령 결과는 당시 형태를 유지합니다.
+
+### 일반 작업의 기본 행동
+
+v2 검증 상태: 격리 stdio MCP의 직접 파일 수정·실제 Node 검사·보고 수정·저장 확인·관련 현황 갱신, 합성 훅 연결과 실제 프로세스 중단 복구, 기존 Electron 현황·보고 내보내기 회귀를 확인했습니다. **현재 Codex 연결은 아직 v1이고, v2의 실제 Codex·Claude 자발적 사용과 호스트 훅 연결은 미검증**입니다. 사용자 실행 중 앱을 테스트를 위해 종료하지 않았습니다.
+
+등록한 폴더에서 “이 버그 고쳐줘”, “이 조사 결과 정리해줘”처럼 요청해도 지침은 시작 시 맥락 조회, 의미 있는 작업 종료 시 결과 기록과 근거 있는 현황 갱신을 요구합니다. 가장 구체적인 등록 폴더를 선택하며 미등록 프로젝트를 자동 생성하지 않습니다. 실패·부분 완료를 완료로 바꾸거나 담당자·일정·다른 위험을 추정하지 않습니다. 일반 개발은 클라이언트의 파일 도구로 수행하고 결과만 보고합니다. 이미 고친 파일을 `external.submit`으로 재제출하지 않습니다.
+
+잡담·단순 설명·반복 조회는 보고 대상이 아닙니다. “기록하지 마라”는 지시를 우선합니다. 해당 프로젝트의 Codex 훅 수집이 켜져 있으면 파일 작업 전에 `core.setCodexCapture(enabled:false)`로 끄고 저장을 확인하도록 안내합니다. 이는 프로젝트 단위 설정이며 임의로 다시 켜지 않습니다. 지침 전달은 모델의 자발적 실행을 보장하는 강제 실행기가 아닙니다. 양쪽 실제 대화의 v2 자발적 사용은 아래 검증 상태와 구분하세요.
+
+### 실행 출처와 중복 기록
+
+`core.reportWork`와 `workroom_report_work`는 선택적 `execution: { client: "codex" | "claude", sessionId?, turnId? }`를 받습니다. 실제 아는 식별자만 보내고 모르면 생략합니다.
+
+| 식별자 | 용도 |
+|---|---|
+| `requestId` | 명령 재전송과 응답 유실 조회. 같은 요청은 같은 인수와 UUID 사용 |
+| `externalId` / `sourceVersion` | 문제별 보고 식별과 전체 내용 수정. 별개 문제는 별도 ID |
+| `execution` | 실행 출처의 클라이언트 진술. 인증·권한·승인 증명이 아님 |
+
+업데이트된 Codex PostToolUse 훅은 보고 도구와 `core.reportWork` 호출의 실제 세션·턴·도구 호출 ID를 관측합니다. 모델이 호스트 ID를 몰라도 명시한 `requestId`를 영속 보고 영수증·명령 결과·프로젝트·보고 해시와 대조할 수 있습니다. 코드 모드의 중첩 MCP 호출도 공식 훅 관측 대상입니다. [Codex 훅 문서](https://learn.chatgpt.com/docs/hooks)
+
+명령 처리 전 관측은 대기 상태로 남기고 명령 종료·후속 이벤트·실행기 복구 때 재대조합니다. 보고 저장 뒤 명령 완료 전에 중단되면 저장 효과만 연결하며 명령의 `uncertain`은 유지합니다. 잘못된 요청·내용·프로젝트·출처는 자동 연결하지 않습니다. 호스트 ID를 적은 클라이언트 주장만으로 훅과 합치지 않으며 과거 기록을 제목·시간 유사도로 합치지 않습니다.
+
+보고 결과의 `executionLink`는 당시 스냅샷입니다. 최신 `workroom_control_read(kind:"task", id:...)`와 `workroom_control_read(kind:"execution-link", productId:...)`로 `unlinked/pending/linked/conflict` 및 관측별 상태를 확인하세요. 응답 유실은 같은 요청을 먼저 조회하고 새 ID로 재실행하지 않습니다. `unmatched` 관측은 저장된 보고 효과가 없는 종료 요청입니다.
+
+연결된 훅 요약은 별도 성과에서 제외하고 구조화 보고의 공통 근거로 제공합니다. 원본 보고·훅·보고 수정 이력은 유지합니다. 같은 턴의 서로 다른 문제는 별개 작업입니다. 사용자 편집 포트폴리오 문장과 수동 작업 연결은 자동 제거하지 않습니다. 편집된 초안에 남긴 항목은 사용자 검토가 필요할 수 있습니다. Claude는 안정적인 보고 ID로 재전송·수정을 처리하며 Claude 대화 자동 수집은 제공하지 않습니다.
+
+기존 훅 설정은 자동 변경하지 않습니다. 제품 설정에서 훅 연결을 다시 설치하면 새 MCP matcher가 들어갑니다. 변경된 훅 정의는 Codex에서 `/hooks`로 다시 검토·신뢰해야 합니다. 기존 사용자 앱·미저장 입력을 확인하고 실행기를 정상 갱신한 뒤 클라이언트 MCP도 갱신하세요.
 
 ### MCP에 포함된 사용 지침
 
@@ -77,7 +105,7 @@ recovery는 action, 가능한 requestId, `automaticRetry:false`를 담습니다.
 ### 연결 갱신과 확인
 
 1. 현재 대화에서 `workroom_control_connect(start:false)`를 호출합니다. 선택적 `expectedDataDirectory`에 의도한 절대 자료 경로를 넣으면 다른 프로필의 실행을 시작하지 않습니다.
-2. `adapter`, `executor`, `installed`의 소스 식별과 계약을 비교합니다. `ADAPTER_OUTDATED`이면 Codex **Settings → MCP servers → Restart** 등 해당 클라이언트의 MCP 연결을 갱신합니다. 설정 파일이 최신이어도 이미 실행 중인 어댑터는 이전 코드를 유지할 수 있습니다. [Codex 공식 MCP 문서](https://learn.chatgpt.com/docs/extend/mcp)
+2. `adapter`, `executor`, `installed`의 소스 식별과 계약을 비교합니다. `ADAPTER_OUTDATED`이면 해당 클라이언트의 MCP 연결을 갱신합니다. 연결 갱신 기능이 보이지 않으면 진행 중 작업을 저장하고 클라이언트를 다시 시작합니다. 설정 파일이 최신이어도 이미 실행 중인 어댑터는 이전 코드를 유지할 수 있습니다. [Codex 공식 MCP 문서](https://learn.chatgpt.com/docs/extend/mcp)
 3. `EXECUTOR_OUTDATED`이면 Workroom의 진행 중 작업과 미저장 입력을 확인·저장한 뒤 정상 종료하고 다시 시작합니다. 상태를 확인할 수 없으면 임의 종료하지 않습니다. `runtime.restart`는 내장 AI 런타임 명령이며 이 실행기 갱신 절차를 대신하지 않습니다.
 4. 현재 대화에서 다시 조회해 `liveConnection`, `compatible`, `contractCompatible`, `profileCompatible`, `readyForControl`과 자료 경로를 확인합니다. 구형 실행기의 소스 식별은 `unknown`일 수 있으며 이를 최신 버전의 증거로 사용하지 않습니다. 계약 해시가 다르다는 이유만으로 어느 쪽이 오래됐는지 추정하지 않습니다.
 
@@ -191,6 +219,16 @@ Workroom이 기준 복사본과 수정 복사본을 만들고, 전달받은 파�
 
 ## English workflow
 
+Guidance v2 applies to ordinary work in registered folders, even without a Workroom mention: read context at the start, report meaningful outcomes and evidenced status changes, then confirm stored content. Use the most specific registered folder; do not create missing projects automatically. Preserve current owners, dates and unrelated risks. Report partial or failed work honestly. Ordinary edits use client file tools; the managed proposal/review/apply workflow is only for explicitly delegated Workroom proposals.
+
+Skip chat, simple explanations and repeated status reads. Respect recording opt-outs. If Codex capture is enabled, disable it with `core.setCodexCapture(enabled:false)` before file work, verify that change and explain that project capture remains off. Do not silently re-enable it. This is a project-wide setting, not a per-turn privacy switch.
+
+Reports accept optional `execution: { client: "codex" | "claude", sessionId?, turnId? }`. Do not invent unknown host IDs. `requestId` identifies a command, `externalId/sourceVersion` identifies a per-problem report and its corrections, and execution describes provenance rather than authenticated identity. Always send a stable request ID for MCP reporting. The updated Codex PostToolUse hook observes report tool calls, including nested code-mode MCP calls, and matches the request against the durable operation and report receipt. Pending observations are retried on completion, later events and startup; commands are never re-executed by linkage recovery. An interrupted command stays uncertain even when its report effect is found.
+
+Read current task `executionLink` and `workroom_control_read(kind:"execution-link", productId:...)`; the original command result retains its snapshot. Linked hook summaries are shared evidence instead of separate achievements. Distinct problems in one turn, original records, user-edited portfolio text and manual link corrections remain intact. Historical records are never merged by title/time similarity. Claude uses stable report IDs and has no automatic conversation capture.
+
+Protocol 2 and omitted optional inputs remain supported, but the added input/output schemas change `schemaHash`: refresh both adapter and executor. Reinstall existing hooks and review the changed definition in Codex `/hooks`; old hooks do not gain the new matcher automatically. **V2 automatic recording in actual Codex and Claude conversations, including the actual host hook linkage, remains unverified.** SDK transport and synthetic hook tests are distinct evidence. Earlier v1 live-client validation does not prove this new scenario.
+
 External proposal authoring requires actual source contents, base hashes and test files from client file tools or supplied material. Workroom entity reads do not expose arbitrary repository browsing. Request missing source material rather than inventing it.
 
 Start with “Read the Workroom guide, check the connection and summarize this repository’s project status and next steps.” No separate Skill is needed. The server provides initialization instructions, the read-only `workroom_guide` tool, `workroom://guides/en/{topic}` resources and a `workroom_workflow` prompt from one source. Topics are start, projects, records, development, portfolio, capture and recovery. Guidance remains available without a live executor or built-in AI account.
@@ -205,7 +243,7 @@ Protocol 2 adds persistent review packages, review records and execution decisio
 
 Contract version 1 adds command-specific result schemas while preserving protocol 2 inputs and result shapes. Compare the adapter catalog and executor `schemaHash`; `contractCompatible` must be true for matching result contracts. Old stored results retain their original shape with contractVersion 0. Result validation or completion-storage failure after execution becomes uncertain, with a structured failure phase, possible-effect flag and recovery instructions. Never treat it as permission to repeat the effect. Reconciled results are validated before confirmation.
 
-For an older running Workroom instance, check active work and save unsaved input before exiting normally and starting updated code. Refresh the adapter in Codex **Settings → MCP servers → Restart**, then call connect directly in the current conversation and verify the profile and all three compatibility/connection flags. A separate test MCP client's success does not prove that your current conversation has reconnected. [Official Codex MCP documentation](https://learn.chatgpt.com/docs/extend/mcp?surface=cli)
+For an older running Workroom instance, check active work and save unsaved input before exiting normally and starting updated code. Refresh the client's MCP connection; if no refresh action is available, save ongoing work and restart the client. Then call connect directly in the current conversation and verify the profile and compatibility/connection flags. A separate test MCP client's success does not prove that your current conversation has reconnected. [Official Codex MCP documentation](https://learn.chatgpt.com/docs/extend/mcp?surface=cli)
 
 Prepare the exact command and arguments, then execute `review.submit` with the packageId, verdict, assessment, limitations and every changed file's resulting hash. Execute `review.decide` with the reviewId, choice and the user's instruction or delegated authority reference. Finally execute the original command with unchanged arguments, reviewId, decisionId and a UUID requestId. A review hash alone never authorizes execution. Poll `workroom_control_operation`; task and deployment completion are separate.
 

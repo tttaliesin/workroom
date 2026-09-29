@@ -1,5 +1,6 @@
 import { t as tr, localizedLabels, rawLabels } from '../shared/i18n.mjs';
 import { agentLabels } from './runtime-ui.js';
+import { isExecutionEvidence } from '../core/work-projection.mjs';
 export const app = document.getElementById('app');
 export const ui = {
   view: 'home',
@@ -137,7 +138,9 @@ export const productName = (id) => data.products.find((p) => p.id === id)?.name 
 export const product = () => data.products.find((p) => p.id === ui.productId) || data.products[0];
 export const rootTasks = () => {
   const results = new Set(data.tasks.filter((t) => t.kind === 'agent').map((t) => t.resultTaskId));
-  return data.tasks.filter((t) => !t.parentTaskId && !results.has(t.id));
+  return data.tasks.filter(
+    (t) => !t.parentTaskId && !results.has(t.id) && !isExecutionEvidence(t, data.tasks),
+  );
 };
 export const portfolioArea = () => ['portfolio', 'new-target'].includes(ui.view);
 export const locationKey = () =>

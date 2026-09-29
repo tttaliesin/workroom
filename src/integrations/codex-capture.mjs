@@ -2,6 +2,8 @@ import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { realpathSync } from 'node:fs';
 import { z } from 'zod';
+import { schemas } from '../core/service.mjs';
+import { executionKey } from '../core/work-executions.mjs';
 
 export const eventSchema = z.object({
   hook_event_name: z.enum(['PostToolUse', 'Stop', 'Interrupt']),
@@ -75,7 +77,7 @@ function observations(event, root) {
     }
     return files.length ? { files: files.slice(0, 100), checks: [] } : null;
   }
-  if (event.tool_name === 'Bash') {
+  if (['Bash', 'exec_command'].includes(event.tool_name)) {
     const check = commandObservation(command, event.tool_response);
     return check ? { files: [], checks: [check] } : null;
   }
@@ -102,7 +104,30 @@ export function captureCodexEvent(room, productId, input) {
       )
   )
     return { status: 'outside-product' };
-  const key = digest(`${productId}\0${event.session_id}\0${event.turn_id}`);
+  const key = executionKey(productId, event.session_id, event.turn_id);
+  if (
+    event.hook_event_name === 'PostToolUse' &&
+    /(?:^|__)workroom_(?:report_work|control_execute)$/.test(event.tool_name || '')
+  ) {
+    const input = event.tool_input;
+    const legacy = event.tool_name.endsWith('workroom_report_work');
+    if (!legacy && input?.command !== 'core.reportWork') return { status: 'ignored' };
+    if (!event.tool_use_id) return { status: 'ignored' };
+    const request = z.string().uuid().safeParse(input?.requestId);
+    if (!request.success) return { status: 'ignored' };
+    const { requestId: _requestId, ...legacyArgs } = input;
+    const parsed = schemas.reportWork.safeParse(legacy ? legacyArgs : input.args);
+    if (!parsed.success || parsed.data.productId !== productId)
+      return { status: 'outside-product' };
+    const link = room.executions.observe(
+      productId,
+      event,
+      request.data,
+      digest(JSON.stringify(parsed.data)),
+    );
+    return { status: 'observed', executionLinkId: link.id };
+  }
+  room.executions.reconcile();
   const state = room.store.transaction(() => {
     const old = room.store.list('capture').find((c) => c.key === key);
     if (event.hook_event_name === 'Interrupt') {
@@ -170,6 +195,7 @@ export function captureCodexEvent(room, productId, input) {
         '에이전트의 도구 호출과 완료 응답을 수집했습니다. 사용자의 구체적인 기여 범위는 별도로 작성해야 합니다.',
       changedFiles: state.files,
       checks: state.checks,
+      execution: { client: 'codex', sessionId: event.session_id, turnId: event.turn_id },
     },
     'codex-hook',
   );
@@ -190,5 +216,6 @@ export function captureCodexEvent(room, productId, input) {
     else room.store.create('capture-connection', connection);
     room.store.log('Codex 작업 수집', task.id, product.name);
   });
+  room.executions.reconcile();
   return { status: 'collected', taskId: task.id };
 }

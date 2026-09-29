@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { executionSchema, executionLinkSchema } from '../core/work-executions.mjs';
 
 // Required public fields are validated; additive domain fields remain intact.
 const object = (shape) => z.object(shape).catchall(z.json());
@@ -298,6 +299,8 @@ export const commandResultSchemas = {
     evidence: z.string(),
     limitations: z.string(),
     contribution: z.string(),
+    execution: executionSchema.optional(),
+    executionLink: executionLinkSchema,
   }),
   'core.createPortfolio': portfolio,
   'core.savePortfolio': portfolio,

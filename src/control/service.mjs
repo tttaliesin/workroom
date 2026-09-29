@@ -63,6 +63,7 @@ export class ControlService {
         ),
         effectMayHaveOccurred: op.status === 'running',
       });
+    room.executions.reconcile();
   }
   caller(value) {
     return callerSchema.parse(value || { channel: 'mcp', sessionId: this.instanceId });
@@ -264,6 +265,15 @@ export class ControlService {
         }
       } finally {
         this.pending.delete(requestId);
+        // A failed linkage update must not change a completed command into a failed command.
+        // Durable observations remain available for the next event or executor recovery.
+        if (['core.reportWork', 'capture.event', 'operation.reconcile'].includes(command)) {
+          try {
+            this.room.executions.reconcile();
+          } catch {
+            /* Retry from durable records. */
+          }
+        }
       }
     });
     this.pending.set(requestId, promise);

@@ -1,5 +1,6 @@
 // UI source strings only; user-authored content is never translated.
 export default {
+  '공통 실행 근거 · Codex 훅': 'Shared execution evidence · Codex hook',
   'MCP 사용 지침을 읽지 못했습니다. 연결을 갱신하세요.':
     'Could not read MCP guidance. Refresh the connection.',
   'Claude Desktop · stdio 연결 설정': 'Claude Desktop · stdio configuration',

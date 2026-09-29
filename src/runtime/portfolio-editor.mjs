@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { digest } from './files.mjs';
-import { projectWork } from '../core/work-projection.mjs';
+import { projectWork, isExecutionEvidence } from '../core/work-projection.mjs';
 import { redact } from './errors.mjs';
 
 export class PortfolioEditor {
@@ -24,6 +24,7 @@ export class PortfolioEditor {
         (t) =>
           t.kind === 'work' &&
           !t.parentTaskId &&
+          !isExecutionEvidence(t, tasks) &&
           !portfolio.excludedTaskIds?.includes(t.id) &&
           (portfolio.autoProductIds?.includes(t.productId) ||
             portfolio.entries.some((e) => e.taskId === t.id)),

@@ -4,6 +4,7 @@ import { html, button, date, e, empty, field, header } from './html.js';
 import { portfolioAgentPanel } from './operations-ui.js';
 import { jobSourcePanel, publicationPanel } from './publication-ui.js';
 import { data, loadDraft, product, productName, ui } from './state.js';
+import { isExecutionEvidence } from '../core/work-projection.mjs';
 export function newTarget() {
   return (
     header(tr('포트폴리오 대상 추가'), tr('기업별로 강조할 경험과 페이지를 따로 관리합니다.')) +
@@ -174,6 +175,7 @@ export function portfolioPage() {
                   (t) =>
                     t.kind === 'work' &&
                     !t.parentTaskId &&
+                    !isExecutionEvidence(t, data.tasks) &&
                     !d.entries.some((x) => x.taskId === t.id),
                 )
                 .map(

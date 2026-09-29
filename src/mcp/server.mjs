@@ -9,6 +9,7 @@ import { controlRequest } from '../control/transport.mjs';
 import { failure } from '../control/contracts.mjs';
 import { registerGuidance, serverInstructions } from './guidance.mjs';
 import { loadedBuild } from '../core/build-info.mjs';
+import { isExecutionEvidence, executionEvidence } from '../core/work-projection.mjs';
 
 const room = new Workroom(databaseFile);
 const server = new McpServer(
@@ -21,7 +22,7 @@ function tool(name, description, schema, readOnly, handler) {
   server.registerTool(
     name,
     {
-      description: `${description} 절차: workroom_guide. 기존 쓰기 도구도 안정적인 requestId를 전달하고 응답 유실 시 operation으로 조회하세요.`,
+      description: `${description} 일반 등록 프로젝트 작업의 시작·종료 행동과 기록 제외 조건: workroom_guide. 쓰기 도구도 안정적인 requestId를 전달하고 응답 유실 시 operation으로 조회하세요.`,
       inputSchema: (readOnly ? schema : schema.extend({ requestId: z.string().uuid().optional() }))
         .shape,
       annotations: {
@@ -115,7 +116,12 @@ tool(
   true,
   ({ productId }) => {
     room.store.get('product', productId);
-    return room.store.list('task').filter((t) => t.productId === productId && t.kind === 'work');
+    const tasks = room.store.list('task');
+    return tasks
+      .filter(
+        (t) => t.productId === productId && t.kind === 'work' && !isExecutionEvidence(t, tasks),
+      )
+      .map((t) => ({ ...t, executionEvidence: executionEvidence(t, tasks) }));
   },
 );
 tool(

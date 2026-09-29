@@ -5,7 +5,8 @@ import { Store } from './store.mjs';
 import { inspectFolder, normalizeFolder } from './inspection.mjs';
 import { applyTaskToPortfolio, preserveEntryEdits } from './portfolio-sync.mjs';
 import { WorkLinks } from './work-links.mjs';
-import { projectWork } from './work-projection.mjs';
+import { projectWork, isExecutionEvidence } from './work-projection.mjs';
+import { WorkExecutions, executionSchema, emptyExecutionLink } from './work-executions.mjs';
 import { KnowledgeService } from './knowledge.mjs';
 import { normalizeTemplate, portfolioTemplates } from '../shared/portfolio.mjs';
 import { projectReport } from '../shared/project-status.mjs';
@@ -96,6 +97,7 @@ export const schemas = {
       externalId: text(200).optional(),
       sourceVersion: z.number().int().positive().default(1),
       workTaskId: id.optional(),
+      execution: executionSchema.optional(),
       changedFiles: z
         .array(z.object({ path: text(2048), summary: text(2000) }).strict())
         .max(100)
@@ -153,6 +155,7 @@ export class Workroom {
     this.knowledge = new KnowledgeService(this.store, { embedding });
     this.busy = new Set();
     this.links = new WorkLinks(this.store);
+    this.executions = new WorkExecutions(this.store, this.links);
   }
   changes() {
     return this.store.changeToken();
@@ -231,6 +234,7 @@ export class Workroom {
       portfolios: this.store.list('portfolio'),
       reports: this.store.list('work-report'),
       workLinks: this.store.list('work-link'),
+      executionLinks: this.store.list('execution-link'),
       recordHistory: this.store.list('record-version'),
       contextUses: this.store.list('context-use').slice(0, 100),
       captureConnections: this.store.list('capture-connection'),
@@ -496,7 +500,7 @@ export class Workroom {
       return task;
     });
   }
-  reportWork(input, actor = 'user') {
+  reportWork(input, actor = 'user', context = {}) {
     const data = schemas.reportWork.parse(input);
     this.store.get('product', data.productId);
     if (!data.externalId && data.sourceVersion !== 1)
@@ -518,7 +522,10 @@ export class Workroom {
         if (data.sourceVersion < old.sourceVersion)
           throw new Error('이 작업의 더 최신 보고가 이미 저장되어 있습니다.');
         if (data.sourceVersion === old.sourceVersion) {
-          if (old.reportHash === reportHash) return old;
+          if (old.reportHash === reportHash) {
+            this.executions.receipt(context.requestId, old, reportHash, data.execution);
+            return { ...old, executionLink: old.executionLink || emptyExecutionLink() };
+          }
           throw new Error(
             '같은 보고 버전에 다른 내용이 있습니다. 수정한 보고는 sourceVersion을 높여 보내세요.',
           );
@@ -542,11 +549,13 @@ export class Workroom {
         actor,
         verification: 'reported',
         deployment: 'unconfirmed',
+        executionLink: old?.executionLink || emptyExecutionLink(),
       };
       const task = old
         ? this.store.update('task', old.id, old.revision, body)
         : this.store.create('task', body);
       this.links.archiveReport(task);
+      this.executions.receipt(context.requestId, task, reportHash, data.execution);
       if (parentTaskId) {
         const parent = this.store.get('task', parentTaskId);
         this.store.update('task', parent.id, parent.revision, {
@@ -708,9 +717,10 @@ export class Workroom {
         ),
       };
       const tasks = this.store.list('task');
-      next.pendingTaskIds = next.pendingTaskIds.filter(
-        (taskId) => !tasks.find((t) => t.id === taskId)?.parentTaskId,
-      );
+      next.pendingTaskIds = next.pendingTaskIds.filter((taskId) => {
+        const task = tasks.find((t) => t.id === taskId);
+        return task && !task.parentTaskId && !isExecutionEvidence(task, tasks);
+      });
       for (const taskId of next.pendingTaskIds)
         next = applyTaskToPortfolio(next, projectWork(this.store.get('task', taskId), tasks));
       const saved = this.store.update('portfolio', old.id, data.revision, next);

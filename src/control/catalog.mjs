@@ -37,6 +37,7 @@ export const entityKinds = [
   'publication',
   'publication-destination',
   'capture-connection',
+  'execution-link',
   'review-package',
   'review-record',
   'execution-decision',

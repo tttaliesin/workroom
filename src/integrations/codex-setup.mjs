@@ -65,7 +65,12 @@ export async function prepareCodexSetup(room, productId, { database, node, scrip
     config.hooks[event] = [
       ...kept,
       {
-        ...(event === 'PostToolUse' ? { matcher: '^(Bash|apply_patch|Edit|Write)$' } : {}),
+        ...(event === 'PostToolUse'
+          ? {
+              matcher:
+                '^(Bash|exec_command|apply_patch|Edit|Write|mcp__.+__workroom_(report_work|control_execute))$',
+            }
+          : {}),
         hooks: [
           {
             type: 'command',

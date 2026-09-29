@@ -23,7 +23,7 @@ try {
     throw new Error('지원하지 않는 작업실 데이터 파일입니다. 연결을 다시 설치하세요.');
   const directory = path.dirname(binding.database);
   const connection = await connectControl(directory, projectRoot, { start: true });
-  if (!connection.compatible) throw new Error(connection.recovery);
+  if (!connection.readyForControl) throw new Error(connection.recovery);
   const requestId = randomUUID();
   let operation = await controlRequest(directory, 'execute', {
     command: 'capture.event',

@@ -30,7 +30,7 @@ export function createCommands({ room, getEngine, getBroker, publications, publi
       if (method !== 'event') throw new Error('Unknown capture command');
       return captureCodexEvent(room, args.productId, args.event);
     },
-    core: async (method, args = {}, actor = 'user') => {
+    core: async (method, args = {}, actor = 'user', context = {}) => {
       const engine = getEngine();
       if (!coreMethods.has(method)) throw new Error(t('지원하지 않는 작업입니다.'));
       if (method === 'snapshot')
@@ -61,7 +61,7 @@ export function createCommands({ room, getEngine, getBroker, publications, publi
           reviewRecords: room.store.list('review-record'),
           executionDecisions: room.store.list('execution-decision'),
         };
-      const result = await room[method](args, actor);
+      const result = await room[method](args, actor, context);
       if (method === 'resolveDecision') engine?.recovery.tick();
       return result;
     },

@@ -1,4 +1,21 @@
 // A task owns a problem; report tasks retain their original identity and payload.
+export function isExecutionEvidence(task, tasks = []) {
+  return (
+    task.actor === 'codex-hook' &&
+    task.executionLink?.status === 'linked' &&
+    task.executionLink.structuredTaskIds.length > 0 &&
+    !task.linkReason &&
+    !task.parentTaskId &&
+    !tasks.some((t) => t.parentTaskId === task.id)
+  );
+}
+export function executionEvidence(task, tasks) {
+  const ids = new Set(workReports(task, tasks).flatMap((r) => r.executionLink?.hookTaskIds || []));
+  return tasks.filter(
+    (t) =>
+      ids.has(t.id) && t.executionLink?.status === 'linked' && !t.linkReason && !t.parentTaskId,
+  );
+}
 export function workReports(task, tasks) {
   return [
     task,

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { applyTaskToPortfolio, entryFromTask } from './portfolio-sync.mjs';
-import { projectWork, sourceReports } from './work-projection.mjs';
+import { projectWork, sourceReports, isExecutionEvidence } from './work-projection.mjs';
 
 const id = z.string().uuid();
 const revision = z.number().int().positive();
@@ -50,7 +50,15 @@ export class WorkLinks {
     const tasks = this.store.list('task');
     for (const p of this.store.list('portfolio')) {
       let next = structuredClone(p);
-      for (const taskId of new Set(ids.filter(Boolean))) {
+      const redundant = (id) => {
+        const task = tasks.find((t) => t.id === id);
+        return !!task && (!!task.parentTaskId || isExecutionEvidence(task, tasks));
+      };
+      // Free duplicate automatic slots before inserting their structured replacements.
+      const ordered = [...new Set(ids.filter(Boolean))].sort(
+        (a, b) => Number(redundant(b)) - Number(redundant(a)),
+      );
+      for (const taskId of ordered) {
         const raw = tasks.find((t) => t.id === taskId);
         if (!raw) continue;
         const source = next.entrySources?.[taskId];
@@ -68,8 +76,13 @@ export class WorkLinks {
             },
           };
         }
-        if (raw.parentTaskId) {
-          if (index >= 0 && source?.automatic && !source.editedFields.length) {
+        if (raw.parentTaskId || isExecutionEvidence(raw, tasks)) {
+          if (
+            index >= 0 &&
+            source?.automatic &&
+            !source.editedFields.length &&
+            !source.agentEdited
+          ) {
             next.entries.splice(index, 1);
             delete next.entrySources[taskId];
           }
@@ -103,7 +116,7 @@ export class WorkLinks {
       const task = this.store.get('task', d.id);
       if (task.kind !== 'work' || task.revision !== d.revision)
         throw new Error('작업이 변경되었습니다. 연결할 내용을 다시 확인하세요.');
-      if ((task.parentTaskId || null) === d.parentTaskId)
+      if ((task.parentTaskId || null) === d.parentTaskId && !isExecutionEvidence(task))
         throw new Error('이미 같은 작업에 연결되어 있습니다.');
       if (this.store.list('task').some((t) => t.parentTaskId === task.id))
         throw new Error('연결된 실행이 있는 작업입니다. 먼저 하위 실행의 연결을 정리하세요.');

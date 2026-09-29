@@ -1,5 +1,5 @@
 import { t as tr } from '../shared/i18n.mjs';
-import { projectWork, workReports } from '../core/work-projection.mjs';
+import { projectWork, workReports, executionEvidence } from '../core/work-projection.mjs';
 import { html, button, date, e, empty, field, header, icon } from './html.js';
 import { productHome } from './product-overview.js';
 import { agentDetail } from './runtime-ui.js';
@@ -385,10 +385,21 @@ function reportDetails(t) {
     </section>`;
 }
 function executionList(t) {
-  return workReports(t, data.tasks)
+  const observations = executionEvidence(t, data.tasks)
     .map(
-      (r) =>
-        html`<article class="execution-row">
+      (r) => html`<details class="verification">
+    <summary>${e(tr('공통 실행 근거 · Codex 훅'))} · ${date(r.created)}</summary>
+    <p class="gap">${e(r.evidence)}</p><p class="small muted gap">${e(r.limitations)}</p>
+    ${button(r.title, `task:${r.id}`, 'class="link"')}
+  </details>`,
+    )
+    .join('');
+  return (
+    observations +
+    workReports(t, data.tasks)
+      .map(
+        (r) =>
+          html`<article class="execution-row">
             <div class="row between">
               <div>
                 <h3>${e(r.title)}</h3>
@@ -420,8 +431,9 @@ function executionList(t) {
                 .join('')}
             </details>
           </article>`,
-    )
-    .join('');
+      )
+      .join('')
+  );
 }
 function workFollowup(reports) {
   const checks = reports.flatMap((r) =>

@@ -25,10 +25,15 @@ import { projectRoot } from '../src/core/paths.mjs';
 test('every public command and documented command has guidance grounded in its real contract', async () => {
   assert.deepEqual(Object.keys(commandUsage).sort(), Object.keys(catalog).sort());
   assert(serverInstructions.length <= 512);
+  assert.equal(guidanceVersion, 2);
+  assert.match(serverInstructions, /even without a Workroom mention/);
   for (const language of ['ko', 'en'])
     for (const topic of topics) {
       const value = guide(topic, language);
       assert(value.steps.length && value.rules.length && value.completion);
+      assert.equal(value.scenarios.length, 6);
+      for (const scenario of value.scenarios)
+        for (const key of ['when', 'action', 'exclude', 'complete']) assert(scenario[key]);
       for (const command of value.commands) {
         assert.equal(command.reviewRequired, catalog[command.name].reviewRequired);
         assert.deepEqual(command.requiredInputs, catalog[command.name].input.required || []);
