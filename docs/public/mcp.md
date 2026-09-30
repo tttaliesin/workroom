@@ -16,6 +16,10 @@ Claude 확인에서는 Workroom이나 기록 절차 없이 프로젝트의 조�
 
 등록한 폴더에서 “이 버그 고쳐줘”, “이 조사 결과 정리해줘”처럼 요청해도 지침은 시작 시 맥락 조회, 의미 있는 작업 종료 시 결과 기록과 근거 있는 현황 갱신을 요구합니다. 가장 구체적인 등록 폴더를 선택하며 미등록 프로젝트를 자동 생성하지 않습니다. 실패·부분 완료를 완료로 바꾸거나 담당자·일정·다른 위험을 추정하지 않습니다. 일반 개발은 클라이언트의 파일 도구로 수행하고 결과만 보고합니다. 이미 고친 파일을 `external.submit`으로 재제출하지 않습니다.
 
+업무 시작 전 등록 여부를 이미 안다고 가정하지 않습니다. `workroom_list_products`로 실제 작업 폴더나 사용자가 지정한 대상을 먼저 대조하고, 일치한 등록 대상에만 맥락 조회·결과 보고를 수행합니다. 잡담은 이 업무 절차에서 제외하며 미등록 대상을 자동 생성·보고하지 않습니다. 기록 거부는 아래 수집 중지 규칙까지 따릅니다. 이 첫 조회 규칙은 서버 초기 안내·도구 설명·한영 guide·리소스·프롬프트의 공통 원본에 들어 있습니다. 지침만 바뀌며 protocol 2와 업무 계약은 바뀌지 않습니다. 이미 연결된 MCP 어댑터는 갱신해야 수정한 안내를 읽습니다.
+
+2026-09-30 실제 Codex 버그 요청에서는 코드 수정과 Node 검사 성공 뒤에도 Workroom 조회·보고가 없었습니다. 후속 도구 목록 진단은 두 Workroom 서버의 노출을 확인했으나 실제 연결·자발적 사용의 성공 증거가 아닙니다. 격리 폴더의 훅 신뢰를 확인하고 첫 등록 조회 규칙을 보완했습니다. 원래 실패와 MCP를 언급한 진단 대화를 새로운 자발적 수용으로 재사용하지 않으며, 새 실제 대화 확인은 아직 남아 있습니다.
+
 잡담·단순 설명·반복 조회는 보고 대상이 아닙니다. “기록하지 마라”는 지시를 우선합니다. 해당 프로젝트의 Codex 훅 수집이 켜져 있으면 파일 작업 전에 `core.setCodexCapture(enabled:false)`로 끄고 저장을 확인하도록 안내합니다. 이는 프로젝트 단위 설정이며 임의로 다시 켜지 않습니다. 지침 전달은 모델의 자발적 실행을 보장하는 강제 실행기가 아닙니다. 양쪽 실제 대화의 v2 자발적 사용은 아래 검증 상태와 구분하세요.
 
 ### 실행 출처와 중복 기록
@@ -224,6 +228,10 @@ Workroom이 기준 복사본과 수정 복사본을 만들고, 전달받은 파�
 On 2026-09-30, the current Codex connection directly confirmed guidance v2, matching contracts/profile and readiness for control. Actual setup reports, host requests and the Stop summary are linked; the work list counts one structured report with hook evidence. A fresh Claude Desktop conversation autonomously retrieved research context, summarized it, saved a report and read it back after user-granted tool permission. No Workroom or recording instructions were added to its request. Its saved report was separately compared through a read-only MCP client; that comparison is not the autonomous model. The built-in AI was disconnected, and no code edits, newly executed checks or publication were claimed. Chat, an unregistered target and a recording opt-out added no report. Replaying the same request and report IDs retained one task with its original revision and content. Fresh Codex ordinary-request acceptance and live deduplication in project reports and portfolios remain unverified.
 
 Guidance v2 applies to ordinary work in registered folders, even without a Workroom mention: read context at the start, report meaningful outcomes and evidenced status changes, then confirm stored content. Use the most specific registered folder; do not create missing projects automatically. Preserve current owners, dates and unrelated risks. Report partial or failed work honestly. Ordinary edits use client file tools; the managed proposal/review/apply workflow is only for explicitly delegated Workroom proposals.
+
+Do not assume registration is already known. Before project work, call `workroom_list_products` and match the actual folder or user-specified target; only matched registered projects receive context reads and reports. Skip chat, never auto-create unregistered targets, and follow the capture opt-out rules below. The common source delivers this initial lookup through server instructions, tool descriptions, bilingual guides, resources and prompts. Protocol 2 and business contracts are unchanged; refresh connected adapters to receive revised guidance.
+
+The actual Codex bug request on 2026-09-30 fixed code and passed Node checks, but made no Workroom context or report call. A subsequent tool inventory diagnosis confirmed exposure of both servers, not successful connection or autonomous recording. Isolated hook trust was confirmed and the initial registration lookup was clarified. The failed request and MCP-primed diagnosis do not replace acceptance in a fresh actual conversation, which remains pending.
 
 Skip chat, simple explanations and repeated status reads. Respect recording opt-outs. If Codex capture is enabled, disable it with `core.setCodexCapture(enabled:false)` before file work, verify that change and explain that project capture remains off. Do not silently re-enable it. This is a project-wide setting, not a per-turn privacy switch.
 

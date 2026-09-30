@@ -255,9 +255,9 @@ export const commandUsage = {
 export const scenarios = {
   ko: [
     {
-      when: '등록된 프로젝트의 작업 시작·재개',
+      when: '프로젝트 업무의 시작·재개와 등록 여부 확인',
       action:
-        'workroom_list_products와 실제 작업 폴더를 대조한다. 명시된 ID 또는 가장 구체적인 중첩 폴더의 프로젝트를 선택하고 현황·task·결정·core.context를 읽는다.',
+        '등록 여부를 이미 안다고 가정하지 말고, 의미 있는 프로젝트 업무를 시작하기 전에 workroom_list_products를 조회해 실제 작업 폴더 또는 사용자가 지정한 프로젝트를 대조한다. 명시된 ID나 일치하는 가장 구체적인 중첩 폴더의 프로젝트를 선택하고, 등록 대상일 때만 현황·task·결정·core.context를 읽는다.',
       exclude:
         '미등록 폴더는 자동 생성하지 않는다. 대상이 모호할 때만 질문하고 같은 작업에서 변화 없는 자료를 반복 조회하지 않는다.',
       complete: '현재 작업에 적용되는 맥락과 실제 프로젝트 ID를 확인했다.',
@@ -302,9 +302,9 @@ export const scenarios = {
   ],
   en: [
     {
-      when: 'Starting or resuming work in a registered project',
+      when: 'Starting or resuming project work and checking registration',
       action:
-        'Compare workroom_list_products with the actual working folder. Use an explicit ID or the most specific nested project; read status, tasks, decisions and core.context.',
+        'Do not assume registration is already known. Before meaningful project work, call workroom_list_products and match the actual working folder or user-specified project. Use an explicit ID or the most specific matching nested folder; read status, tasks, decisions and core.context only for a registered target.',
       exclude:
         'Do not auto-create an unregistered project. Ask only when ambiguous; avoid repeated reads of unchanged context within the same task.',
       complete: 'The actual project ID and applicable context are confirmed.',
@@ -549,7 +549,7 @@ const workflows = {
 
 export const guideUri = (language, topic) => `workroom://guides/${language}/${topic}`;
 export const serverInstructions =
-  'For ordinary work in a registered project, even without a Workroom mention: read workroom_guide and project context at start; report meaningful results and evidenced status changes at end, then verify storage. Skip chat, unregistered folders and recording opt-outs. Use normal file tools; external.submit is only for delegated managed proposals. Match folder/ID and check connection/catalog. Keep stable requestId; query lost results. Never invent progress or host IDs. Hashes are not review or consent.';
+  'At project-work start, even without a Workroom mention, call workroom_list_products to match the working folder or named project; do not assume registration. If matched, read workroom_guide/context, report actual outcomes and verify stored task. Skip chat/unregistered targets; honor opt-outs. Use normal file tools. Check profile/catalog; start only offline. Keep requestId; query lost results. Respect review/delegation. Never invent progress or host IDs. Hashes are not review or consent.';
 
 export function guide(topic = 'start', language = 'ko') {
   const [title, when, steps, completion] = workflows[topic][language];
@@ -591,7 +591,7 @@ export function registerGuidance(server) {
     'workroom_guide',
     {
       description:
-        '일반 작업 시작 시 맥락 조회, 의미 있는 작업 종료 시 결과·근거 있는 현황 저장을 안내합니다. Read for ordinary registered-project work even without a Workroom mention; respects recording opt-outs. start/projects/records/development/portfolio/capture/recovery. Offline, no writes. 한국어/English.',
+        '프로젝트 업무 시작 시 제품 목록으로 등록 여부를 먼저 확인하고, 일치한 대상의 맥락 조회와 결과 저장을 안내합니다. Before ordinary project work, check registration by folder/name even without a Workroom mention; report only matched targets and respect opt-outs. start/projects/records/development/portfolio/capture/recovery. Offline, no writes. 한국어/English.',
       inputSchema: {
         topic: z.enum(topics).default('start'),
         language: z.enum(['ko', 'en']).default('ko'),
