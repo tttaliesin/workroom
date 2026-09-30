@@ -58,10 +58,10 @@ Open **Settings → General → Interface language** at the bottom left and choo
 
 1. **Connect a product folder** — Select a development folder and describe your goal.
 2. **Assign a task** — Describe the result you want, then choose **Investigate first** or **Prepare changes too**.
-3. **Connect an account** — Connect your ChatGPT account and select a model to run the saved request.
+3. **Connect the built-in AI account** — Connect your ChatGPT account and select a model to run the saved AI request.
 4. **Review and apply** — Inspect the diff, checks and review, then apply the reviewed version to the source.
 
-Workroom starts empty. You can prepare requests before signing in, browse existing records and use MCP collection without connecting the built-in agent account.
+Workroom starts empty. A ChatGPT account is needed for built-in AI work. Project status and plan editing, record lookup, and external Codex/Claude work reports, reviews and application do not require a built-in AI account. You can prepare AI requests before signing in.
 
 ## A look inside
 
@@ -165,7 +165,7 @@ The built-in agent sends investigation and change requests to the connected mode
 
 Closing the window exits by default. Enable tray execution in **Settings → General** to keep running, then use **Quit Workroom** in the tray to stop.
 
-**Guidance v2 live connection setup · 2026-09-30:** The current Codex conversation directly confirmed guidance v2, matching current adapter/executor contracts and data directories, and readiness for control. After hook review, installation and user-confirmed trust, the setup work was reported and read back; an actual host hook linked its request ID and report hash to the stored task. Claude's regular connection configuration and isolated validation connections for both clients were also prepared. Claude connection refresh, autonomous recording in fresh conversations and deduplication after Stop remain pending. Other running user work was not terminated.
+**Guidance v2 live connection setup · 2026-09-30:** The current Codex conversation directly confirmed guidance v2, matching current adapter/executor contracts and data directories, and readiness for control. After hook installation and user-confirmed trust, actual setup reports were stored and read back, with host requests and the Stop summary linked. The work list presents one structured report with hook evidence instead of another achievement. Claude's regular connection and isolated validation connections for both clients were also prepared. **Autonomous recording in fresh conversations, Claude refresh and actual use, and live deduplication in project reports and portfolios remain pending.** Explicit setup work does not establish ordinary-request acceptance.
 
 **Guidance v2 automated validation · 2026-09-29:** Isolated real stdio MCP covered failing→passing checks around direct file edits, revised reports, storage confirmation and status updates preserving existing owners, dates and risks. Synthetic hook ordering, replay, origin conflicts, distinct problems and recovery after actual process termination also passed. These do not establish autonomous use in real Codex or Claude conversations.
 

@@ -10,7 +10,7 @@ Workroom 앱과 MCP는 같은 명령·검토·실행 규칙을 사용합니다. 
 
 ### 일반 작업의 기본 행동
 
-v2 검증 상태: 격리 stdio MCP의 직접 파일 수정·실제 Node 검사·보고 수정·저장 확인·관련 현황 갱신, 합성 훅 연결과 실제 프로세스 중단 복구, 기존 Electron 현황·보고 내보내기 회귀를 확인했습니다. **2026-09-30 현재 Codex의 실제 연결에서 지침 v2, 최신 어댑터·실행기의 계약·프로필 일치와 `readyForControl:true`를 확인했습니다.** 기존 프로젝트 훅을 검토·설치하고 사용자의 신뢰 확인 뒤 현재 설정 작업의 보고 저장·재조회와 실제 호스트 PostToolUse의 요청·보고 해시·저장 작업 연결을 확인했습니다. Claude의 실제 자료용 연결 설정과 양쪽 격리 검증 연결은 준비했지만, 실행 중 다른 작업을 종료하지 않았습니다. **새 대화의 v2 자발적 사용과 Stop 이후 중복 집계는 아직 미검증**이며 현재 설정 작업의 수동 호출·SDK 준비 성공과 구분합니다.
+v2 검증 상태: 격리 stdio MCP의 직접 파일 수정·실제 Node 검사·보고 수정·저장 확인·관련 현황 갱신, 합성 훅 연결과 실제 프로세스 중단 복구, 기존 Electron 현황·보고 내보내기 회귀를 확인했습니다. **2026-09-30 현재 Codex의 실제 연결에서 지침 v2, 최신 어댑터·실행기의 계약·프로필 일치와 `readyForControl:true`를 확인했습니다.** 기존 프로젝트 훅 설치·사용자 신뢰 뒤 실제 설정 작업의 보고 저장·재조회, PostToolUse 요청 연결과 Stop 요약 연결을 확인했습니다. 작업 목록은 구조화 보고 한 건에 훅 요약을 근거로 연결하며 중복 성과에서 제외합니다. Claude의 실제 자료용 연결과 양쪽 격리 검증 연결도 준비했습니다. **새 대화의 v2 자발적 사용, Claude 연결 갱신·실사용, 프로젝트 보고서·포트폴리오의 실제 중복 집계는 아직 미검증**이며 설정 작업의 성공·SDK 준비와 구분합니다.
 
 등록한 폴더에서 “이 버그 고쳐줘”, “이 조사 결과 정리해줘”처럼 요청해도 지침은 시작 시 맥락 조회, 의미 있는 작업 종료 시 결과 기록과 근거 있는 현황 갱신을 요구합니다. 가장 구체적인 등록 폴더를 선택하며 미등록 프로젝트를 자동 생성하지 않습니다. 실패·부분 완료를 완료로 바꾸거나 담당자·일정·다른 위험을 추정하지 않습니다. 일반 개발은 클라이언트의 파일 도구로 수행하고 결과만 보고합니다. 이미 고친 파일을 `external.submit`으로 재제출하지 않습니다.
 
@@ -218,6 +218,8 @@ Workroom이 기준 복사본과 수정 복사본을 만들고, 전달받은 파�
 명령 이력은 요청 ID·지문·출처·안전한 대상 참조·상태·결과를 보관합니다. 비밀 명령의 원문·오류·결과에 토큰이나 수동 인증 코드를 남기지 않습니다. 검토 자료에는 검토에 필요한 비밀을 제외한 인수와 근거가 저장됩니다. 브라우저 인증은 사용자가 해당 인증 시스템에서 완료합니다.
 
 ## English workflow
+
+On 2026-09-30, the current Codex connection directly confirmed guidance v2, matching contracts/profile and readiness for control. Actual setup reports, host requests and the Stop summary are linked; the work list counts one structured report with hook evidence. Fresh-conversation autonomous recording, Claude refresh and actual use, and live deduplication in project reports and portfolios remain unverified. Explicit setup work and SDK preparation do not replace ordinary-request acceptance.
 
 Guidance v2 applies to ordinary work in registered folders, even without a Workroom mention: read context at the start, report meaningful outcomes and evidenced status changes, then confirm stored content. Use the most specific registered folder; do not create missing projects automatically. Preserve current owners, dates and unrelated risks. Report partial or failed work honestly. Ordinary edits use client file tools; the managed proposal/review/apply workflow is only for explicitly delegated Workroom proposals.
 
