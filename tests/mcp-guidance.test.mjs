@@ -44,7 +44,7 @@ test('every public command and documented command has guidance grounded in its r
         assert(Object.hasOwn(catalog, name), `Unknown guide command ${name}`);
       }
     }
-  for (const filename of ['MCP.md', 'README.md', 'README.en.md']) {
+  for (const filename of ['docs/public/mcp.md', 'README.md', 'README.en.md']) {
     const text = await readFile(path.join(projectRoot, filename), 'utf8');
     for (const [name] of text.matchAll(
       /\b(?:core|runtime|review|connection|publication|artifact|operation|external|capture)\.[a-zA-Z]+/g,

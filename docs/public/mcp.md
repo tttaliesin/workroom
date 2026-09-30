@@ -1,6 +1,6 @@
 # Control Workroom from Codex and Claude Desktop
 
-[한국어 README](README.md) · [English README](README.en.md)
+[한국어 README](../../README.md) · [English README](../../README.en.md)
 
 Workroom 앱과 MCP는 같은 명령·검토·실행 규칙을 사용합니다. Codex에서 자료 조회 → 검토 의견 → 실행 결정 → 반영 → 결과 확인까지 진행할 수 있습니다. 앱의 승인 화면을 별도로 열 필요가 없습니다.
 

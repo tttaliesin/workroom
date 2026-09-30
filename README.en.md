@@ -114,9 +114,9 @@ Each record includes applicability, sources and delivery history. The built-in a
 
 **MCP guidance v2 covers ordinary work scenarios.** In a registered project, requests such as “Fix this bug” or “Summarize these findings” instruct the client to read context at the start, report meaningful results and update evidenced status at the end. The bilingual `workroom_guide` needs no separate Skill. Chat, unregistered folders and recording opt-outs are excluded. Ordinary file edits use Codex/Claude tools and are not resubmitted through Workroom's managed-proposal workflow.
 
-When Codex hooks confirm the MCP report's request ID, the structured report and hook summary share execution evidence without counting the hook as another achievement. Distinct problems within one turn and original evidence remain separate; user-edited portfolio text is preserved. **Autonomous recording under v2 in both real client conversations remains unverified.** Existing installations need both adapter and executor refreshed, plus hook reinstallation and trust review for the changed definitions. [Ordinary work and execution linkage](MCP.md#english-workflow)
+When Codex hooks confirm the MCP report's request ID, the structured report and hook summary share execution evidence without counting the hook as another achievement. Distinct problems within one turn and original evidence remain separate; user-edited portfolio text is preserved. **Autonomous recording under v2 in both real client conversations remains unverified.** Existing installations need both adapter and executor refreshed, plus hook reinstallation and trust review for the changed definitions. [Ordinary work and execution linkage](docs/public/mcp.md#english-workflow)
 
-For Claude Desktop, use **Settings → External tools → Other MCP clients → View connection settings → Copy MCP configuration**, then merge the workroom entry into the existing `mcpServers` in Developer settings. Codex and Claude use the same executable, server and explicit data directory. [Connection and guidance documentation](MCP.md#english-workflow)
+For Claude Desktop, use **Settings → External tools → Other MCP clients → View connection settings → Copy MCP configuration**, then merge the workroom entry into the existing `mcpServers` in Developer settings. Codex and Claude use the same executable, server and explicit data directory. [Connection and guidance documentation](docs/public/mcp.md#english-workflow)
 
 Diagnostics distinguish the MCP adapter from the executor. Refresh the client MCP connection for `ADAPTER_OUTDATED`; check active work and unsaved input before restarting an `EXECUTOR_OUTDATED` executor. Set `expectedDataDirectory` to verify the intended profile. **MCP connection alone does not collect conversations.** Automatic capture uses separate Codex hooks and does not collect Claude conversations.
 
@@ -124,7 +124,7 @@ The built-in runner uses [Pi](https://www.npmjs.com/package/@earendil-works/pi-c
 
 **You can also operate Workroom from Codex through MCP:** register products, answer decisions, start/stop/resume AI work, configure automation, edit portfolios and publish. Review changes and checks in Codex, then request application or publication of that exact version. No separate approval screen in the app is required.
 
-If Workroom is closed, call `workroom_control_connect` with `start:true` to start the executor without opening a window. App actions, both MCP interfaces, automatic collection and scheduling share a command boundary. Prepare a review package, submit your assessment with `review.submit`, record an execution decision with `review.decide`, then execute using the saved review and decision IDs. A review hash alone is not approval. `external.submit` accepts proposed file contents and base hashes, runs actual checks in isolated copies and permits reviewed application without a built-in AI account. Request IDs retain results across retries; uncertain effects are reconciled against evidence instead of blindly repeated. Protocol 2 is required; an older running app needs a normal restart before reconnecting. [MCP workflow and command contract](MCP.md)
+If Workroom is closed, call `workroom_control_connect` with `start:true` to start the executor without opening a window. App actions, both MCP interfaces, automatic collection and scheduling share a command boundary. Prepare a review package, submit your assessment with `review.submit`, record an execution decision with `review.decide`, then execute using the saved review and decision IDs. A review hash alone is not approval. `external.submit` accepts proposed file contents and base hashes, runs actual checks in isolated copies and permits reviewed application without a built-in AI account. Request IDs retain results across retries; uncertain effects are reconciled against evidence instead of blindly repeated. Protocol 2 is required; an older running app needs a normal restart before reconnecting. [MCP workflow and command contract](docs/public/mcp.md)
 
 App-wide settings live under **Settings** at the bottom left: **AI runs** (Workroom AI account, model and pause), **External tools** (letting external tools read and edit records, run tasks, review and apply results) and **Publishing account** (the Vercel token for portfolio publishing). Product-specific settings are in each product’s **Settings** tab. To report work yourself, use **Record work result / Create decision request** below the **Work** list.
 
@@ -141,7 +141,7 @@ You do not need to edit configuration files or open a separate terminal. Initial
 
 Generic stdio settings for other MCP clients are available in **Settings → External tools → Other MCP clients · Recent record changes → View connection settings**. Workroom and the MCP server use the same local SQLite data.
 
-Command results are validated against **contractVersion 1**. Check that **liveConnection, compatible and contractCompatible** are all true in `workroom_control_connect`. An invalid result or completion-storage failure leaves the request `uncertain`; inspect effects using the original request ID before taking further action. Seeing tools in a list does not establish executor connectivity. [Connection refresh and recovery](MCP.md#연결-갱신과-확인)
+Command results are validated against **contractVersion 1**. Check that **liveConnection, compatible and contractCompatible** are all true in `workroom_control_connect`. An invalid result or completion-storage failure leaves the request `uncertain`; inspect effects using the original request ID before taking further action. Seeing tools in a list does not establish executor connectivity. [Connection refresh and recovery](docs/public/mcp.md#연결-갱신과-확인)
 
 ### Use alongside Jev Context
 
@@ -174,6 +174,8 @@ Closing the window exits by default. Enable tray execution in **Settings → Gen
 The latest cleanup removes a circular dependency in verification, reduces redundant persisted state and automatically cleans up temporary profiles after successful checks.
 
 ## Help improve Workroom
+
+See the [repository layout and document/Git policy](docs/public/repository.md).
 
 Report the screen involved and steps to reproduce in an [issue](https://github.com/tttaliesin/workroom/issues). For code changes, run:
 

@@ -1,16 +1,38 @@
+# Dependencies and generated output
 node_modules/
 .cache/
+/coverage/
+/dist/
+
+# Local profiles, research fixtures and verification evidence
 .workroom/
 work/
+/outputs/
 *.sqlite*
 *.log
+
+# Local environment and hosting configuration (templates may be shared)
+.env
+.env.*
+!.env.example
+!.env.*.example
+.vercel/
+
+# Operating-system files
+.DS_Store
+Thumbs.db
+Desktop.ini
 
 # Private planning, design and verification notes (kept locally, not published)
 /PRODUCT.md
 /DESIGN.md
 /MIGRATION.md
-/outputs/
-/docs/
+# Keep existing planning documents private; only these public guides are shared.
+/docs/*
+!/docs/public/
+/docs/public/*
+!/docs/public/mcp.md
+!/docs/public/repository.md
 
 # Agent instruction and session files
 AGENTS.md
